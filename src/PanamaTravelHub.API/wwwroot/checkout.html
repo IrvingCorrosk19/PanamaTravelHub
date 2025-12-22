@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout — ToursPanama</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/checkout.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner wrap">
+      <div class="brand">
+        <div class="mark"></div>
+        <a href="/"><span class="brand-text">ToursPanama</span></a>
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Tours</a>
+        <a href="/reservas.html" class="nav-link">Mis Reservas</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="checkout-container wrap">
+    <div class="checkout-header">
+      <h1>Finalizar Reserva</h1>
+      <p class="checkout-subtitle">Completa tu información y selecciona el método de pago</p>
+    </div>
+
+    <div class="checkout-grid">
+      <!-- Left Column - Form -->
+      <div class="checkout-form-section">
+        <!-- Tour Summary -->
+        <section class="checkout-section">
+          <h2 class="section-title">Resumen del Tour</h2>
+          <div id="tourSummary" class="tour-summary-card">
+            <div class="summary-loading">Cargando información del tour...</div>
+          </div>
+        </section>
+
+        <!-- Participant Information -->
+        <section class="checkout-section">
+          <h2 class="section-title">Información de Participantes</h2>
+          <div class="participants-form">
+            <div class="form-group">
+              <label class="form-label">Número de Participantes</label>
+              <input type="number" id="numberOfParticipants" class="form-input" min="1" max="10" value="1" onchange="updateParticipants()" />
+            </div>
+            <div id="participantsList" class="participants-list"></div>
+          </div>
+        </section>
+
+        <!-- Payment Method -->
+        <section class="checkout-section">
+          <h2 class="section-title">Método de Pago</h2>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-lg); font-size: 0.95rem;">
+            Selecciona tu método de pago preferido
+          </p>
+          <div class="payment-methods">
+            <div class="payment-method-card selected" data-method="stripe" onclick="selectPaymentMethod('stripe')">
+              <span class="payment-badge">Recomendado</span>
+              <div class="payment-method-header">
+                <input type="radio" name="paymentMethod" value="stripe" id="stripe" checked />
+                <label for="stripe" class="payment-method-label">
+                  <span class="payment-icon">💳</span>
+                  <span class="payment-name">Tarjeta de Crédito/Débito</span>
+                </label>
+              </div>
+              <div class="payment-method-details" id="stripeDetails">
+                <div class="form-group">
+                  <label class="form-label">Número de Tarjeta</label>
+                  <input type="text" class="form-input" placeholder="1234 5678 9012 3456" maxlength="19" id="cardNumber" />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Fecha de Vencimiento</label>
+                    <input type="text" class="form-input" placeholder="MM/AA" maxlength="5" id="cardExpiry" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">CVV</label>
+                    <input type="text" class="form-input" placeholder="123" maxlength="4" id="cardCvv" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nombre en la Tarjeta</label>
+                  <input type="text" class="form-input" placeholder="Juan Pérez" id="cardName" />
+                </div>
+                <p class="payment-info">🔒 Pago seguro con encriptación SSL</p>
+              </div>
+            </div>
+
+            <div class="payment-method-card" data-method="paypal" onclick="selectPaymentMethod('paypal')">
+              <div class="payment-method-header">
+                <input type="radio" name="paymentMethod" value="paypal" id="paypal" />
+                <label for="paypal" class="payment-method-label">
+                  <span class="payment-icon">🅿️</span>
+                  <span class="payment-name">PayPal</span>
+                </label>
+              </div>
+              <div class="payment-method-details" id="paypalDetails" style="display:none;">
+                <p class="payment-info">Serás redirigido a PayPal para completar el pago de forma segura.</p>
+                <p class="payment-info">💳 Acepta tarjetas y cuenta PayPal</p>
+              </div>
+            </div>
+
+            <div class="payment-method-card" data-method="yappy" onclick="selectPaymentMethod('yappy')">
+              <div class="payment-method-header">
+                <input type="radio" name="paymentMethod" value="yappy" id="yappy" />
+                <label for="yappy" class="payment-method-label">
+                  <span class="payment-icon">📱</span>
+                  <span class="payment-name">Yappy</span>
+                </label>
+              </div>
+              <div class="payment-method-details" id="yappyDetails" style="display:none;">
+                <div class="form-group">
+                  <label class="form-label">Número de Teléfono</label>
+                  <input type="tel" class="form-input" placeholder="+507 6000-0000" id="yappyPhone" />
+                </div>
+                <p class="payment-info">Recibirás un código QR para escanear con tu app Yappy.</p>
+                <p class="payment-info">🇵🇦 Método de pago panameño</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column - Order Summary -->
+      <aside class="checkout-summary">
+        <div class="summary-card-sticky">
+          <h2 class="summary-title">Resumen de la Reserva</h2>
+          
+          <div class="summary-item">
+            <span class="summary-label">Tour</span>
+            <span class="summary-value" id="summaryTourName">-</span>
+          </div>
+          
+          <div class="summary-item">
+            <span class="summary-label">Participantes</span>
+            <span class="summary-value" id="summaryParticipants">1</span>
+          </div>
+          
+          <div class="summary-item">
+            <span class="summary-label">Precio unitario</span>
+            <span class="summary-value" id="summaryUnitPrice">$0.00</span>
+          </div>
+          
+          <div class="summary-divider"></div>
+          
+          <div class="summary-item summary-total">
+            <span class="summary-label">Total</span>
+            <span class="summary-value" id="summaryTotal">$0.00</span>
+          </div>
+
+          <div class="summary-guarantee">
+            <span class="guarantee-icon">🛡️</span>
+            <span class="guarantee-text">Pago 100% seguro y protegido</span>
+          </div>
+
+          <button class="btn-checkout" onclick="processPayment()" id="checkoutBtn">
+            <span class="btn-checkout-text">Procesar Pago</span>
+            <span class="btn-checkout-icon">→</span>
+          </button>
+
+          <p class="summary-note">Al continuar, aceptas nuestros términos y condiciones</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Payment Processing Modal -->
+  <div id="paymentModal" class="payment-modal" style="display:none;">
+    <div class="payment-modal-content">
+      <div class="payment-processing">
+        <div class="payment-spinner"></div>
+        <h3>Procesando Pago...</h3>
+        <p id="paymentStatus">Por favor espera mientras procesamos tu pago</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/checkout.js"></script>
+</body>
+</html>

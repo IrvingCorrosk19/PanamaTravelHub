@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detalle del Tour — ToursPanama</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/detail.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner wrap">
+      <div class="brand">
+        <div class="mark"></div>
+        <a href="/"><span class="brand-text">ToursPanama</span></a>
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Tours</a>
+        <a href="/reservas.html" class="nav-link">Mis Reservas</a>
+        <a href="/login.html" class="nav-link" id="loginLink">Iniciar Sesión</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="tour-detail wrap">
+    <div id="loadingState" class="loading">
+      <div class="spinner"></div>
+      <p>Cargando tour...</p>
+    </div>
+
+    <div id="tourContent" style="display:none;">
+      <!-- Breadcrumb -->
+      <div class="breadcrumb">
+        <a href="/" class="breadcrumb-link">Inicio</a>
+        <span class="breadcrumb-separator">/</span>
+        <a href="/" class="breadcrumb-link">Tours</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current" id="breadcrumbTourName">Tour</span>
+      </div>
+
+      <!-- Hero Image Section -->
+      <div class="tour-hero">
+        <div class="tour-hero-image-container">
+          <img id="tourImage" class="tour-hero-image" src="" alt="Tour Image" />
+          <div class="tour-hero-overlay"></div>
+          <div class="tour-hero-content">
+            <div class="tour-badge-large" id="tourBadge">Disponible</div>
+            <h1 id="tourTitle" class="tour-hero-title"></h1>
+            <div class="tour-hero-meta">
+              <div class="tour-meta-item">
+                <span class="tour-meta-icon">📍</span>
+                <span id="tourLocation"></span>
+              </div>
+              <div class="tour-meta-item">
+                <span class="tour-meta-icon">⏱</span>
+                <span id="tourDuration"></span>
+              </div>
+              <div class="tour-meta-item">
+                <span class="tour-meta-icon">👥</span>
+                <span id="tourCapacity"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div class="tour-detail-grid">
+        <!-- Left Column - Information -->
+        <div class="tour-info-section">
+          <!-- Description -->
+          <section class="info-block">
+            <h2 class="info-block-title">Sobre este Tour</h2>
+            <p id="tourDescription" class="info-block-text"></p>
+          </section>
+
+          <!-- Itinerary -->
+          <section class="info-block" id="itinerarySection" style="display:none;">
+            <h2 class="info-block-title">Itinerario</h2>
+            <div id="tourItinerary" class="itinerary-list"></div>
+          </section>
+
+          <!-- What's Included -->
+          <section class="info-block">
+            <h2 class="info-block-title">Qué Incluye</h2>
+            <ul class="included-list">
+              <li class="included-item">
+                <span class="included-icon">✓</span>
+                <span>Guía turístico profesional</span>
+              </li>
+              <li class="included-item">
+                <span class="included-icon">✓</span>
+                <span>Transporte ida y vuelta</span>
+              </li>
+              <li class="included-item">
+                <span class="included-icon">✓</span>
+                <span>Entradas a atracciones</span>
+              </li>
+              <li class="included-item">
+                <span class="included-icon">✓</span>
+                <span>Seguro de viaje básico</span>
+              </li>
+            </ul>
+          </section>
+
+          <!-- Important Information -->
+          <section class="info-block">
+            <h2 class="info-block-title">Información Importante</h2>
+            <div class="important-info">
+              <div class="important-item">
+                <strong>Cancelación:</strong> Gratis hasta 24 horas antes
+              </div>
+              <div class="important-item">
+                <strong>Confirmación:</strong> Recibirás confirmación inmediata
+              </div>
+              <div class="important-item">
+                <strong>Idioma:</strong> Español e Inglés
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Right Column - Booking Card -->
+        <aside class="booking-sidebar">
+          <div class="booking-card-sticky">
+            <div class="booking-price-section">
+              <div class="price-label">Precio por persona</div>
+              <div class="price-amount" id="tourPrice"></div>
+              <div class="price-note">Impuestos incluidos</div>
+            </div>
+
+            <div class="booking-info-grid">
+              <div class="booking-info-item">
+                <div class="booking-info-label">Duración</div>
+                <div class="booking-info-value" id="bookingDuration"></div>
+              </div>
+              <div class="booking-info-item">
+                <div class="booking-info-label">Disponibilidad</div>
+                <div class="booking-info-value" id="bookingAvailability"></div>
+              </div>
+            </div>
+
+            <div class="booking-divider"></div>
+
+            <button class="btn-booking" onclick="bookTour()">
+              <span class="btn-booking-text">Reservar Ahora</span>
+              <span class="btn-booking-icon">→</span>
+            </button>
+
+            <div class="booking-guarantee">
+              <span class="guarantee-icon">🛡️</span>
+              <span class="guarantee-text">Reserva segura con garantía de reembolso</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="mark"></div>
+          <span>ToursPanama</span>
+        </div>
+        <p class="footer-text">Tu plataforma de confianza para descubrir Panamá</p>
+        <p class="footer-copy">&copy; 2024 ToursPanama. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script>
+    let currentTour = null;
+
+    async function loadTour() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tourId = urlParams.get('id');
+
+      if (!tourId) {
+        window.location.href = '/';
+        return;
+      }
+
+      try {
+        // Llamar a la API real
+        try {
+          currentTour = await api.getTour(tourId);
+        } catch (error) {
+          // Si falla, usar datos mock
+          console.warn('API no disponible, usando datos mock:', error);
+          currentTour = {
+            id: tourId,
+            name: 'Tour del Canal de Panamá',
+            description: 'Descubre la maravilla de la ingeniería mundial. Visita las esclusas de Miraflores y aprende sobre la historia del canal que conecta dos océanos. Este tour te llevará a través de uno de los logros de ingeniería más impresionantes del mundo, donde podrás observar de cerca cómo los barcos transitan entre los océanos Atlántico y Pacífico.',
+            itinerary: '1. Recogida en hotel\n2. Visita al Centro de Visitantes de Miraflores\n3. Observación de barcos transitando\n4. Museo del Canal\n5. Regreso al hotel',
+            price: 75.00,
+            durationHours: 4,
+            location: 'Ciudad de Panamá',
+            availableSpots: 15,
+            maxCapacity: 20,
+            tourImages: [{ imageUrl: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200', isPrimary: true }]
+          };
+        }
+
+        // Actualizar UI
+        document.getElementById('tourTitle').textContent = currentTour.name;
+        document.getElementById('breadcrumbTourName').textContent = currentTour.name;
+        document.getElementById('tourLocation').textContent = currentTour.location;
+        document.getElementById('tourDuration').textContent = `${currentTour.durationHours} horas`;
+        document.getElementById('tourCapacity').textContent = `${currentTour.availableSpots} de ${currentTour.maxCapacity} disponibles`;
+        document.getElementById('tourDescription').textContent = currentTour.description;
+        document.getElementById('tourPrice').textContent = `$${currentTour.price.toFixed(2)}`;
+        document.getElementById('bookingDuration').textContent = `${currentTour.durationHours} horas`;
+        document.getElementById('bookingAvailability').textContent = currentTour.availableSpots > 0 ? `${currentTour.availableSpots} cupos` : 'Agotado';
+        
+        const imageUrl = currentTour.tourImages?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200';
+        const img = document.getElementById('tourImage');
+        img.src = imageUrl;
+        img.onerror = function() {
+          this.src = 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200';
+        };
+
+        // Itinerario
+        if (currentTour.itinerary) {
+          const itinerarySection = document.getElementById('itinerarySection');
+          const itineraryList = document.getElementById('tourItinerary');
+          const items = currentTour.itinerary.split('\n').filter(item => item.trim());
+          itineraryList.innerHTML = items.map((item, index) => `
+            <div class="itinerary-item">
+              <div class="itinerary-number">${index + 1}</div>
+              <div class="itinerary-content">${item.trim()}</div>
+            </div>
+          `).join('');
+          itinerarySection.style.display = 'block';
+        }
+
+        // Badge
+        const badge = document.getElementById('tourBadge');
+        if (currentTour.availableSpots > 0) {
+          badge.textContent = 'Disponible';
+          badge.className = 'tour-badge-large available';
+        } else {
+          badge.textContent = 'Agotado';
+          badge.className = 'tour-badge-large sold-out';
+        }
+
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('tourContent').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading tour:', error);
+        alert('Error al cargar el tour');
+      }
+    }
+
+    function bookTour() {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+        return;
+      }
+      // Redirigir a checkout
+      window.location.href = `/checkout.html?tourId=${currentTour.id}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadTour);
+  </script>
+</body>
+</html>

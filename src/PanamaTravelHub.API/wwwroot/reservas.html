@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mis Reservas — ToursPanama</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    .reservations-container {
+      padding: var(--space-2xl) 0;
+    }
+    .reservation-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-lg);
+      transition: all var(--transition-base);
+      box-shadow: var(--shadow);
+    }
+    .reservation-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+    .reservation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: var(--space-md);
+      flex-wrap: wrap;
+      gap: var(--space-md);
+    }
+    .reservation-status {
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: var(--font-weight-semibold);
+    }
+    .status-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .status-confirmed { background: rgba(34, 197, 94, 0.15); color: var(--accent); }
+    .status-cancelled { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .reservation-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-md);
+      margin-top: var(--space-md);
+    }
+    .detail-item {
+      color: var(--text-secondary);
+    }
+    .detail-label {
+      font-size: 0.85rem;
+      margin-bottom: var(--space-xs);
+      color: var(--text-muted);
+    }
+    .detail-value {
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner wrap">
+      <div class="brand">
+        <div class="mark"></div>
+        <a href="/"><span class="brand-text">ToursPanama</span></a>
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Tours</a>
+        <a href="/reservas.html" class="nav-link active">Mis Reservas</a>
+        <a href="/login.html" class="nav-link" id="loginLink">Iniciar Sesión</a>
+        <button class="btn-primary" id="logoutBtn" style="display:none;">Cerrar Sesión</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="reservations-container wrap">
+    <div class="section-header">
+      <h1>Mis Reservas</h1>
+      <p class="section-subtitle">Gestiona tus reservas de tours</p>
+    </div>
+
+    <!-- Mensaje cuando no está autenticado -->
+    <div id="authRequired" style="display:none; text-align: center; padding: var(--space-3xl) var(--space-md);">
+      <div style="max-width: 500px; margin: 0 auto;">
+        <div style="font-size: 4rem; margin-bottom: var(--space-lg);">🔒</div>
+        <h2 style="font-size: 1.75rem; font-weight: var(--font-weight-bold); margin-bottom: var(--space-md); color: var(--text);">
+          Inicia Sesión para Ver tus Reservas
+        </h2>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-xl); line-height: 1.7;">
+          Necesitas iniciar sesión para acceder a tus reservas y gestionar tus tours.
+        </p>
+        <a href="/login.html?redirect=/reservas.html" class="btn-primary" style="display: inline-block;">
+          Iniciar Sesión
+        </a>
+      </div>
+    </div>
+
+    <!-- Contenido cuando está autenticado -->
+    <div id="authenticatedContent" style="display:none;">
+      <div id="loadingState" class="loading" style="display:none;">
+        <div class="spinner"></div>
+        <p>Cargando reservas...</p>
+      </div>
+
+      <div id="reservationsList"></div>
+
+      <div id="emptyState" class="empty-state" style="display:none; text-align: center; padding: var(--space-3xl) var(--space-md);">
+        <div style="font-size: 4rem; margin-bottom: var(--space-lg);">📋</div>
+        <h2 style="font-size: 1.5rem; font-weight: var(--font-weight-bold); margin-bottom: var(--space-md); color: var(--text);">
+          No tienes reservas aún
+        </h2>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-xl);">
+          Explora nuestros tours y reserva tu próxima aventura en Panamá.
+        </p>
+        <a href="/" class="btn-primary">Explorar Tours</a>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Primero verificar autenticación
+      const isAuthenticated = checkAuth();
+      // Solo cargar reservas si está autenticado
+      if (isAuthenticated) {
+        loadReservations();
+      }
+    });
+
+    function checkAuth() {
+      const token = localStorage.getItem('authToken');
+      const loginLink = document.getElementById('loginLink');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const authRequired = document.getElementById('authRequired');
+      const authenticatedContent = document.getElementById('authenticatedContent');
+
+      if (!token) {
+        // No autenticado: mostrar mensaje de login
+        authRequired.style.display = 'block';
+        authenticatedContent.style.display = 'none';
+        if (loginLink) loginLink.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        return false;
+      } else {
+        // Autenticado: mostrar contenido
+        authRequired.style.display = 'none';
+        authenticatedContent.style.display = 'block';
+        if (loginLink) loginLink.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'block';
+        return true;
+      }
+    }
+
+    async function loadReservations() {
+      // Verificar autenticación primero
+      const isAuthenticated = checkAuth();
+      if (!isAuthenticated) {
+        return; // No cargar nada si no está autenticado
+      }
+
+      const loadingState = document.getElementById('loadingState');
+      const emptyState = document.getElementById('emptyState');
+      const reservationsList = document.getElementById('reservationsList');
+
+      try {
+        loadingState.style.display = 'block';
+        emptyState.style.display = 'none';
+        reservationsList.innerHTML = '';
+
+        // Llamar a la API real
+        let reservations = [];
+        try {
+          reservations = await api.getMyBookings();
+        } catch (error) {
+          console.warn('Error al cargar reservas:', error);
+          // Si es error 401 (no autorizado), limpiar token y redirigir
+          if (error.message && error.message.includes('401')) {
+            localStorage.removeItem('authToken');
+            checkAuth();
+            return;
+          }
+          reservations = [];
+        }
+
+        loadingState.style.display = 'none';
+
+        if (reservations.length === 0) {
+          emptyState.style.display = 'block';
+          return;
+        }
+
+        reservationsList.innerHTML = reservations.map(res => createReservationCard(res)).join('');
+      } catch (error) {
+        console.error('Error loading reservations:', error);
+        loadingState.style.display = 'none';
+        emptyState.style.display = 'block';
+      }
+    }
+
+    function createReservationCard(reservation) {
+      const statusClass = `status-${reservation.status.toLowerCase()}`;
+      const statusText = {
+        'pending': 'Pendiente',
+        'confirmed': 'Confirmada',
+        'cancelled': 'Cancelada',
+        'expired': 'Expirada',
+        'completed': 'Completada'
+      }[reservation.status] || reservation.status;
+
+      return `
+        <div class="reservation-card">
+          <div class="reservation-header">
+            <div>
+              <h3 style="margin-bottom: var(--spacing-xs);">${reservation.tourName}</h3>
+              <p style="color: var(--text-muted);">Reserva #${reservation.id.substring(0, 8)}</p>
+            </div>
+            <span class="reservation-status ${statusClass}">${statusText}</span>
+          </div>
+          <div class="reservation-details">
+            <div class="detail-item">
+              <div class="detail-label">Fecha de Reserva</div>
+              <div class="detail-value">${new Date(reservation.createdAt).toLocaleDateString('es-PA')}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Participantes</div>
+              <div class="detail-value">${reservation.numberOfParticipants}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Total</div>
+              <div class="detail-value">$${reservation.totalAmount.toFixed(2)}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Fecha del Tour</div>
+              <div class="detail-value">${reservation.tourDate ? new Date(reservation.tourDate).toLocaleDateString('es-PA') : 'Por definir'}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (document.getElementById('logoutBtn')) {
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        api.logout();
+        window.location.href = '/';
+      });
+    }
+  </script>
+</body>
+</html>

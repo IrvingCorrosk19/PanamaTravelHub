@@ -1,0 +1,11 @@
+-- Crear tipos ENUM para PostgreSQL
+-- Nota: En .NET usamos enums, pero PostgreSQL los maneja como CHECK constraints o tipos ENUM
+-- Usaremos CHECK constraints para mayor flexibilidad
+
+-- Los enums se manejarán como integers en la base de datos
+-- UserRole: 1=Customer, 2=Admin
+-- BookingStatus: 1=Pending, 2=Confirmed, 3=Cancelled, 4=Expired, 5=Completed
+-- PaymentStatus: 1=Initiated, 2=Authorized, 3=Captured, 4=Failed, 5=Refunded
+-- PaymentProvider: 1=Stripe, 2=PayPal, 3=Yappy
+-- EmailNotificationStatus: 1=Pending, 2=Sent, 3=Failed, 4=Retrying
+-- EmailNotificationType: 1=BookingConfirmation, 2=BookingReminder, 3=PaymentConfirmation, 4=BookingCancellation

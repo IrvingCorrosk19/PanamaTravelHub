@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reserva Confirmada — ToursPanama</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    .success-container {
+      min-height: calc(100vh - 200px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-2xl) var(--space-md);
+    }
+
+    .success-card {
+      background: var(--card);
+      border: 2px solid var(--accent);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl);
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+      box-shadow: var(--shadow-xl);
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--space-lg);
+      font-size: 2.5rem;
+      animation: scaleIn 0.5s ease-out;
+    }
+
+    @keyframes scaleIn {
+      from {
+        transform: scale(0);
+      }
+      to {
+        transform: scale(1);
+      }
+    }
+
+    .success-title {
+      font-size: 2rem;
+      font-weight: var(--font-weight-extrabold);
+      margin-bottom: var(--space-md);
+      color: var(--text);
+    }
+
+    .success-message {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      line-height: 1.7;
+      margin-bottom: var(--space-xl);
+    }
+
+    .booking-details {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      padding: var(--space-lg);
+      margin: var(--space-xl) 0;
+      text-align: left;
+    }
+
+    .booking-detail-item {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--space-sm) 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .booking-detail-item:last-child {
+      border-bottom: none;
+    }
+
+    .booking-detail-label {
+      color: var(--text-secondary);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .booking-detail-value {
+      color: var(--text);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .success-actions {
+      display: flex;
+      gap: var(--space-md);
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: var(--space-xl);
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner wrap">
+      <div class="brand">
+        <div class="mark"></div>
+        <a href="/"><span class="brand-text">ToursPanama</span></a>
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Tours</a>
+        <a href="/reservas.html" class="nav-link">Mis Reservas</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="success-container">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h1 class="success-title">¡Reserva Confirmada!</h1>
+      <p class="success-message">
+        Tu reserva ha sido procesada exitosamente. Hemos enviado un correo de confirmación con todos los detalles.
+      </p>
+
+      <div class="booking-details">
+        <div class="booking-detail-item">
+          <span class="booking-detail-label">Número de Reserva</span>
+          <span class="booking-detail-value" id="bookingId">-</span>
+        </div>
+        <div class="booking-detail-item">
+          <span class="booking-detail-label">Monto Pagado</span>
+          <span class="booking-detail-value" id="bookingAmount">-</span>
+        </div>
+        <div class="booking-detail-item">
+          <span class="booking-detail-label">Estado</span>
+          <span class="booking-detail-value" style="color: var(--accent);">Confirmada</span>
+        </div>
+      </div>
+
+      <div class="success-actions">
+        <a href="/reservas.html" class="btn-primary">Ver Mis Reservas</a>
+        <a href="/" class="btn-secondary">Explorar Más Tours</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Obtener datos de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookingId = urlParams.get('bookingId');
+    const amount = urlParams.get('amount');
+
+    if (bookingId) {
+      document.getElementById('bookingId').textContent = bookingId;
+    }
+    if (amount) {
+      document.getElementById('bookingAmount').textContent = `$${parseFloat(amount).toFixed(2)}`;
+    }
+  </script>
+</body>
+</html>
