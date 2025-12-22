@@ -305,12 +305,33 @@ html, body {
   padding: var(--space-3xl) 0 var(--space-2xl);
   position: relative;
   z-index: 1;
+  background-image: url('/images/Hero Image 19369.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(11, 18, 32, 0.7) 0%, rgba(6, 182, 212, 0.3) 100%);
+  z-index: 0;
 }
 
 .hero-content {
   text-align: center;
   max-width: 800px;
   margin: 0 auto;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-title {
