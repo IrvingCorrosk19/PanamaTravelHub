@@ -6,6 +6,7 @@ using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Domain.Entities;
 using PanamaTravelHub.Infrastructure.Data;
 using PanamaTravelHub.Infrastructure.Repositories;
+using System.IO;
 
 namespace PanamaTravelHub.API.Controllers;
 
@@ -628,5 +629,12 @@ public class UpdateHomePageContentDto
     public string? NavBookingsLink { get; set; }
     public string? NavLoginLink { get; set; }
     public string? NavLogoutButton { get; set; }
+}
+
+public class ImageUploadResponseDto
+{
+    public string Url { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public long Size { get; set; }
 }
 
