@@ -10,17 +10,41 @@ using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Infrastructure;
 using PanamaTravelHub.Infrastructure.Data;
 using FluentValidation;
+using Serilog;
+using Serilog.Events;
 
 // Configurar Npgsql para usar UTC para todos los DateTime
 // Esto es necesario porque PostgreSQL requiere DateTime en UTC
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", false);
 
+// Configurar Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .Enrich.WithEnvironmentName()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "logs/panamatravelhub-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Usar Serilog como logger
+builder.Host.UseSerilog();
 
 // Add services to the container
 builder.Services.AddControllers(options =>
 {
-    // Agregar filtros de validación
+    // Agregar filtro de validación FluentValidation (el principal)
+    // ValidationFilter solo hace logging, FluentValidationFilter hace la validación real
     options.Filters.Add<ValidationFilter>();
     options.Filters.Add<FluentValidationFilter>();
 })
@@ -173,6 +197,17 @@ app.UseHttpsRedirection();
 // Exception Handler debe ir temprano en el pipeline
 app.UseExceptionHandler();
 
+// Correlation ID middleware (debe ir temprano)
+app.Use(async (context, next) =>
+{
+    var correlationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault() 
+                       ?? Guid.NewGuid().ToString();
+    context.Request.Headers["X-Correlation-Id"] = correlationId;
+    context.Response.Headers["X-Correlation-Id"] = correlationId;
+    context.TraceIdentifier = correlationId;
+    await next();
+});
+
 // CORS debe ir antes de UseAuthorization
 app.UseCors("AllowFrontend");
 
@@ -182,10 +217,60 @@ app.UseIpRateLimiting();
 // Authentication debe ir antes de Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Audit middleware (debe ir después de authentication para tener acceso al usuario)
+app.UseMiddleware<AuditMiddleware>();
 app.MapControllers();
 
-// Health check endpoint
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+// Configurar Health Checks
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        connectionString: builder.Configuration.GetConnectionString("DefaultConnection") ?? "",
+        name: "postgresql",
+        tags: new[] { "db", "postgresql" },
+        timeout: TimeSpan.FromSeconds(5));
+
+// Health check UI (solo en desarrollo)
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddHealthChecksUI(setup =>
+    {
+        setup.SetEvaluationTimeInSeconds(10);
+        setup.MaximumHistoryEntriesPerEndpoint(50);
+    }).AddInMemoryStorage();
+}
+
+// Health check endpoints
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            timestamp = DateTime.UtcNow,
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.TotalMilliseconds
+            })
+        });
+        await context.Response.WriteAsync(result);
+    }
+});
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("db")
+});
+
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false // Solo verifica que la app esté viva
+});
 
 // Fallback para SPA
 app.MapFallbackToFile("index.html");

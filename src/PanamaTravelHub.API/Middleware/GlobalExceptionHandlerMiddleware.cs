@@ -3,6 +3,8 @@ using System.Text.Json;
 using PanamaTravelHub.Application.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace PanamaTravelHub.API.Middleware;
 
@@ -84,6 +86,97 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 problemDetails.Title = "No autorizado";
                 problemDetails.Detail = unauthorizedException.Message ?? "No tienes permisos para realizar esta acción";
                 _logger.LogWarning(exception, "Acceso no autorizado: {Message} - {TraceId}", unauthorizedException.Message, traceId);
+                break;
+
+            case DbUpdateException dbUpdateException:
+                // Manejar errores de base de datos
+                response.StatusCode = (int)HttpStatusCode.BadRequest;
+                problemDetails.Status = (int)HttpStatusCode.BadRequest;
+                problemDetails.Title = "Error en la base de datos";
+                
+                // Detectar violaciones de constraints específicas
+                if (dbUpdateException.InnerException is PostgresException pgException)
+                {
+                    switch (pgException.SqlState)
+                    {
+                        case "23505": // Unique violation
+                            problemDetails.Detail = "Ya existe un registro con estos datos. Por favor verifica la información.";
+                            problemDetails.Extensions["errorCode"] = "UNIQUE_CONSTRAINT_VIOLATION";
+                            problemDetails.Extensions["constraint"] = pgException.ConstraintName;
+                            break;
+                        case "23503": // Foreign key violation
+                            problemDetails.Detail = "No se puede realizar esta operación porque hay referencias relacionadas.";
+                            problemDetails.Extensions["errorCode"] = "FOREIGN_KEY_VIOLATION";
+                            break;
+                        case "23502": // Not null violation
+                            problemDetails.Detail = "Faltan campos requeridos en la base de datos.";
+                            problemDetails.Extensions["errorCode"] = "NOT_NULL_VIOLATION";
+                            break;
+                        case "23514": // Check constraint violation
+                            problemDetails.Detail = "Los datos proporcionados no cumplen con las restricciones de validación.";
+                            problemDetails.Extensions["errorCode"] = "CHECK_CONSTRAINT_VIOLATION";
+                            break;
+                        default:
+                            problemDetails.Detail = _environment.IsDevelopment() 
+                                ? $"Error de base de datos: {pgException.Message}" 
+                                : "Error al guardar los datos. Por favor intenta de nuevo.";
+                            problemDetails.Extensions["errorCode"] = "DATABASE_ERROR";
+                            problemDetails.Extensions["sqlState"] = pgException.SqlState;
+                            break;
+                    }
+                }
+                else
+                {
+                    problemDetails.Detail = _environment.IsDevelopment() 
+                        ? dbUpdateException.Message 
+                        : "Error al guardar los datos. Por favor intenta de nuevo.";
+                    problemDetails.Extensions["errorCode"] = "DATABASE_ERROR";
+                }
+                
+                _logger.LogError(dbUpdateException, "Error de base de datos: {TraceId}", traceId);
+                break;
+
+            case ArgumentNullException argumentNullException:
+                response.StatusCode = (int)HttpStatusCode.BadRequest;
+                problemDetails.Status = (int)HttpStatusCode.BadRequest;
+                problemDetails.Title = "Parámetro requerido faltante";
+                problemDetails.Detail = $"El parámetro '{argumentNullException.ParamName}' es requerido.";
+                problemDetails.Extensions["errorCode"] = "ARGUMENT_NULL";
+                problemDetails.Extensions["paramName"] = argumentNullException.ParamName;
+                _logger.LogWarning(argumentNullException, "Argumento nulo: {ParamName} - {TraceId}", argumentNullException.ParamName, traceId);
+                break;
+
+            case ArgumentException argumentException:
+                response.StatusCode = (int)HttpStatusCode.BadRequest;
+                problemDetails.Status = (int)HttpStatusCode.BadRequest;
+                problemDetails.Title = "Argumento inválido";
+                problemDetails.Detail = argumentException.Message;
+                problemDetails.Extensions["errorCode"] = "INVALID_ARGUMENT";
+                if (!string.IsNullOrEmpty(argumentException.ParamName))
+                {
+                    problemDetails.Extensions["paramName"] = argumentException.ParamName;
+                }
+                _logger.LogWarning(argumentException, "Argumento inválido: {Message} - {TraceId}", argumentException.Message, traceId);
+                break;
+
+            case InvalidOperationException invalidOperationException:
+                response.StatusCode = (int)HttpStatusCode.BadRequest;
+                problemDetails.Status = (int)HttpStatusCode.BadRequest;
+                problemDetails.Title = "Operación inválida";
+                problemDetails.Detail = _environment.IsDevelopment() 
+                    ? invalidOperationException.Message 
+                    : "No se puede realizar esta operación en el estado actual.";
+                problemDetails.Extensions["errorCode"] = "INVALID_OPERATION";
+                _logger.LogWarning(invalidOperationException, "Operación inválida: {Message} - {TraceId}", invalidOperationException.Message, traceId);
+                break;
+
+            case TimeoutException timeoutException:
+                response.StatusCode = (int)HttpStatusCode.RequestTimeout;
+                problemDetails.Status = (int)HttpStatusCode.RequestTimeout;
+                problemDetails.Title = "Tiempo de espera agotado";
+                problemDetails.Detail = "La operación tardó demasiado tiempo. Por favor intenta de nuevo.";
+                problemDetails.Extensions["errorCode"] = "TIMEOUT";
+                _logger.LogWarning(timeoutException, "Timeout: {TraceId}", traceId);
                 break;
 
             default:

@@ -351,6 +351,27 @@ class ApiClient {
     return this.request('/api/admin/bookings');
   }
 
+  // Payments
+  async createPayment(bookingId, currency = 'USD') {
+    return this.request('/api/payments/create', {
+      method: 'POST',
+      body: JSON.stringify({ bookingId, currency }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  async confirmPayment(paymentIntentId) {
+    return this.request('/api/payments/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ paymentIntentId }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  async getStripeConfig() {
+    return this.request('/api/payments/stripe/config');
+  }
+
   async getAdminStats() {
     return this.request('/api/admin/stats');
   }

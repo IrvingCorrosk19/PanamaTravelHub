@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Npgsql;
 using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Infrastructure.Data;
@@ -44,6 +45,20 @@ public static class DependencyInjection
         // Registrar servicios de autenticación
         services.AddScoped<PanamaTravelHub.Application.Services.IPasswordHasher, PanamaTravelHub.Application.Services.PasswordHasher>();
         services.AddScoped<PanamaTravelHub.Application.Services.IJwtService, PanamaTravelHub.Application.Services.JwtService>();
+
+        // Registrar proveedores de pago
+        services.AddScoped<IPaymentProvider, StripePaymentProvider>();
+
+        // Registrar servicios de email
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+        services.AddScoped<IEmailNotificationService, EmailNotificationService>();
+        
+        // Registrar BackgroundService para procesar cola de emails
+        services.AddHostedService<EmailQueueService>();
+
+        // Registrar servicio de auditoría
+        services.AddScoped<IAuditService, AuditService>();
 
         return services;
     }

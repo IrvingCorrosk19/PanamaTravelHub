@@ -3,13 +3,28 @@
 let currentTour = null;
 let numberOfParticipants = 1;
 let selectedPaymentMethod = 'stripe';
+let stripe = null;
+let stripePublishableKey = null;
 
 // Cargar información del tour desde URL
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadStripeConfig();
   loadTourFromUrl();
   updateParticipants();
   setupPaymentInputs();
 });
+
+async function loadStripeConfig() {
+  try {
+    const config = await api.getStripeConfig();
+    stripePublishableKey = config.publishableKey;
+    if (stripePublishableKey && typeof Stripe !== 'undefined') {
+      stripe = Stripe(stripePublishableKey);
+    }
+  } catch (error) {
+    console.warn('No se pudo cargar la configuración de Stripe:', error);
+  }
+}
 
 function loadTourFromUrl() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -460,11 +475,6 @@ async function processPayment() {
     return;
   }
 
-  // Validar método de pago
-  if (!validatePaymentMethod()) {
-    return;
-  }
-
   // Verificar que el usuario esté autenticado
   const userId = localStorage.getItem('userId');
   if (!userId) {
@@ -482,72 +492,134 @@ async function processPayment() {
   // Mostrar modal de procesamiento
   modal.style.display = 'flex';
   btn.disabled = true;
+  statusText.textContent = 'Creando reserva...';
 
-  // Simular procesamiento de pago
-  statusText.textContent = 'Validando información...';
-  await sleep(1500);
+  try {
+    // Obtener datos de participantes
+    const participants = [];
+    const participantCards = document.querySelectorAll('.participant-card');
+    
+    participantCards.forEach((card, index) => {
+      const firstName = card.querySelector('.participant-firstname')?.value.trim() || '';
+      const lastName = card.querySelector('.participant-lastname')?.value.trim() || '';
+      const email = card.querySelector('.participant-email')?.value.trim() || '';
+      const phone = card.querySelector('.participant-phone')?.value.trim() || '';
+      const dateOfBirth = card.querySelector('.participant-dob')?.value || null;
 
-  statusText.textContent = 'Procesando pago con ' + getPaymentMethodName(selectedPaymentMethod) + '...';
-  await sleep(2000);
+      if (firstName && lastName) {
+        participants.push({
+          firstName: firstName,
+          lastName: lastName,
+          email: email || null,
+          phone: phone || null,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth).toISOString() : null
+        });
+      }
+    });
 
-  statusText.textContent = 'Autorizando transacción...';
-  await sleep(1500);
+    // Validar que el tour tenga cupos disponibles
+    if (currentTour.availableSpots < numberOfParticipants) {
+      statusText.textContent = 'Error: No hay suficientes cupos disponibles';
+      await sleep(2000);
+      modal.style.display = 'none';
+      btn.disabled = false;
+      return;
+    }
 
-  // Simular éxito
-  statusText.textContent = '¡Pago procesado exitosamente!';
-  await sleep(1000);
+    // Crear la reserva primero
+    statusText.textContent = 'Creando reserva...';
+    const bookingData = {
+      tourId: currentTour.id,
+      tourDateId: null, // TODO: Obtener de selección de fecha
+      numberOfParticipants: numberOfParticipants,
+      participants: participants
+    };
 
-    // Crear reserva
-    try {
-      // Obtener datos de participantes
-      const participants = [];
-      const participantCards = document.querySelectorAll('.participant-card');
+    const bookingResponse = await api.createBooking(bookingData);
+    const bookingId = bookingResponse.id;
+
+    // Procesar pago según el método seleccionado
+    if (selectedPaymentMethod === 'stripe') {
+      if (!stripe || !stripePublishableKey) {
+        throw new Error('Stripe no está configurado. Por favor recarga la página.');
+      }
+
+      statusText.textContent = 'Iniciando pago con Stripe...';
       
-      participantCards.forEach((card, index) => {
-        const firstName = card.querySelector('.participant-firstname')?.value.trim() || '';
-        const lastName = card.querySelector('.participant-lastname')?.value.trim() || '';
-        const email = card.querySelector('.participant-email')?.value.trim() || '';
-        const phone = card.querySelector('.participant-phone')?.value.trim() || '';
-        const dateOfBirth = card.querySelector('.participant-dob')?.value || null;
+      // Crear el payment intent
+      const paymentResponse = await api.createPayment(bookingId, 'USD');
+      
+      if (!paymentResponse.clientSecret) {
+        throw new Error('No se pudo crear el payment intent');
+      }
 
-        if (firstName && lastName) {
-          participants.push({
-            firstName: firstName,
-            lastName: lastName,
-            email: email || null,
-            phone: phone || null,
-            dateOfBirth: dateOfBirth ? new Date(dateOfBirth).toISOString() : null
-          });
+      statusText.textContent = 'Procesando pago...';
+      
+      // Usar Stripe para confirmar el pago
+      // Nota: En producción, es mejor usar Stripe Elements para capturar los datos de la tarjeta de forma segura
+      // Por ahora usamos confirmCardPayment con los datos del formulario
+      const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+      const cardExpiry = document.getElementById('cardExpiry').value.split('/');
+      const cardCvv = document.getElementById('cardCvv').value;
+      const cardName = document.getElementById('cardName').value;
+
+      // Crear un payment method primero
+      const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: {
+          number: cardNumber,
+          exp_month: parseInt(cardExpiry[0]),
+          exp_year: 2000 + parseInt(cardExpiry[1]),
+          cvc: cardCvv
+        },
+        billing_details: {
+          name: cardName
         }
       });
 
-      // Validar que el tour tenga cupos disponibles
-      if (currentTour.availableSpots < numberOfParticipants) {
-        statusText.textContent = 'Error: No hay suficientes cupos disponibles';
-        await sleep(2000);
-        modal.style.display = 'none';
-        btn.disabled = false;
-        return;
+      if (pmError) {
+        throw new Error(pmError.message);
       }
 
-      const bookingData = {
-        tourId: currentTour.id,
-        tourDateId: null, // TODO: Obtener de selección de fecha
-        numberOfParticipants: numberOfParticipants,
-        participants: participants
-      };
+      // Confirmar el pago con el payment method
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
+        paymentResponse.clientSecret,
+        {
+          payment_method: paymentMethod.id
+        }
+      );
 
-      // Llamar a API real
-      const response = await api.createBooking(bookingData);
+      if (confirmError) {
+        throw new Error(confirmError.message);
+      }
 
-      // Redirigir a página de confirmación
-      const bookingId = response.id || generateBookingId();
-      const totalAmount = response.totalAmount || (currentTour.price * numberOfParticipants);
+      // Confirmar el pago en el backend
+      statusText.textContent = 'Confirmando pago...';
+      await api.confirmPayment(paymentResponse.paymentIntentId);
+
+      // Redirigir a página de éxito
+      const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
       window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
+      
+    } else if (selectedPaymentMethod === 'paypal') {
+      // TODO: Implementar PayPal
+      statusText.textContent = 'PayPal aún no está implementado';
+      await sleep(2000);
+      modal.style.display = 'none';
+      btn.disabled = false;
+      
+    } else if (selectedPaymentMethod === 'yappy') {
+      // TODO: Implementar Yappy
+      statusText.textContent = 'Yappy aún no está implementado';
+      await sleep(2000);
+      modal.style.display = 'none';
+      btn.disabled = false;
+    }
+
   } catch (error) {
-    console.error('Error creating booking:', error);
-    statusText.textContent = 'Error al procesar el pago. Por favor intenta de nuevo.';
-    await sleep(2000);
+    console.error('Error processing payment:', error);
+    statusText.textContent = error.message || 'Error al procesar el pago. Por favor intenta de nuevo.';
+    await sleep(3000);
     modal.style.display = 'none';
     btn.disabled = false;
   }
