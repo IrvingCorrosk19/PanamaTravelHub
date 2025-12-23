@@ -89,19 +89,40 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
             default:
                 // Error no manejado
                 _logger.LogError(exception, 
-                    "Error no manejado: {Message} - {TraceId} - {StackTrace}", 
-                    exception.Message, 
-                    traceId,
-                    _environment.IsDevelopment() ? exception.StackTrace : "Oculto en producción");
+                    "=== ERROR NO MANEJADO ===");
+                _logger.LogError("Tipo: {ExceptionType}", exception.GetType().Name);
+                _logger.LogError("Mensaje: {Message}", exception.Message);
+                _logger.LogError("TraceId: {TraceId}", traceId);
+                _logger.LogError("Path: {Path}", httpContext.Request.Path);
+                _logger.LogError("Method: {Method}", httpContext.Request.Method);
                 
-                if (_environment.IsDevelopment())
+                if (exception.InnerException != null)
+                {
+                    _logger.LogError("InnerException Tipo: {InnerType}", exception.InnerException.GetType().Name);
+                    _logger.LogError("InnerException Mensaje: {InnerMessage}", exception.InnerException.Message);
+                }
+                
+                if (_environment.IsDevelopment() || _environment.IsProduction())
+                {
+                    _logger.LogError("StackTrace: {StackTrace}", exception.StackTrace);
+                }
+                
+                _logger.LogError("=== FIN ERROR NO MANEJADO ===");
+                
+                // En producción también mostrar detalles del error para debugging
+                problemDetails.Detail = _environment.IsProduction() 
+                    ? $"Error: {exception.GetType().Name} - {exception.Message}" 
+                    : exception.Message;
+                
+                if (_environment.IsDevelopment() || _environment.IsProduction())
                 {
                     problemDetails.Extensions["exception"] = new
                     {
                         Type = exception.GetType().Name,
                         Message = exception.Message,
                         StackTrace = exception.StackTrace,
-                        InnerExceptionMessage = exception.InnerException?.Message
+                        InnerExceptionMessage = exception.InnerException?.Message,
+                        InnerExceptionType = exception.InnerException?.GetType().Name
                     };
                 }
                 break;

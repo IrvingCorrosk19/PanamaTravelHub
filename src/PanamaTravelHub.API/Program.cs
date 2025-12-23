@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PanamaTravelHub.API.Middleware;
+using PanamaTravelHub.API.Filters;
 using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Infrastructure;
 using PanamaTravelHub.Infrastructure.Data;
@@ -9,7 +10,11 @@ using FluentValidation.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+{
+    // Agregar filtro de validación para logging
+    options.Filters.Add<ValidationFilter>();
+})
     .ConfigureApiBehaviorOptions(options =>
     {
         // Deshabilitar validación automática del modelo para usar FluentValidation
