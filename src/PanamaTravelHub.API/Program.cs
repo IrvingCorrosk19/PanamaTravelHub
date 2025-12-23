@@ -110,27 +110,25 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = Dat
 // Fallback para SPA
 app.MapFallbackToFile("index.html");
 
-// Aplicar migraciones automáticamente solo en desarrollo
-// En producción, las tablas ya están creadas mediante scripts SQL
-if (app.Environment.IsDevelopment())
+// Aplicar migraciones automáticamente
+// En desarrollo y producción, se aplican migraciones automáticamente
+using (var scope = app.Services.CreateScope())
 {
-    using (var scope = app.Services.CreateScope())
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    
+    try
     {
-        var services = scope.ServiceProvider;
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        
-        try
-        {
-            logger.LogInformation("Aplicando migraciones a la base de datos...");
-            await context.Database.MigrateAsync();
-            logger.LogInformation("Migraciones aplicadas exitosamente!");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error al aplicar migraciones. Continuando sin migraciones...");
-            // En desarrollo, no lanzamos excepción para permitir continuar
-        }
+        logger.LogInformation("Aplicando migraciones a la base de datos...");
+        await context.Database.MigrateAsync();
+        logger.LogInformation("Migraciones aplicadas exitosamente!");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error al aplicar migraciones. Continuando sin migraciones...");
+        // No lanzamos excepción para permitir continuar
+        // Si la tabla no existe, se puede crear manualmente con el script SQL
     }
 }
 
