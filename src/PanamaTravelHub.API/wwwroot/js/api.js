@@ -7,52 +7,82 @@ class ApiClient {
     this.token = localStorage.getItem('authToken');
   }
 
-  async request(endpoint, options = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
-    const config = {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    };
+    async request(endpoint, options = {}) {
+      const url = `${this.baseUrl}${endpoint}`;
+      console.log('🌐 API Request:', {
+        method: options.method || 'GET',
+        url: url,
+        hasBody: !!options.body,
+        hasToken: !!this.token
+      });
 
-    if (this.token) {
-      config.headers['Authorization'] = `Bearer ${this.token}`;
-    }
+      const config = {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      };
 
-    try {
-      const response = await fetch(url, config);
-      
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ 
-          title: 'Error desconocido',
-          detail: 'Ocurrió un error al procesar la solicitud'
-        }));
-        
-        // Manejar errores de validación (ProblemDetails)
-        if (error.errors && typeof error.errors === 'object') {
-          // FluentValidation devuelve errores en formato { "PropertyName": ["Error1", "Error2"] }
-          const validationErrors = Object.values(error.errors)
-            .flat()
-            .filter(err => typeof err === 'string');
-          
-          if (validationErrors.length > 0) {
-            throw new Error(validationErrors.join('. '));
-          }
-        }
-        
-        // Manejar otros errores
-        const errorMessage = error.detail || error.message || error.title || `Error ${response.status}`;
-        throw new Error(errorMessage);
+      if (this.token) {
+        config.headers['Authorization'] = `Bearer ${this.token}`;
       }
 
-      return await response.json();
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
+      try {
+        console.log('📤 Enviando request...');
+        const response = await fetch(url, config);
+        console.log('📥 Response recibido:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+        
+        if (!response.ok) {
+          console.error('❌ Response no OK. Status:', response.status);
+          const error = await response.json().catch((parseError) => {
+            console.error('❌ Error al parsear JSON del error:', parseError);
+            return { 
+              title: 'Error desconocido',
+              detail: 'Ocurrió un error al procesar la solicitud',
+              status: response.status
+            };
+          });
+          
+          console.error('❌ Error completo:', error);
+          
+          // Manejar errores de validación (ProblemDetails)
+          if (error.errors && typeof error.errors === 'object') {
+            // FluentValidation devuelve errores en formato { "PropertyName": ["Error1", "Error2"] }
+            const validationErrors = Object.values(error.errors)
+              .flat()
+              .filter(err => typeof err === 'string');
+            
+            if (validationErrors.length > 0) {
+              console.error('❌ Errores de validación:', validationErrors);
+              throw new Error(validationErrors.join('. '));
+            }
+          }
+          
+          // Manejar otros errores
+          const errorMessage = error.detail || error.message || error.title || `Error ${response.status}`;
+          console.error('❌ Error message:', errorMessage);
+          console.error('❌ Error traceId:', error.traceId);
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        console.log('✅ Response exitoso:', data);
+        return data;
+      } catch (error) {
+        console.error('❌ API Error completo:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        throw error;
+      }
     }
-  }
 
   // Tours
   async getTours() {
@@ -65,21 +95,30 @@ class ApiClient {
 
   // Auth
   async login(email, password) {
-    const response = await this.request('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    
-    if (response.token) {
-      this.token = response.token;
-      localStorage.setItem('authToken', response.token);
-      // Guardar userId para usar en reservas
-      if (response.user && response.user.id) {
-        localStorage.setItem('userId', response.user.id);
+    console.log('🔐 Iniciando login:', { email, passwordLength: password?.length });
+    try {
+      const response = await this.request('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      console.log('✅ Login exitoso:', response);
+      
+      if (response.token) {
+        this.token = response.token;
+        localStorage.setItem('authToken', response.token);
+        console.log('💾 Token guardado en localStorage');
+        // Guardar userId para usar en reservas
+        if (response.user && response.user.id) {
+          localStorage.setItem('userId', response.user.id);
+          console.log('💾 UserId guardado:', response.user.id);
+        }
       }
+      
+      return response;
+    } catch (error) {
+      console.error('❌ Error en login:', error);
+      throw error;
     }
-    
-    return response;
   }
 
   async register(userData) {

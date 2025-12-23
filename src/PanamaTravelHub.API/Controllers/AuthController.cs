@@ -88,29 +88,56 @@ public class AuthController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Login de usuario: {Email}", request.Email);
+            _logger.LogInformation("=== INICIO LOGIN ===");
+            _logger.LogInformation("Request recibido. Email: {Email}, Request es null: {IsNull}", 
+                request?.Email ?? "NULL", request == null);
 
             if (request == null)
             {
+                _logger.LogError("Request es null en Login");
                 throw new BusinessException("El request no puede ser nulo", "INVALID_REQUEST");
             }
+
+            if (string.IsNullOrWhiteSpace(request.Email))
+            {
+                _logger.LogWarning("Email vacío en request de login");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Password))
+            {
+                _logger.LogWarning("Password vacío en request de login");
+            }
+
+            _logger.LogInformation("Buscando usuario en BD con email: {Email}", request.Email);
 
             // La validación se hace automáticamente por FluentValidation
             // Buscar usuario en BD
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower().Trim());
 
+            _logger.LogInformation("Usuario encontrado: {Found}, Email: {Email}", user != null, request.Email);
+
             if (user == null)
             {
+                _logger.LogWarning("Usuario no encontrado para email: {Email}", request.Email);
                 // No revelar que el usuario no existe (protección contra user enumeration)
                 await Task.Delay(500); // Simular tiempo de procesamiento
                 throw new UnauthorizedAccessException("Email o contraseña incorrectos");
             }
 
+            _logger.LogInformation("Usuario encontrado. ID: {UserId}, IsActive: {IsActive}", user.Id, user.IsActive);
+
             // Verificar password
+            _logger.LogInformation("Verificando contraseña...");
             var passwordHash = HashPassword(request.Password.Trim());
+            _logger.LogInformation("Hash generado. Comparando con hash almacenado...");
+            
             if (user.PasswordHash != passwordHash)
             {
+                _logger.LogWarning("Contraseña incorrecta para usuario: {Email}. Hash almacenado: {StoredHash}, Hash recibido: {ReceivedHash}", 
+                    request.Email, user.PasswordHash?.Substring(0, Math.Min(20, user.PasswordHash?.Length ?? 0)), 
+                    passwordHash?.Substring(0, Math.Min(20, passwordHash?.Length ?? 0)));
+                
                 // Incrementar intentos fallidos
                 user.FailedLoginAttempts++;
                 await _userRepository.UpdateAsync(user);
@@ -118,6 +145,8 @@ public class AuthController : ControllerBase
 
                 throw new UnauthorizedAccessException("Email o contraseña incorrectos");
             }
+
+            _logger.LogInformation("Contraseña correcta para usuario: {Email}", request.Email);
 
             // Verificar si el usuario está activo
             if (!user.IsActive)
@@ -149,7 +178,16 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error en login para email: {Email}", request?.Email);
+            _logger.LogError(ex, "=== ERROR EN LOGIN ===");
+            _logger.LogError("Email: {Email}", request?.Email ?? "NULL");
+            _logger.LogError("Tipo de excepción: {ExceptionType}", ex.GetType().Name);
+            _logger.LogError("Mensaje: {Message}", ex.Message);
+            _logger.LogError("StackTrace: {StackTrace}", ex.StackTrace);
+            if (ex.InnerException != null)
+            {
+                _logger.LogError("InnerException: {InnerMessage}", ex.InnerException.Message);
+            }
+            _logger.LogError("=== FIN ERROR LOGIN ===");
             throw; // Re-lanzar para que el middleware lo maneje
         }
     }
