@@ -111,8 +111,10 @@ public class AuthController : ControllerBase
             _logger.LogInformation("Buscando usuario en BD con email: {Email}", request.Email);
 
             // La validación se hace automáticamente por FluentValidation
-            // Buscar usuario en BD
+            // Buscar usuario en BD con sus roles
             var user = await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower().Trim());
 
             _logger.LogInformation("Usuario encontrado: {Found}, Email: {Email}", user != null, request.Email);
@@ -165,6 +167,11 @@ public class AuthController : ControllerBase
 
             var token = $"mock_token_{Guid.NewGuid()}";
 
+            // Obtener roles del usuario
+            var roles = user.UserRoles
+                .Select(ur => ur.Role.Name)
+                .ToList();
+
             return Ok(new AuthResponseDto
             {
                 Token = token,
@@ -173,7 +180,8 @@ public class AuthController : ControllerBase
                     Id = user.Id,
                     Email = user.Email,
                     FirstName = user.FirstName,
-                    LastName = user.LastName
+                    LastName = user.LastName,
+                    Roles = roles
                 }
             });
         }
@@ -219,4 +227,5 @@ public class UserDto
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public List<string> Roles { get; set; } = new();
 }

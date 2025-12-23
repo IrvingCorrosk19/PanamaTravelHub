@@ -112,6 +112,11 @@ class ApiClient {
           localStorage.setItem('userId', response.user.id);
           console.log('💾 UserId guardado:', response.user.id);
         }
+        // Guardar roles del usuario
+        if (response.user && response.user.roles) {
+          localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
+          console.log('💾 Roles guardados:', response.user.roles);
+        }
       }
       
       return response;
