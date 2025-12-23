@@ -5,199 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Panel Administrativo — ToursPanama</title>
   <link rel="stylesheet" href="/css/main.css" />
-  <style>
-    .admin-container {
-      padding: var(--spacing-2xl) 0;
-    }
-    .admin-tabs {
-      display: flex;
-      gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-xl);
-      border-bottom: 1px solid var(--stroke);
-      flex-wrap: wrap;
-    }
-    .admin-tab {
-      padding: var(--spacing-md) var(--spacing-lg);
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all 0.2s;
-    }
-    .admin-tab:hover {
-      color: var(--text);
-    }
-    .admin-tab.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
-    }
-    .admin-content {
-      display: none;
-    }
-    .admin-content.active {
-      display: block;
-    }
-    .admin-card {
-      background: var(--card);
-      border: 1px solid var(--stroke);
-      border-radius: var(--radius-lg);
-      padding: var(--spacing-xl);
-      margin-bottom: var(--spacing-lg);
-    }
-    .admin-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--spacing-lg);
-      flex-wrap: wrap;
-      gap: var(--spacing-md);
-    }
-    .table-container {
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: var(--spacing-md);
-      text-align: left;
-      border-bottom: 1px solid var(--stroke);
-    }
-    th {
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-    td {
-      color: var(--text);
-    }
-    .action-buttons {
-      display: flex;
-      gap: var(--spacing-xs);
-    }
-    .btn-sm {
-      padding: var(--spacing-xs) var(--spacing-sm);
-      font-size: 0.85rem;
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      overflow-y: auto;
-    }
-    .modal.active {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--spacing-lg);
-    }
-    .modal-content {
-      background: var(--card);
-      border-radius: var(--radius-lg);
-      padding: var(--spacing-xl);
-      max-width: 600px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    .form-group {
-      margin-bottom: var(--spacing-lg);
-    }
-    .form-group label {
-      display: block;
-      margin-bottom: var(--spacing-xs);
-      color: var(--text);
-      font-weight: 500;
-    }
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      padding: var(--spacing-sm);
-      border: 1px solid var(--stroke);
-      border-radius: var(--radius);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 1rem;
-    }
-    .form-group textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-    .image-input-group {
-      display: flex;
-      gap: var(--spacing-sm);
-      margin-bottom: var(--spacing-sm);
-    }
-    .image-input-group input {
-      flex: 1;
-    }
-    .badge {
-      display: inline-block;
-      padding: var(--spacing-xs) var(--spacing-sm);
-      border-radius: var(--radius);
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
-    .badge.active {
-      background: rgba(34, 197, 94, 0.2);
-      color: rgb(34, 197, 94);
-    }
-    .badge.inactive {
-      background: rgba(239, 68, 68, 0.2);
-      color: rgb(239, 68, 68);
-    }
-    .tour-image-preview {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      border-radius: var(--radius);
-      margin: var(--spacing-xs);
-    }
-    .image-preview-item {
-      position: relative;
-      border: 2px solid var(--stroke);
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: var(--bg-secondary);
-    }
-    .image-preview-item img {
-      width: 100%;
-      height: 120px;
-      object-fit: cover;
-      display: block;
-    }
-    .image-preview-item .primary-badge {
-      position: absolute;
-      top: 4px;
-      left: 4px;
-      background: var(--primary);
-      color: white;
-      padding: 2px 6px;
-      border-radius: var(--radius);
-      font-size: 0.7rem;
-      font-weight: 600;
-    }
-    .image-preview-item.error {
-      border-color: var(--danger);
-    }
-    .field-error {
-      color: var(--danger);
-      font-size: 0.875rem;
-      margin-top: var(--spacing-xs);
-      display: block;
-    }
-    .form-input.input-error {
-      border-color: var(--danger);
-    }
-  </style>
+  <link rel="stylesheet" href="/css/admin.css" />
 </head>
 <body>
   <nav class="nav">
@@ -338,7 +146,7 @@
         </div>
         <div class="form-group">
           <label>Estado</label>
-          <select id="tourIsActive" style="width: 100%; padding: var(--spacing-sm); border: 1px solid var(--stroke); border-radius: var(--radius); background: var(--bg); color: var(--text);">
+          <select id="tourIsActive">
             <option value="true">Activo</option>
             <option value="false">Inactivo</option>
           </select>
@@ -351,11 +159,15 @@
               <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
             </div>
           </div>
-          <button type="button" class="btn-secondary" onclick="addImageInput()" style="margin-top: var(--spacing-sm);">+ Agregar Imagen</button>
-          <div id="imagesPreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--spacing-sm); margin-top: var(--spacing-md);"></div>
-          <small style="color: var(--text-muted); display: block; margin-top: var(--spacing-xs);">La primera imagen será la imagen principal. Máximo 5 imágenes.</small>
+          <button type="button" id="addImageBtn" class="btn-secondary" onclick="addImageInput()" style="margin-top: var(--spacing-sm);">
+            <span id="addImageText">+ Agregar Imagen</span>
+          </button>
+          <div id="imagesPreview"></div>
+          <div id="imageLimitInfo" class="image-limit-info">
+            <span>La primera imagen será la imagen principal. Máximo 5 imágenes.</span>
+          </div>
         </div>
-        <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-xl);">
+        <div class="form-actions">
           <button type="button" class="btn-secondary" onclick="closeTourModal()">Cancelar</button>
           <button type="submit" class="btn-primary">Guardar</button>
         </div>
@@ -495,26 +307,26 @@
         const content = document.getElementById('statsContent');
         
         content.innerHTML = `
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-lg);">
-            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
-              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">${stats.totalTours}</h3>
-              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Tours Totales</p>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>${stats.totalTours}</h3>
+              <p>Tours Totales</p>
             </div>
-            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
-              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">${stats.activeTours}</h3>
-              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Tours Activos</p>
+            <div class="stat-card">
+              <h3>${stats.activeTours}</h3>
+              <p>Tours Activos</p>
             </div>
-            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
-              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">${stats.totalBookings}</h3>
-              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Reservas Totales</p>
+            <div class="stat-card">
+              <h3>${stats.totalBookings}</h3>
+              <p>Reservas Totales</p>
             </div>
-            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
-              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">$${stats.totalRevenue.toFixed(2)}</h3>
-              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Ingresos Totales</p>
+            <div class="stat-card">
+              <h3>$${stats.totalRevenue.toFixed(2)}</h3>
+              <p>Ingresos Totales</p>
             </div>
-            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
-              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">${stats.totalUsers}</h3>
-              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Usuarios</p>
+            <div class="stat-card">
+              <h3>${stats.totalUsers}</h3>
+              <p>Usuarios</p>
             </div>
           </div>
         `;
@@ -542,6 +354,7 @@
       
       // Agregar event listeners a los inputs de imágenes
       setupImageInputs();
+      updateImageLimitInfo();
       
       // Limpiar errores
       document.querySelectorAll('.field-error').forEach(el => el.remove());
@@ -560,10 +373,11 @@
     function addImageInput() {
       const container = document.getElementById('imagesContainer');
       const imageCount = container.querySelectorAll('.image-input-group').length;
+      const addImageBtn = document.getElementById('addImageBtn');
+      const imageLimitInfo = document.getElementById('imageLimitInfo');
       
       if (imageCount >= 5) {
-        alert('No se pueden agregar más de 5 imágenes');
-        return;
+        return; // No hacer nada si ya hay 5 imágenes
       }
       
       const newInput = document.createElement('div');
@@ -575,6 +389,33 @@
       container.appendChild(newInput);
       
       setupImageInputs();
+      updateImageLimitInfo();
+    }
+    
+    function updateImageLimitInfo() {
+      const container = document.getElementById('imagesContainer');
+      const imageCount = container.querySelectorAll('.image-input-group').length;
+      const addImageBtn = document.getElementById('addImageBtn');
+      const addImageText = document.getElementById('addImageText');
+      const imageLimitInfo = document.getElementById('imageLimitInfo');
+      
+      // Actualizar botón
+      if (imageCount >= 5) {
+        addImageBtn.disabled = true;
+        addImageText.textContent = 'Máximo 5 imágenes alcanzado';
+        imageLimitInfo.className = 'image-limit-info max';
+        imageLimitInfo.innerHTML = `<span>⚠️ Has alcanzado el límite de 5 imágenes</span>`;
+      } else {
+        addImageBtn.disabled = false;
+        addImageText.textContent = `+ Agregar Imagen (${imageCount}/5)`;
+        if (imageCount >= 3) {
+          imageLimitInfo.className = 'image-limit-info warning';
+          imageLimitInfo.innerHTML = `<span>⚠️ Puedes agregar ${5 - imageCount} imagen${5 - imageCount > 1 ? 'es' : ''} más</span>`;
+        } else {
+          imageLimitInfo.className = 'image-limit-info';
+          imageLimitInfo.innerHTML = `<span>La primera imagen será la imagen principal. Máximo 5 imágenes. (${imageCount}/5)</span>`;
+        }
+      }
     }
     
     function removeImage(button) {
@@ -585,6 +426,7 @@
       }
       button.closest('.image-input-group').remove();
       updateImagesPreview();
+      updateImageLimitInfo();
     }
     
     function validateImageUrl(event) {
@@ -665,6 +507,7 @@
         
         setupImageInputs();
         updateImagesPreview();
+        updateImageLimitInfo();
         
         // Limpiar errores
         document.querySelectorAll('.field-error').forEach(el => el.remove());
