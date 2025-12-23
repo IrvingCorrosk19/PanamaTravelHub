@@ -100,6 +100,14 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 {
                     _logger.LogError("InnerException Tipo: {InnerType}", exception.InnerException.GetType().Name);
                     _logger.LogError("InnerException Mensaje: {InnerMessage}", exception.InnerException.Message);
+                    _logger.LogError("InnerException StackTrace: {InnerStackTrace}", exception.InnerException.StackTrace);
+                    
+                    // Si hay un InnerException anidado, también loguearlo
+                    if (exception.InnerException.InnerException != null)
+                    {
+                        _logger.LogError("InnerException.InnerException Tipo: {Type}", exception.InnerException.InnerException.GetType().Name);
+                        _logger.LogError("InnerException.InnerException Mensaje: {Message}", exception.InnerException.InnerException.Message);
+                    }
                 }
                 
                 if (_environment.IsDevelopment() || _environment.IsProduction())
@@ -122,7 +130,10 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                         Message = exception.Message,
                         StackTrace = exception.StackTrace,
                         InnerExceptionMessage = exception.InnerException?.Message,
-                        InnerExceptionType = exception.InnerException?.GetType().Name
+                        InnerExceptionType = exception.InnerException?.GetType().Name,
+                        InnerExceptionStackTrace = exception.InnerException?.StackTrace,
+                        InnerInnerExceptionMessage = exception.InnerException?.InnerException?.Message,
+                        InnerInnerExceptionType = exception.InnerException?.InnerException?.GetType().Name
                     };
                 }
                 break;
