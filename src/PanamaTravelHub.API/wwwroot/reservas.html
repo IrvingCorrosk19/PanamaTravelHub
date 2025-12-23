@@ -180,8 +180,8 @@
           console.warn('Error al cargar reservas:', error);
           // Si es error 401 (no autorizado), limpiar token y redirigir
           if (error.message && error.message.includes('401')) {
-            localStorage.removeItem('authToken');
-            checkAuth();
+            await api.logout();
+            window.location.href = '/';
             return;
           }
           reservations = [];
@@ -244,8 +244,8 @@
     }
 
     if (document.getElementById('logoutBtn')) {
-      document.getElementById('logoutBtn').addEventListener('click', () => {
-        api.logout();
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await api.logout();
         window.location.href = '/';
       });
     }

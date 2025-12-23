@@ -1,12 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PanamaTravelHub.Application.Exceptions;
+using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Domain.Entities;
 using PanamaTravelHub.Infrastructure.Data;
-using PanamaTravelHub.Infrastructure.Repositories;
-using System.Security.Cryptography;
-using System.Text;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace PanamaTravelHub.API.Controllers;
 
@@ -16,16 +17,22 @@ public class AuthController : ControllerBase
 {
     private readonly ILogger<AuthController> _logger;
     private readonly ApplicationDbContext _context;
-    private readonly IRepository<User> _userRepository;
+    private readonly IPasswordHasher _passwordHasher;
+    private readonly IJwtService _jwtService;
+    private readonly IConfiguration _configuration;
 
     public AuthController(
         ILogger<AuthController> logger,
         ApplicationDbContext context,
-        IRepository<User> userRepository)
+        IPasswordHasher passwordHasher,
+        IJwtService jwtService,
+        IConfiguration configuration)
     {
         _logger = logger;
         _context = context;
-        _userRepository = userRepository;
+        _passwordHasher = passwordHasher;
+        _jwtService = jwtService;
+        _configuration = configuration;
     }
 
     /// <summary>
@@ -36,7 +43,6 @@ public class AuthController : ControllerBase
     {
         _logger.LogInformation("Registro de usuario: {Email}", request.Email);
 
-        // La validación se hace automáticamente por FluentValidation
         // Verificar si el usuario ya existe
         var existingUser = await _context.Users
             .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower().Trim());
@@ -46,11 +52,10 @@ public class AuthController : ControllerBase
             throw new BusinessException("Este email ya está registrado", "EMAIL_ALREADY_EXISTS");
         }
 
-        // Hashear password (usando SHA256 simple por ahora, luego se puede cambiar a BCrypt)
-        var password = request.Password.Trim();
-        var passwordHash = HashPassword(password);
+        // Hashear password con BCrypt
+        var passwordHash = _passwordHasher.HashPassword(request.Password.Trim());
 
-        // Crear usuario en BD
+        // Crear usuario
         var user = new User
         {
             Email = request.Email.Trim().ToLower(),
@@ -60,22 +65,40 @@ public class AuthController : ControllerBase
             IsActive = true
         };
 
-        await _userRepository.AddAsync(user);
+        await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
+
+        // Asignar rol Customer por defecto
+        var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Customer");
+        if (customerRole != null)
+        {
+            var userRole = new UserRole
+            {
+                UserId = user.Id,
+                RoleId = customerRole.Id
+            };
+            await _context.UserRoles.AddAsync(userRole);
+            await _context.SaveChangesAsync();
+        }
 
         _logger.LogInformation("Usuario registrado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
 
-        var token = $"mock_token_{Guid.NewGuid()}";
+        // Generar tokens
+        var roles = new List<string> { "Customer" };
+        var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email, roles);
+        var refreshToken = await CreateRefreshTokenAsync(user.Id);
 
         return Ok(new AuthResponseDto
         {
-            Token = token,
+            AccessToken = accessToken,
+            RefreshToken = refreshToken.Token,
             User = new UserDto
             {
                 Id = user.Id,
                 Email = user.Email,
                 FirstName = user.FirstName,
-                LastName = user.LastName
+                LastName = user.LastName,
+                Roles = roles
             }
         });
     }
@@ -88,67 +111,67 @@ public class AuthController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("=== INICIO LOGIN ===");
-            _logger.LogInformation("Request recibido. Email: {Email}, Request es null: {IsNull}", 
-                request?.Email ?? "NULL", request == null);
+            _logger.LogInformation("Intento de login: {Email}", request.Email);
 
-            if (request == null)
-            {
-                _logger.LogError("Request es null en Login");
-                throw new BusinessException("El request no puede ser nulo", "INVALID_REQUEST");
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Email))
-            {
-                _logger.LogWarning("Email vacío en request de login");
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Password))
-            {
-                _logger.LogWarning("Password vacío en request de login");
-            }
-
-            _logger.LogInformation("Buscando usuario en BD con email: {Email}", request.Email);
-
-            // La validación se hace automáticamente por FluentValidation
-            // Buscar usuario en BD con sus roles
+            // Buscar usuario con roles
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower().Trim());
 
-            _logger.LogInformation("Usuario encontrado: {Found}, Email: {Email}", user != null, request.Email);
-
             if (user == null)
             {
-                _logger.LogWarning("Usuario no encontrado para email: {Email}", request.Email);
                 // No revelar que el usuario no existe (protección contra user enumeration)
-                await Task.Delay(500); // Simular tiempo de procesamiento
+                await Task.Delay(500);
                 throw new UnauthorizedAccessException("Email o contraseña incorrectos");
             }
 
-            _logger.LogInformation("Usuario encontrado. ID: {UserId}, IsActive: {IsActive}", user.Id, user.IsActive);
+            // Verificar si la cuenta está bloqueada
+            if (user.LockedUntil.HasValue && user.LockedUntil.Value > DateTime.UtcNow)
+            {
+                var remainingMinutes = (int)Math.Ceiling((user.LockedUntil.Value - DateTime.UtcNow).TotalMinutes);
+                throw new BusinessException(
+                    $"Tu cuenta está bloqueada. Intenta de nuevo en {remainingMinutes} minuto(s).",
+                    "ACCOUNT_LOCKED");
+            }
+
+            // Si el bloqueo expiró, resetear
+            if (user.LockedUntil.HasValue && user.LockedUntil.Value <= DateTime.UtcNow)
+            {
+                user.LockedUntil = null;
+                user.FailedLoginAttempts = 0;
+            }
 
             // Verificar password
-            _logger.LogInformation("Verificando contraseña...");
-            var passwordHash = HashPassword(request.Password.Trim());
-            _logger.LogInformation("Hash generado. Comparando con hash almacenado...");
-            
-            if (user.PasswordHash != passwordHash)
+            var isPasswordValid = _passwordHasher.VerifyPassword(request.Password.Trim(), user.PasswordHash);
+
+            if (!isPasswordValid)
             {
-                _logger.LogWarning("Contraseña incorrecta para usuario: {Email}. Hash almacenado: {StoredHash}, Hash recibido: {ReceivedHash}", 
-                    request.Email, user.PasswordHash?.Substring(0, Math.Min(20, user.PasswordHash?.Length ?? 0)), 
-                    passwordHash?.Substring(0, Math.Min(20, passwordHash?.Length ?? 0)));
-                
                 // Incrementar intentos fallidos
                 user.FailedLoginAttempts++;
-                await _userRepository.UpdateAsync(user);
+
+                // Bloquear cuenta después de X intentos fallidos
+                var maxAttempts = int.Parse(_configuration["Auth:MaxFailedLoginAttempts"] ?? "5");
+                var lockoutDuration = int.Parse(_configuration["Auth:AccountLockoutDurationMinutes"] ?? "30");
+
+                if (user.FailedLoginAttempts >= maxAttempts)
+                {
+                    user.LockedUntil = DateTime.UtcNow.AddMinutes(lockoutDuration);
+                    _logger.LogWarning("Cuenta bloqueada por {Attempts} intentos fallidos: {Email}", 
+                        user.FailedLoginAttempts, user.Email);
+                }
+
                 await _context.SaveChangesAsync();
 
                 throw new UnauthorizedAccessException("Email o contraseña incorrectos");
             }
 
-            _logger.LogInformation("Contraseña correcta para usuario: {Email}", request.Email);
+            // Si el hash es SHA256 antiguo, migrar a BCrypt
+            if (!_passwordHasher.IsBcryptHash(user.PasswordHash))
+            {
+                user.PasswordHash = _passwordHasher.HashPassword(request.Password.Trim());
+                _logger.LogInformation("Password migrado a BCrypt para usuario: {Email}", user.Email);
+            }
 
             // Verificar si el usuario está activo
             if (!user.IsActive)
@@ -156,25 +179,39 @@ public class AuthController : ControllerBase
                 throw new BusinessException("Tu cuenta está desactivada. Contacta al administrador.", "ACCOUNT_DISABLED");
             }
 
-            // Actualizar último login
-            // Asegurar que el DateTime sea UTC explícitamente
-            user.LastLoginAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-            user.FailedLoginAttempts = 0; // Resetear intentos fallidos
-            await _userRepository.UpdateAsync(user);
+            // Resetear intentos fallidos y actualizar último login
+            user.FailedLoginAttempts = 0;
+            user.LockedUntil = null;
+            user.LastLoginAt = DateTime.UtcNow;
+
+            // Revocar todos los refresh tokens anteriores del usuario (opcional, para seguridad)
+            var oldTokens = await _context.RefreshTokens
+                .Where(rt => rt.UserId == user.Id && !rt.IsRevoked && rt.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync();
+
+            foreach (var token in oldTokens)
+            {
+                token.IsRevoked = true;
+                token.RevokedAt = DateTime.UtcNow;
+            }
+
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Usuario autenticado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
 
-            var token = $"mock_token_{Guid.NewGuid()}";
-
-            // Obtener roles del usuario
+            // Obtener roles
             var roles = user.UserRoles
                 .Select(ur => ur.Role.Name)
                 .ToList();
 
+            // Generar tokens
+            var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email, roles);
+            var refreshToken = await CreateRefreshTokenAsync(user.Id);
+
             return Ok(new AuthResponseDto
             {
-                Token = token,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken.Token,
                 User = new UserDto
                 {
                     Id = user.Id,
@@ -187,37 +224,212 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "=== ERROR EN LOGIN ===");
-            _logger.LogError("Email: {Email}", request?.Email ?? "NULL");
-            _logger.LogError("Tipo de excepción: {ExceptionType}", ex.GetType().Name);
-            _logger.LogError("Mensaje: {Message}", ex.Message);
-            _logger.LogError("StackTrace: {StackTrace}", ex.StackTrace);
-            if (ex.InnerException != null)
-            {
-                _logger.LogError("InnerException: {InnerMessage}", ex.InnerException.Message);
-            }
-            _logger.LogError("=== FIN ERROR LOGIN ===");
-            throw; // Re-lanzar para que el middleware lo maneje
+            _logger.LogError(ex, "Error en login para email: {Email}", request?.Email);
+            throw;
         }
     }
 
     /// <summary>
-    /// Hashea una contraseña usando SHA256 (temporal, luego cambiar a BCrypt)
+    /// Refrescar access token usando refresh token
     /// </summary>
-    private string HashPassword(string password)
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthResponseDto>> Refresh([FromBody] RefreshTokenRequestDto request)
     {
-        using var sha256 = SHA256.Create();
-        var bytes = Encoding.UTF8.GetBytes(password);
-        var hash = sha256.ComputeHash(bytes);
-        return Convert.ToBase64String(hash);
+        _logger.LogInformation("Intento de refresh token");
+
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            throw new BusinessException("Refresh token es requerido", "REFRESH_TOKEN_REQUIRED");
+        }
+
+        // Buscar refresh token
+        var refreshToken = await _context.RefreshTokens
+            .Include(rt => rt.User)
+                .ThenInclude(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken);
+
+        if (refreshToken == null)
+        {
+            throw new UnauthorizedAccessException("Refresh token inválido");
+        }
+
+        // Verificar si está revocado
+        if (refreshToken.IsRevoked)
+        {
+            throw new UnauthorizedAccessException("Refresh token ha sido revocado");
+        }
+
+        // Verificar si expiró
+        if (refreshToken.ExpiresAt <= DateTime.UtcNow)
+        {
+            refreshToken.IsRevoked = true;
+            refreshToken.RevokedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            throw new UnauthorizedAccessException("Refresh token expirado");
+        }
+
+        // Verificar si el usuario está activo
+        if (!refreshToken.User.IsActive)
+        {
+            throw new BusinessException("Tu cuenta está desactivada", "ACCOUNT_DISABLED");
+        }
+
+        // Revocar el token usado (rotación de tokens)
+        refreshToken.IsRevoked = true;
+        refreshToken.RevokedAt = DateTime.UtcNow;
+
+        // Generar nuevos tokens
+        var roles = refreshToken.User.UserRoles
+            .Select(ur => ur.Role.Name)
+            .ToList();
+
+        var newAccessToken = _jwtService.GenerateAccessToken(refreshToken.User.Id, refreshToken.User.Email, roles);
+        var newRefreshToken = await CreateRefreshTokenAsync(refreshToken.User.Id);
+
+        // Marcar el nuevo token como reemplazo del anterior
+        newRefreshToken.ReplacedByToken = newRefreshToken.Token;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Token refrescado exitosamente para usuario: {Email}", refreshToken.User.Email);
+
+        return Ok(new AuthResponseDto
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshToken.Token,
+            User = new UserDto
+            {
+                Id = refreshToken.User.Id,
+                Email = refreshToken.User.Email,
+                FirstName = refreshToken.User.FirstName,
+                LastName = refreshToken.User.LastName,
+                Roles = roles
+            }
+        });
+    }
+
+    /// <summary>
+    /// Logout - revoca el refresh token
+    /// </summary>
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<ActionResult> Logout([FromBody] LogoutRequestDto? request)
+    {
+        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                         User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        // Si se proporciona un refresh token, revocarlo
+        if (request != null && !string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            var refreshToken = await _context.RefreshTokens
+                .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken && rt.UserId == userId);
+
+            if (refreshToken != null && !refreshToken.IsRevoked)
+            {
+                refreshToken.IsRevoked = true;
+                refreshToken.RevokedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+        }
+        else
+        {
+            // Revocar todos los refresh tokens del usuario
+            var tokens = await _context.RefreshTokens
+                .Where(rt => rt.UserId == userId && !rt.IsRevoked)
+                .ToListAsync();
+
+            foreach (var token in tokens)
+            {
+                token.IsRevoked = true;
+                token.RevokedAt = DateTime.UtcNow;
+            }
+
+            if (tokens.Any())
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        _logger.LogInformation("Logout exitoso para usuario: {UserId}", userId);
+
+        return Ok(new { message = "Logout exitoso" });
+    }
+
+    /// <summary>
+    /// Obtener información del usuario actual
+    /// </summary>
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> GetCurrentUser()
+    {
+        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                         User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var user = await _context.Users
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        var roles = user.UserRoles
+            .Select(ur => ur.Role.Name)
+            .ToList();
+
+        return Ok(new UserDto
+        {
+            Id = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Roles = roles
+        });
+    }
+
+    /// <summary>
+    /// Crea un refresh token para un usuario
+    /// </summary>
+    private async Task<RefreshToken> CreateRefreshTokenAsync(Guid userId)
+    {
+        var expirationDays = int.Parse(_configuration["Jwt:RefreshTokenExpirationDays"] ?? "7");
+        var token = _jwtService.GenerateRefreshToken();
+
+        var refreshToken = new RefreshToken
+        {
+            UserId = userId,
+            Token = token,
+            ExpiresAt = DateTime.UtcNow.AddDays(expirationDays),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = Request.Headers["User-Agent"].ToString()
+        };
+
+        await _context.RefreshTokens.AddAsync(refreshToken);
+        await _context.SaveChangesAsync();
+
+        return refreshToken;
     }
 }
 
-// DTOs de respuesta (los de request están en Application.Validators)
+// DTOs
 
 public class AuthResponseDto
 {
-    public string Token { get; set; } = string.Empty;
+    public string AccessToken { get; set; } = string.Empty;
+    public string RefreshToken { get; set; } = string.Empty;
     public UserDto User { get; set; } = new();
 }
 
@@ -228,4 +440,14 @@ public class UserDto
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public List<string> Roles { get; set; } = new();
+}
+
+public class RefreshTokenRequestDto
+{
+    public string RefreshToken { get; set; } = string.Empty;
+}
+
+public class LogoutRequestDto
+{
+    public string? RefreshToken { get; set; }
 }

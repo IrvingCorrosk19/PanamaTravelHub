@@ -1,4 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using AspNetCoreRateLimit;
 using Npgsql;
 using PanamaTravelHub.API.Middleware;
 using PanamaTravelHub.API.Filters;
@@ -80,6 +84,77 @@ builder.Services.AddCors(options =>
 // Add Infrastructure (DbContext, Repositories, etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Configurar JWT Authentication
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey no configurada");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "PanamaTravelHub";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "PanamaTravelHub";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero // Sin tolerancia de tiempo
+    };
+});
+
+// Configurar autorización con policies
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("CustomerOnly", policy => policy.RequireRole("Customer"));
+    options.AddPolicy("AdminOrCustomer", policy => policy.RequireRole("Admin", "Customer"));
+});
+
+// Configurar Rate Limiting para endpoints de autenticación
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(options =>
+{
+    options.EnableEndpointRateLimiting = true;
+    options.StackBlockedRequests = false;
+    options.HttpStatusCode = 429;
+    options.RealIpHeader = "X-Real-IP";
+    options.ClientIdHeader = "X-ClientId";
+    options.GeneralRules = new List<RateLimitRule>
+    {
+        new RateLimitRule
+        {
+            Endpoint = "POST:/api/auth/login",
+            Period = "1m",
+            Limit = 5
+        },
+        new RateLimitRule
+        {
+            Endpoint = "POST:/api/auth/register",
+            Period = "1m",
+            Limit = 3
+        },
+        new RateLimitRule
+        {
+            Endpoint = "POST:/api/auth/refresh",
+            Period = "1m",
+            Limit = 10
+        }
+    };
+});
+
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+// Alternativa más simple: Rate limiting básico sin paquete externo
+// Se puede implementar con middleware personalizado si AspNetCoreRateLimit da problemas
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -101,6 +176,11 @@ app.UseExceptionHandler();
 // CORS debe ir antes de UseAuthorization
 app.UseCors("AllowFrontend");
 
+// Rate Limiting
+app.UseIpRateLimiting();
+
+// Authentication debe ir antes de Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

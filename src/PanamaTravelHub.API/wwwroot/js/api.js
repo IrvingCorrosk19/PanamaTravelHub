@@ -4,7 +4,10 @@ const API_BASE_URL = window.location.origin;
 class ApiClient {
   constructor() {
     this.baseUrl = API_BASE_URL;
-    this.token = localStorage.getItem('authToken');
+    this.accessToken = localStorage.getItem('accessToken');
+    this.refreshToken = localStorage.getItem('refreshToken');
+    this.isRefreshing = false;
+    this.failedQueue = [];
   }
 
     async request(endpoint, options = {}) {
@@ -24,8 +27,11 @@ class ApiClient {
         },
       };
 
-      if (this.token) {
-        config.headers['Authorization'] = `Bearer ${this.token}`;
+      // Actualizar token antes de cada request
+      this.accessToken = localStorage.getItem('accessToken');
+      
+      if (this.accessToken) {
+        config.headers['Authorization'] = `Bearer ${this.accessToken}`;
       }
 
       try {
@@ -39,6 +45,22 @@ class ApiClient {
         });
         
         if (!response.ok) {
+          // Si es 401 (Unauthorized), intentar refresh token
+          if (response.status === 401 && this.refreshToken && !endpoint.includes('/api/auth/refresh') && !endpoint.includes('/api/auth/login')) {
+            console.log('🔄 Token expirado, intentando refresh...');
+            const refreshed = await this.refreshAccessToken();
+            if (refreshed) {
+              // Reintentar request con nuevo token
+              config.headers['Authorization'] = `Bearer ${this.accessToken}`;
+              const retryResponse = await fetch(url, config);
+              if (retryResponse.ok) {
+                const data = await retryResponse.json();
+                console.log('✅ Request exitoso después de refresh');
+                return data;
+              }
+            }
+          }
+
           console.error('❌ Response no OK. Status:', response.status);
           const error = await response.json().catch((parseError) => {
             console.error('❌ Error al parsear JSON del error:', parseError);
@@ -103,26 +125,105 @@ class ApiClient {
       });
       console.log('✅ Login exitoso:', response);
       
-      if (response.token) {
-        this.token = response.token;
-        localStorage.setItem('authToken', response.token);
-        console.log('💾 Token guardado en localStorage');
-        // Guardar userId para usar en reservas
-        if (response.user && response.user.id) {
-          localStorage.setItem('userId', response.user.id);
-          console.log('💾 UserId guardado:', response.user.id);
-        }
-        // Guardar roles del usuario
-        if (response.user && response.user.roles) {
-          localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
-          console.log('💾 Roles guardados:', response.user.roles);
-        }
+      // Guardar accessToken y refreshToken
+      if (response.accessToken && response.refreshToken) {
+        this.accessToken = response.accessToken;
+        this.refreshToken = response.refreshToken;
+        localStorage.setItem('accessToken', response.accessToken);
+        localStorage.setItem('refreshToken', response.refreshToken);
+        // Mantener compatibilidad con código antiguo
+        localStorage.setItem('authToken', response.accessToken);
+        console.log('💾 Tokens guardados en localStorage');
+      }
+      
+      // Guardar userId para usar en reservas
+      if (response.user && response.user.id) {
+        localStorage.setItem('userId', response.user.id);
+        console.log('💾 UserId guardado:', response.user.id);
+      }
+      
+      // Guardar roles del usuario
+      if (response.user && response.user.roles) {
+        localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
+        console.log('💾 Roles guardados:', response.user.roles);
       }
       
       return response;
     } catch (error) {
       console.error('❌ Error en login:', error);
       throw error;
+    }
+  }
+
+  // Refresh access token
+  async refreshAccessToken() {
+    if (this.isRefreshing) {
+      // Si ya hay un refresh en proceso, esperar
+      return new Promise((resolve) => {
+        this.failedQueue.push(resolve);
+      });
+    }
+
+    this.isRefreshing = true;
+    const currentRefreshToken = localStorage.getItem('refreshToken');
+
+    if (!currentRefreshToken) {
+      console.log('❌ No hay refresh token disponible');
+      this.isRefreshing = false;
+      this.handleAuthFailure();
+      return false;
+    }
+
+    try {
+      console.log('🔄 Refrescando access token...');
+      const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: currentRefreshToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Refresh token inválido o expirado');
+      }
+
+      const data = await response.json();
+      
+      if (data.accessToken && data.refreshToken) {
+        this.accessToken = data.accessToken;
+        this.refreshToken = data.refreshToken;
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('authToken', data.accessToken); // Compatibilidad
+        console.log('✅ Access token refrescado exitosamente');
+        
+        // Resolver todas las peticiones en cola
+        this.failedQueue.forEach(resolve => resolve(true));
+        this.failedQueue = [];
+        this.isRefreshing = false;
+        
+        return true;
+      }
+
+      throw new Error('No se recibieron tokens en la respuesta');
+    } catch (error) {
+      console.error('❌ Error al refrescar token:', error);
+      this.isRefreshing = false;
+      this.failedQueue.forEach(resolve => resolve(false));
+      this.failedQueue = [];
+      this.handleAuthFailure();
+      return false;
+    }
+  }
+
+  // Manejar fallo de autenticación
+  handleAuthFailure() {
+    console.log('🚪 Sesión expirada, cerrando sesión...');
+    this.logout();
+    // Redirigir a login si no estamos ya ahí
+    if (!window.location.pathname.includes('login.html')) {
+      window.location.href = '/login.html';
     }
   }
 
@@ -141,30 +242,64 @@ class ApiClient {
       body: JSON.stringify(registerData),
     });
     
-    if (response.token) {
-      this.token = response.token;
-      localStorage.setItem('authToken', response.token);
-      console.log('💾 Token guardado en localStorage');
-      // Guardar userId para usar en reservas
-      if (response.user && response.user.id) {
-        localStorage.setItem('userId', response.user.id);
-        console.log('💾 UserId guardado:', response.user.id);
-      }
-      // Guardar roles del usuario
-      if (response.user && response.user.roles) {
-        localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
-        console.log('💾 Roles guardados:', response.user.roles);
-      }
+    // Guardar accessToken y refreshToken
+    if (response.accessToken && response.refreshToken) {
+      this.accessToken = response.accessToken;
+      this.refreshToken = response.refreshToken;
+      localStorage.setItem('accessToken', response.accessToken);
+      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('authToken', response.accessToken); // Compatibilidad
+      console.log('💾 Tokens guardados en localStorage');
+    }
+    
+    // Guardar userId para usar en reservas
+    if (response.user && response.user.id) {
+      localStorage.setItem('userId', response.user.id);
+      console.log('💾 UserId guardado:', response.user.id);
+    }
+    
+    // Guardar roles del usuario
+    if (response.user && response.user.roles) {
+      localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
+      console.log('💾 Roles guardados:', response.user.roles);
     }
     
     return response;
   }
 
-  logout() {
-    this.token = null;
+  // Logout con revocación de refresh token
+  async logout() {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (refreshToken) {
+      try {
+        await this.request('/api/auth/logout', {
+          method: 'POST',
+          body: JSON.stringify({ refreshToken }),
+        });
+        console.log('✅ Logout exitoso, refresh token revocado');
+      } catch (error) {
+        console.error('⚠️ Error al revocar refresh token:', error);
+        // Continuar con logout local aunque falle el servidor
+      }
+    }
+    
+    // Limpiar tokens locales
+    this.accessToken = null;
+    this.refreshToken = null;
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
+    localStorage.removeItem('userRoles');
+    console.log('💾 Tokens eliminados de localStorage');
   }
+
+  // Obtener información del usuario actual
+  async getCurrentUser() {
+    return this.request('/api/auth/me');
+  }
+
 
   // Bookings
   async getMyBookings() {

@@ -83,16 +83,23 @@ async function loadHomePageContent() {
 
 // Authentication
 function checkAuth() {
-  const token = localStorage.getItem('authToken');
+  const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
   const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
   const isAdmin = userRoles.includes('Admin') || userRoles.includes('admin');
   const loginLink = document.getElementById('loginLink');
   const adminLink = document.getElementById('adminLink');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  if (token) {
+  if (accessToken) {
     if (loginLink) loginLink.style.display = 'none';
-    if (logoutBtn) logoutBtn.style.display = 'block';
+    if (logoutBtn) {
+      logoutBtn.style.display = 'block';
+      // Agregar event listener para logout
+      logoutBtn.onclick = async () => {
+        await api.logout();
+        window.location.href = '/';
+      };
+    }
     
     // Si es admin, mostrar link de admin y redirigir automáticamente al panel
     if (isAdmin) {

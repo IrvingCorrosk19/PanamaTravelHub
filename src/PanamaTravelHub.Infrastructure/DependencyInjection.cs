@@ -41,6 +41,10 @@ public static class DependencyInjection
         // Registrar servicios de aplicación
         services.AddScoped<IBookingService, BookingService>();
 
+        // Registrar servicios de autenticación
+        services.AddScoped<PanamaTravelHub.Application.Services.IPasswordHasher, PanamaTravelHub.Application.Services.PasswordHasher>();
+        services.AddScoped<PanamaTravelHub.Application.Services.IJwtService, PanamaTravelHub.Application.Services.JwtService>();
+
         return services;
     }
 }

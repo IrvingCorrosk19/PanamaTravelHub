@@ -1513,8 +1513,8 @@
     });
 
     if (document.getElementById('logoutBtn')) {
-      document.getElementById('logoutBtn').addEventListener('click', () => {
-        api.logout();
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await api.logout();
         window.location.href = '/';
       });
     }
