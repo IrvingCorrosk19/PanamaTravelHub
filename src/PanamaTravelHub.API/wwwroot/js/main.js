@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // Authentication
 function checkAuth() {
   const token = localStorage.getItem('authToken');
+  const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+  const isAdmin = userRoles.includes('Admin') || userRoles.includes('admin');
   const loginLink = document.getElementById('loginLink');
   const adminLink = document.getElementById('adminLink');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -18,7 +20,17 @@ function checkAuth() {
   if (token) {
     if (loginLink) loginLink.style.display = 'none';
     if (logoutBtn) logoutBtn.style.display = 'block';
-    // TODO: Check if user is admin and show admin link
+    
+    // Si es admin, mostrar link de admin y redirigir automáticamente al panel
+    if (isAdmin) {
+      if (adminLink) adminLink.style.display = 'block';
+      // Si estamos en la página principal y el usuario es admin, redirigir al panel
+      if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+        window.location.href = '/admin.html';
+      }
+    } else {
+      if (adminLink) adminLink.style.display = 'none';
+    }
   } else {
     if (loginLink) loginLink.style.display = 'block';
     if (logoutBtn) logoutBtn.style.display = 'none';

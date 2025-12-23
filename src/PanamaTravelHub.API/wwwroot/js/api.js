@@ -144,9 +144,16 @@ class ApiClient {
     if (response.token) {
       this.token = response.token;
       localStorage.setItem('authToken', response.token);
+      console.log('💾 Token guardado en localStorage');
       // Guardar userId para usar en reservas
       if (response.user && response.user.id) {
         localStorage.setItem('userId', response.user.id);
+        console.log('💾 UserId guardado:', response.user.id);
+      }
+      // Guardar roles del usuario
+      if (response.user && response.user.roles) {
+        localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
+        console.log('💾 Roles guardados:', response.user.roles);
       }
     }
     

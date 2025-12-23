@@ -308,10 +308,19 @@
           });
         }
 
-        // Redirect
-        const urlParams = new URLSearchParams(window.location.search);
-        const redirect = urlParams.get('redirect') || '/';
-        window.location.href = redirect;
+        // Verificar si el usuario es admin y redirigir al panel de administración
+        const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+        const isAdmin = userRoles.includes('Admin') || userRoles.includes('admin');
+        
+        if (isAdmin) {
+          // Si es admin, redirigir al panel de administración
+          window.location.href = '/admin.html';
+        } else {
+          // Si no es admin, redirigir según el parámetro redirect o a la página principal
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirect = urlParams.get('redirect') || '/';
+          window.location.href = redirect;
+        }
       } catch (error) {
         errorDiv.textContent = error.message || 'Error al procesar la solicitud';
         errorDiv.style.display = 'block';
