@@ -731,3 +731,218 @@ public class ImageUploadResponseDto
     public long Size { get; set; }
 }
 
+    /// <summary>
+    /// Obtiene las fechas de un tour (Admin)
+    /// </summary>
+    [HttpGet("tours/{tourId}/dates")]
+    public async Task<ActionResult<IEnumerable<AdminTourDateDto>>> GetTourDates(Guid tourId)
+    {
+        try
+        {
+            var tourDates = await _context.TourDates
+                .Where(td => td.TourId == tourId)
+                .OrderBy(td => td.TourDateTime)
+                .ToListAsync();
+
+            var result = tourDates.Select(td => new AdminTourDateDto
+            {
+                Id = td.Id,
+                TourDateTime = td.TourDateTime,
+                AvailableSpots = td.AvailableSpots,
+                IsActive = td.IsActive,
+                CreatedAt = td.CreatedAt
+            });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener fechas del tour {TourId}", tourId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Crea una nueva fecha para un tour (Admin)
+    /// </summary>
+    [HttpPost("tours/{tourId}/dates")]
+    public async Task<ActionResult<AdminTourDateDto>> CreateTourDate(Guid tourId, [FromBody] CreateTourDateRequestDto request)
+    {
+        try
+        {
+            // Verificar que el tour existe
+            var tour = await _tourRepository.GetByIdAsync(tourId);
+            if (tour == null)
+            {
+                return NotFound(new { message = "Tour no encontrado" });
+            }
+
+            // Validar que la fecha sea futura
+            if (request.TourDateTime <= DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "La fecha del tour debe ser futura" });
+            }
+
+            // Validar que no exista otra fecha igual para el mismo tour
+            var existingDate = await _context.TourDates
+                .FirstOrDefaultAsync(td => td.TourId == tourId && 
+                                          td.TourDateTime == request.TourDateTime);
+
+            if (existingDate != null)
+            {
+                return BadRequest(new { message = "Ya existe una fecha con esta fecha y hora para este tour" });
+            }
+
+            var tourDate = new TourDate
+            {
+                TourId = tourId,
+                TourDateTime = DateTime.SpecifyKind(request.TourDateTime, DateTimeKind.Utc),
+                AvailableSpots = request.AvailableSpots ?? tour.MaxCapacity,
+                IsActive = request.IsActive ?? true
+            };
+
+            _context.TourDates.Add(tourDate);
+            await _context.SaveChangesAsync();
+
+            var result = new AdminTourDateDto
+            {
+                Id = tourDate.Id,
+                TourDateTime = tourDate.TourDateTime,
+                AvailableSpots = tourDate.AvailableSpots,
+                IsActive = tourDate.IsActive,
+                CreatedAt = tourDate.CreatedAt
+            };
+
+            return CreatedAtAction(nameof(GetTourDates), new { tourId }, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear fecha para tour {TourId}", tourId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Actualiza una fecha de tour (Admin)
+    /// </summary>
+    [HttpPut("tours/dates/{dateId}")]
+    public async Task<ActionResult<AdminTourDateDto>> UpdateTourDate(Guid dateId, [FromBody] UpdateTourDateRequestDto request)
+    {
+        try
+        {
+            var tourDate = await _context.TourDates.FindAsync(dateId);
+            if (tourDate == null)
+            {
+                return NotFound(new { message = "Fecha de tour no encontrada" });
+            }
+
+            // Validar que la fecha sea futura si se está cambiando
+            if (request.TourDateTime.HasValue && request.TourDateTime.Value <= DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "La fecha del tour debe ser futura" });
+            }
+
+            if (request.TourDateTime.HasValue)
+            {
+                tourDate.TourDateTime = DateTime.SpecifyKind(request.TourDateTime.Value, DateTimeKind.Utc);
+            }
+
+            if (request.AvailableSpots.HasValue)
+            {
+                if (request.AvailableSpots.Value < 0)
+                {
+                    return BadRequest(new { message = "Los cupos disponibles no pueden ser negativos" });
+                }
+                tourDate.AvailableSpots = request.AvailableSpots.Value;
+            }
+
+            if (request.IsActive.HasValue)
+            {
+                tourDate.IsActive = request.IsActive.Value;
+            }
+
+            tourDate.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var result = new AdminTourDateDto
+            {
+                Id = tourDate.Id,
+                TourDateTime = tourDate.TourDateTime,
+                AvailableSpots = tourDate.AvailableSpots,
+                IsActive = tourDate.IsActive,
+                CreatedAt = tourDate.CreatedAt
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar fecha de tour {DateId}", dateId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Elimina una fecha de tour (Admin)
+    /// </summary>
+    [HttpDelete("tours/dates/{dateId}")]
+    public async Task<IActionResult> DeleteTourDate(Guid dateId)
+    {
+        try
+        {
+            var tourDate = await _context.TourDates
+                .Include(td => td.Bookings)
+                .FirstOrDefaultAsync(td => td.Id == dateId);
+
+            if (tourDate == null)
+            {
+                return NotFound(new { message = "Fecha de tour no encontrada" });
+            }
+
+            // Verificar si hay reservas confirmadas para esta fecha
+            var hasConfirmedBookings = tourDate.Bookings.Any(b => b.Status == Domain.Enums.BookingStatus.Confirmed);
+            if (hasConfirmedBookings)
+            {
+                // En lugar de eliminar, desactivar
+                tourDate.IsActive = false;
+                tourDate.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "La fecha ha sido desactivada porque tiene reservas confirmadas" });
+            }
+
+            _context.TourDates.Remove(tourDate);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar fecha de tour {DateId}", dateId);
+            throw;
+        }
+    }
+}
+
+public class AdminTourDateDto
+{
+    public Guid Id { get; set; }
+    public DateTime TourDateTime { get; set; }
+    public int AvailableSpots { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateTourDateRequestDto
+{
+    public DateTime TourDateTime { get; set; }
+    public int? AvailableSpots { get; set; }
+    public bool? IsActive { get; set; }
+}
+
+public class UpdateTourDateRequestDto
+{
+    public DateTime? TourDateTime { get; set; }
+    public int? AvailableSpots { get; set; }
+    public bool? IsActive { get; set; }
+}
+

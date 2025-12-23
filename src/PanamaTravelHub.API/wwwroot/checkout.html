@@ -38,6 +38,18 @@
           </div>
         </section>
 
+        <!-- Date Selection -->
+        <section class="checkout-section">
+          <h2 class="section-title">Seleccionar Fecha</h2>
+          <div class="form-group">
+            <label class="form-label">Fecha del Tour <span class="required">*</span></label>
+            <div id="dateSelection" class="date-selection-container">
+              <div class="date-loading">Cargando fechas disponibles...</div>
+            </div>
+            <div id="dateError" class="field-error" style="display: none;"></div>
+          </div>
+        </section>
+
         <!-- Participant Information -->
         <section class="checkout-section">
           <h2 class="section-title">Información de Participantes</h2>
@@ -132,6 +144,11 @@
           <div class="summary-item">
             <span class="summary-label">Tour</span>
             <span class="summary-value" id="summaryTourName">-</span>
+          </div>
+          
+          <div class="summary-item">
+            <span class="summary-label">Fecha</span>
+            <span class="summary-value" id="summaryDate" style="font-size: 0.9rem;">Selecciona una fecha</span>
           </div>
           
           <div class="summary-item">

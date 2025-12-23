@@ -332,6 +332,49 @@ public class ToursController : ControllerBase
             throw;
         }
     }
+
+    /// <summary>
+    /// Obtiene las fechas disponibles de un tour
+    /// </summary>
+    [HttpGet("{tourId}/dates")]
+    public async Task<ActionResult<IEnumerable<TourDateDto>>> GetTourDates(Guid tourId)
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            
+            var tourDates = await _context.TourDates
+                .Where(td => td.TourId == tourId)
+                .Where(td => td.IsActive)
+                .Where(td => td.TourDateTime > now) // Solo fechas futuras
+                .Where(td => td.AvailableSpots > 0) // Solo fechas con cupos disponibles
+                .OrderBy(td => td.TourDateTime)
+                .ToListAsync();
+
+            var result = tourDates.Select(td => new TourDateDto
+            {
+                Id = td.Id,
+                TourDateTime = td.TourDateTime,
+                AvailableSpots = td.AvailableSpots,
+                IsActive = td.IsActive
+            });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener fechas del tour {TourId}", tourId);
+            throw;
+        }
+    }
+}
+
+public class TourDateDto
+{
+    public Guid Id { get; set; }
+    public DateTime TourDateTime { get; set; }
+    public int AvailableSpots { get; set; }
+    public bool IsActive { get; set; }
 }
 
 // DTOs temporales hasta que se implemente la capa Application

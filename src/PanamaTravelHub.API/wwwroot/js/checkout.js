@@ -3,6 +3,8 @@
 let currentTour = null;
 let numberOfParticipants = 1;
 let selectedPaymentMethod = 'stripe';
+let selectedTourDateId = null;
+let availableDates = [];
 let stripe = null;
 let stripePublishableKey = null;
 
@@ -62,11 +64,119 @@ async function loadTour(tourId) {
 
     updateTourSummary();
     updateOrderSummary();
+    
+    // Cargar fechas disponibles
+    await loadAvailableDates(tourId);
   } catch (error) {
     console.error('Error loading tour:', error);
     alert('Error al cargar el tour');
     window.location.href = '/';
   }
+}
+
+async function loadAvailableDates(tourId) {
+  try {
+    const dateSelection = document.getElementById('dateSelection');
+    const dateError = document.getElementById('dateError');
+    
+    dateSelection.innerHTML = '<div class="date-loading">Cargando fechas disponibles...</div>';
+    dateError.style.display = 'none';
+    
+    availableDates = await api.getTourDates(tourId);
+    
+    if (!availableDates || availableDates.length === 0) {
+      dateSelection.innerHTML = `
+        <div class="date-empty">
+          <p style="color: var(--text-muted); margin: 20px 0;">No hay fechas disponibles para este tour en este momento.</p>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Por favor, contacta con nosotros para más información.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Mostrar calendario de fechas disponibles
+    renderDateCalendar();
+  } catch (error) {
+    console.error('Error loading dates:', error);
+    document.getElementById('dateSelection').innerHTML = `
+      <div class="date-error">
+        <p style="color: var(--error);">Error al cargar las fechas disponibles. Por favor, intenta de nuevo.</p>
+      </div>
+    `;
+  }
+}
+
+function renderDateCalendar() {
+  const dateSelection = document.getElementById('dateSelection');
+  const now = new Date();
+  
+  // Agrupar fechas por mes
+  const datesByMonth = {};
+  availableDates.forEach(date => {
+    const dateObj = new Date(date.tourDateTime);
+    const monthKey = `${dateObj.getFullYear()}-${dateObj.getMonth()}`;
+    if (!datesByMonth[monthKey]) {
+      datesByMonth[monthKey] = [];
+    }
+    datesByMonth[monthKey].push(date);
+  });
+  
+  let html = '<div class="date-calendar">';
+  
+  // Mostrar las fechas disponibles
+  Object.keys(datesByMonth).sort().forEach(monthKey => {
+    const dates = datesByMonth[monthKey];
+    const firstDate = new Date(dates[0].tourDateTime);
+    const monthName = firstDate.toLocaleDateString('es-PA', { month: 'long', year: 'numeric' });
+    
+    html += `<div class="date-month-group">`;
+    html += `<h3 class="date-month-title">${monthName.charAt(0).toUpperCase() + monthName.slice(1)}</h3>`;
+    html += `<div class="date-grid">`;
+    
+    dates.forEach(date => {
+      const dateObj = new Date(date.tourDateTime);
+      const isSelected = selectedTourDateId === date.id;
+      const isPast = dateObj < now;
+      const isLowAvailability = date.availableSpots <= 3;
+      
+      html += `
+        <div class="date-card ${isSelected ? 'selected' : ''} ${isPast ? 'disabled' : ''} ${isLowAvailability ? 'low-availability' : ''}" 
+             data-date-id="${date.id}" 
+             onclick="${!isPast ? `selectDate('${date.id}')` : ''}">
+          <div class="date-day">${dateObj.getDate()}</div>
+          <div class="date-weekday">${dateObj.toLocaleDateString('es-PA', { weekday: 'short' })}</div>
+          <div class="date-time">${dateObj.toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}</div>
+          <div class="date-spots">${date.availableSpots} cupos</div>
+          ${isLowAvailability ? '<div class="date-warning">Últimos cupos</div>' : ''}
+        </div>
+      `;
+    });
+    
+    html += `</div></div>`;
+  });
+  
+  html += '</div>';
+  dateSelection.innerHTML = html;
+}
+
+function selectDate(dateId) {
+  selectedTourDateId = dateId;
+  
+  // Actualizar UI
+  document.querySelectorAll('.date-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+  
+  const selectedCard = document.querySelector(`[data-date-id="${dateId}"]`);
+  if (selectedCard) {
+    selectedCard.classList.add('selected');
+  }
+  
+  // Ocultar error si existe
+  document.getElementById('dateError').style.display = 'none';
+  
+  // Actualizar resumen
+  updateOrderSummary();
 }
 
 function updateTourSummary() {
@@ -90,6 +200,23 @@ function updateOrderSummary() {
   document.getElementById('summaryTourName').textContent = currentTour.name;
   document.getElementById('summaryParticipants').textContent = numberOfParticipants;
   document.getElementById('summaryUnitPrice').textContent = `$${currentTour.price.toFixed(2)}`;
+  
+  // Mostrar fecha seleccionada si existe
+  const selectedDate = availableDates.find(d => d.id === selectedTourDateId);
+  if (selectedDate) {
+    const dateObj = new Date(selectedDate.tourDateTime);
+    const dateDisplay = document.getElementById('summaryDate');
+    if (dateDisplay) {
+      dateDisplay.textContent = dateObj.toLocaleDateString('es-PA', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  }
   
   const total = currentTour.price * numberOfParticipants;
   document.getElementById('summaryTotal').textContent = `$${total.toFixed(2)}`;
@@ -470,6 +597,31 @@ async function processPayment() {
   // Limpiar errores previos
   document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
 
+  // Validar fecha seleccionada
+  if (!selectedTourDateId) {
+    const dateError = document.getElementById('dateError');
+    dateError.textContent = 'Por favor selecciona una fecha para el tour';
+    dateError.style.display = 'block';
+    document.getElementById('dateSelection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  
+  // Validar que la fecha tenga cupos suficientes
+  const selectedDate = availableDates.find(d => d.id === selectedTourDateId);
+  if (!selectedDate) {
+    const dateError = document.getElementById('dateError');
+    dateError.textContent = 'La fecha seleccionada ya no está disponible';
+    dateError.style.display = 'block';
+    return;
+  }
+  
+  if (selectedDate.availableSpots < numberOfParticipants) {
+    const dateError = document.getElementById('dateError');
+    dateError.textContent = `Solo hay ${selectedDate.availableSpots} cupo(s) disponible(s) para esta fecha`;
+    dateError.style.display = 'block';
+    return;
+  }
+  
   // Validar participantes
   if (!validateParticipants()) {
     return;
@@ -530,7 +682,7 @@ async function processPayment() {
     statusText.textContent = 'Creando reserva...';
     const bookingData = {
       tourId: currentTour.id,
-      tourDateId: null, // TODO: Obtener de selección de fecha
+      tourDateId: selectedTourDateId,
       numberOfParticipants: numberOfParticipants,
       participants: participants
     };

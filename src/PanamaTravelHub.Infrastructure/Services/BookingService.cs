@@ -44,6 +44,35 @@ public class BookingService : IBookingService
                if (!tour.IsActive)
                    throw new BusinessException("El tour no está activo", "TOUR_INACTIVE");
 
+               // Si hay tourDateId, validar que la fecha existe y tiene cupos
+               if (tourDateId.HasValue)
+               {
+                   var tourDate = await _context.TourDates
+                       .FirstOrDefaultAsync(td => td.Id == tourDateId.Value && td.TourId == tourId, cancellationToken);
+                   
+                   if (tourDate == null)
+                   {
+                       throw new NotFoundException("Fecha de tour", tourDateId.Value);
+                   }
+                   
+                   if (!tourDate.IsActive)
+                   {
+                       throw new BusinessException("La fecha seleccionada no está activa", "TOUR_DATE_INACTIVE");
+                   }
+                   
+                   if (tourDate.TourDateTime <= DateTime.UtcNow)
+                   {
+                       throw new BusinessException("La fecha seleccionada ya pasó", "TOUR_DATE_PAST");
+                   }
+                   
+                   if (tourDate.AvailableSpots < numberOfParticipants)
+                   {
+                       throw new BusinessException(
+                           $"Solo hay {tourDate.AvailableSpots} cupo(s) disponible(s) para esta fecha", 
+                           "INSUFFICIENT_SPOTS");
+                   }
+               }
+
                // Verificar cupos disponibles
                var hasSpots = await ReserveSpotsAsync(tourId, tourDateId, numberOfParticipants, cancellationToken);
                if (!hasSpots)

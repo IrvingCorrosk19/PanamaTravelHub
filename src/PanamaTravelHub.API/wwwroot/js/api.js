@@ -372,6 +372,11 @@ class ApiClient {
     return this.request('/api/payments/stripe/config');
   }
 
+  // Tour Dates
+  async getTourDates(tourId) {
+    return this.request(`/api/tours/${tourId}/dates`);
+  }
+
   async getAdminStats() {
     return this.request('/api/admin/stats');
   }
