@@ -108,106 +108,297 @@
         </div>
         <div class="admin-card">
           <form id="cmsForm" onsubmit="saveHomePageContent(event)">
+            <!-- Sección Hero -->
             <div class="form-section">
-              <h3>Sección Hero</h3>
-              <div class="form-group">
-                <label>Título Principal *</label>
-                <input type="text" id="heroTitle" required />
+              <div class="form-section-header">
+                <h3>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                  </svg>
+                  Sección Hero
+                </h3>
+                <p class="form-section-description">Contenido principal de la página de inicio</p>
               </div>
               <div class="form-group">
-                <label>Subtítulo *</label>
-                <input type="text" id="heroSubtitle" required />
+                <label class="form-label">
+                  <span class="label-text">Título Principal</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <input type="text" id="heroTitle" class="form-input" placeholder="Ej: Descubre Panamá" required />
+                  <span class="input-icon">📝</span>
+                </div>
+                <div class="form-hint">Título principal que aparece en la sección hero</div>
               </div>
               <div class="form-group">
-                <label>Placeholder de Búsqueda *</label>
-                <input type="text" id="heroSearchPlaceholder" required />
+                <label class="form-label">
+                  <span class="label-text">Subtítulo</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <input type="text" id="heroSubtitle" class="form-input" placeholder="Ej: Explora los destinos más increíbles" required />
+                  <span class="input-icon">💬</span>
+                </div>
+                <div class="form-hint">Subtítulo descriptivo debajo del título principal</div>
               </div>
-              <div class="form-group">
-                <label>Texto del Botón Buscar *</label>
-                <input type="text" id="heroSearchButton" required />
+              <div class="form-row form-row-2">
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="label-text">Placeholder de Búsqueda</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <div class="input-with-icon">
+                    <input type="text" id="heroSearchPlaceholder" class="form-input" placeholder="Ej: Buscar tours..." required />
+                    <span class="input-icon">🔍</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="label-text">Texto del Botón Buscar</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <div class="input-with-icon">
+                    <input type="text" id="heroSearchButton" class="form-input" placeholder="Ej: Buscar" required />
+                    <span class="input-icon">🔎</span>
+                  </div>
+                </div>
               </div>
             </div>
 
+            <!-- Sección de Tours -->
             <div class="form-section">
-              <h3>Sección de Tours</h3>
-              <div class="form-group">
-                <label>Título de Sección *</label>
-                <input type="text" id="toursSectionTitle" required />
+              <div class="form-section-header">
+                <h3>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
+                  Sección de Tours
+                </h3>
+                <p class="form-section-description">Textos relacionados con la visualización de tours</p>
+              </div>
+              <div class="form-row form-row-2">
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="label-text">Título de Sección</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <div class="input-with-icon">
+                    <input type="text" id="toursSectionTitle" class="form-input" placeholder="Ej: Tours Disponibles" required />
+                    <span class="input-icon">📋</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="label-text">Subtítulo de Sección</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <div class="input-with-icon">
+                    <input type="text" id="toursSectionSubtitle" class="form-input" placeholder="Ej: Selecciona tu próxima aventura" required />
+                    <span class="input-icon">✨</span>
+                  </div>
+                </div>
               </div>
               <div class="form-group">
-                <label>Subtítulo de Sección *</label>
-                <input type="text" id="toursSectionSubtitle" required />
+                <label class="form-label">
+                  <span class="label-text">Texto "Cargando tours..."</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <input type="text" id="loadingToursText" class="form-input" placeholder="Ej: Cargando tours..." required />
+                  <span class="input-icon">⏳</span>
+                </div>
               </div>
               <div class="form-group">
-                <label>Texto "Cargando tours..." *</label>
-                <input type="text" id="loadingToursText" required />
+                <label class="form-label">
+                  <span class="label-text">Texto de Error</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <input type="text" id="errorLoadingToursText" class="form-input" placeholder="Ej: Error al cargar los tours..." required />
+                  <span class="input-icon">⚠️</span>
+                </div>
               </div>
               <div class="form-group">
-                <label>Texto de Error *</label>
-                <input type="text" id="errorLoadingToursText" required />
-              </div>
-              <div class="form-group">
-                <label>Texto "No se encontraron tours" *</label>
-                <input type="text" id="noToursFoundText" required />
+                <label class="form-label">
+                  <span class="label-text">Texto "No se encontraron tours"</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <input type="text" id="noToursFoundText" class="form-input" placeholder="Ej: No se encontraron tours disponibles." required />
+                  <span class="input-icon">📭</span>
+                </div>
               </div>
             </div>
 
+            <!-- Navegación -->
             <div class="form-section">
-              <h3>Navegación</h3>
-              <div class="form-group">
-                <label>Texto de Marca *</label>
-                <input type="text" id="navBrandText" required />
+              <div class="form-section-header">
+                <h3>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                  </svg>
+                  Navegación
+                </h3>
+                <p class="form-section-description">Textos de los elementos de navegación</p>
+              </div>
+              <div class="form-row form-row-2">
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="label-text">Texto de Marca</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <div class="input-with-icon">
+                    <input type="text" id="navBrandText" class="form-input" placeholder="Ej: ToursPanama" required />
+                    <span class="input-icon">🏷️</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="label-text">Enlace Tours</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <div class="input-with-icon">
+                    <input type="text" id="navToursLink" class="form-input" placeholder="Ej: Tours" required />
+                    <span class="input-icon">🗺️</span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row form-row-2">
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="label-text">Enlace Reservas</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <div class="input-with-icon">
+                    <input type="text" id="navBookingsLink" class="form-input" placeholder="Ej: Mis Reservas" required />
+                    <span class="input-icon">📅</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="label-text">Enlace Iniciar Sesión</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <div class="input-with-icon">
+                    <input type="text" id="navLoginLink" class="form-input" placeholder="Ej: Iniciar Sesión" required />
+                    <span class="input-icon">🔐</span>
+                  </div>
+                </div>
               </div>
               <div class="form-group">
-                <label>Enlace Tours *</label>
-                <input type="text" id="navToursLink" required />
-              </div>
-              <div class="form-group">
-                <label>Enlace Reservas *</label>
-                <input type="text" id="navBookingsLink" required />
-              </div>
-              <div class="form-group">
-                <label>Enlace Iniciar Sesión *</label>
-                <input type="text" id="navLoginLink" required />
-              </div>
-              <div class="form-group">
-                <label>Botón Cerrar Sesión *</label>
-                <input type="text" id="navLogoutButton" required />
+                <label class="form-label">
+                  <span class="label-text">Botón Cerrar Sesión</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <input type="text" id="navLogoutButton" class="form-input" placeholder="Ej: Cerrar Sesión" required />
+                  <span class="input-icon">🚪</span>
+                </div>
               </div>
             </div>
 
+            <!-- Pie de Página -->
             <div class="form-section">
-              <h3>Pie de Página</h3>
-              <div class="form-group">
-                <label>Texto de Marca *</label>
-                <input type="text" id="footerBrandText" required />
+              <div class="form-section-header">
+                <h3>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  Pie de Página
+                </h3>
+                <p class="form-section-description">Contenido del footer de la página</p>
               </div>
               <div class="form-group">
-                <label>Descripción *</label>
-                <textarea id="footerDescription" required></textarea>
+                <label class="form-label">
+                  <span class="label-text">Texto de Marca</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <input type="text" id="footerBrandText" class="form-input" placeholder="Ej: ToursPanama" required />
+                  <span class="input-icon">🏢</span>
+                </div>
               </div>
               <div class="form-group">
-                <label>Copyright *</label>
-                <input type="text" id="footerCopyright" required />
+                <label class="form-label">
+                  <span class="label-text">Descripción</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <textarea id="footerDescription" class="form-input" rows="3" placeholder="Ej: Tu plataforma de confianza para descubrir Panamá" required></textarea>
+                  <span class="input-icon">📄</span>
+                </div>
+                <div class="form-hint">Descripción breve de la empresa o plataforma</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <span class="label-text">Copyright</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <input type="text" id="footerCopyright" class="form-input" placeholder="Ej: © 2024 ToursPanama. Todos los derechos reservados." required />
+                  <span class="input-icon">©️</span>
+                </div>
               </div>
             </div>
 
+            <!-- SEO y Meta Tags -->
             <div class="form-section">
-              <h3>SEO y Meta Tags</h3>
-              <div class="form-group">
-                <label>Título de la Página (Title) *</label>
-                <input type="text" id="pageTitle" required />
-                <div class="form-hint">Aparece en la pestaña del navegador y en los resultados de búsqueda</div>
+              <div class="form-section-header">
+                <h3>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  SEO y Meta Tags
+                </h3>
+                <p class="form-section-description">Configuración para motores de búsqueda</p>
               </div>
               <div class="form-group">
-                <label>Meta Descripción *</label>
-                <textarea id="metaDescription" required></textarea>
+                <label class="form-label">
+                  <span class="label-text">Título de la Página (Title)</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <input type="text" id="pageTitle" class="form-input" placeholder="Ej: ToursPanama — Descubre los Mejores Tours" required />
+                  <span class="input-icon">🌐</span>
+                </div>
+                <div class="form-hint">Aparece en la pestaña del navegador y en los resultados de búsqueda (máx. 60 caracteres recomendado)</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <span class="label-text">Meta Descripción</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <textarea id="metaDescription" class="form-input" rows="3" placeholder="Ej: Plataforma moderna de reservas de tours en Panamá..." required></textarea>
+                  <span class="input-icon">📝</span>
+                </div>
                 <div class="form-hint">Descripción que aparece en los resultados de búsqueda (máx. 160 caracteres recomendado)</div>
               </div>
             </div>
 
             <div class="form-actions">
-              <button type="submit" class="btn-primary">Guardar Cambios</button>
+              <button type="button" class="btn-secondary" onclick="document.getElementById('cmsForm').reset(); loadHomePageContent();">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                Cancelar
+              </button>
+              <button type="submit" class="btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Guardar Cambios
+              </button>
             </div>
           </form>
         </div>
