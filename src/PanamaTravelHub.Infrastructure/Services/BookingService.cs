@@ -65,7 +65,7 @@ public class BookingService : IBookingService
                 NumberOfParticipants = numberOfParticipants,
                 TotalAmount = totalAmount,
                 Status = BookingStatus.Pending,
-                ExpiresAt = DateTime.UtcNow.AddHours(24) // Expira en 24 horas
+                ExpiresAt = DateTime.SpecifyKind(DateTime.UtcNow.AddHours(24), DateTimeKind.Utc) // Expira en 24 horas
             };
 
             await _bookingRepository.AddAsync(booking, cancellationToken);

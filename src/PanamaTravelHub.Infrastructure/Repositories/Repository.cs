@@ -35,14 +35,14 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
 
     public virtual async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
     {
-        entity.CreatedAt = DateTime.UtcNow;
+        entity.CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
         await _dbSet.AddAsync(entity, cancellationToken);
         return entity;
     }
 
     public virtual Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
     {
-        entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
         _dbSet.Update(entity);
         return Task.CompletedTask;
     }

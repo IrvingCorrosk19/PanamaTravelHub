@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Infrastructure.Data;
 using PanamaTravelHub.Infrastructure.Repositories;
@@ -14,6 +15,9 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Configurar Npgsql para usar UTC para todos los DateTime
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", false);
+        
         // Configurar DbContext con PostgreSQL
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         

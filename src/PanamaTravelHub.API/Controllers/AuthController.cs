@@ -155,7 +155,8 @@ public class AuthController : ControllerBase
             }
 
             // Actualizar último login
-            user.LastLoginAt = DateTime.UtcNow;
+            // Asegurar que el DateTime sea UTC explícitamente
+            user.LastLoginAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
             user.FailedLoginAttempts = 0; // Resetear intentos fallidos
             await _userRepository.UpdateAsync(user);
             await _context.SaveChangesAsync();

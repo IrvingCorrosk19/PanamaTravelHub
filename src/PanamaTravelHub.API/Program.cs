@@ -1,10 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using PanamaTravelHub.API.Middleware;
 using PanamaTravelHub.API.Filters;
 using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Infrastructure;
 using PanamaTravelHub.Infrastructure.Data;
 using FluentValidation;
+
+// Configurar Npgsql para usar UTC para todos los DateTime
+// Esto es necesario porque PostgreSQL requiere DateTime en UTC
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", false);
 
 var builder = WebApplication.CreateBuilder(args);
 
