@@ -25,8 +25,26 @@ class ApiClient {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Error desconocido' }));
-        throw new Error(error.message || `Error ${response.status}`);
+        const error = await response.json().catch(() => ({ 
+          title: 'Error desconocido',
+          detail: 'Ocurrió un error al procesar la solicitud'
+        }));
+        
+        // Manejar errores de validación (ProblemDetails)
+        if (error.errors && typeof error.errors === 'object') {
+          // FluentValidation devuelve errores en formato { "PropertyName": ["Error1", "Error2"] }
+          const validationErrors = Object.values(error.errors)
+            .flat()
+            .filter(err => typeof err === 'string');
+          
+          if (validationErrors.length > 0) {
+            throw new Error(validationErrors.join('. '));
+          }
+        }
+        
+        // Manejar otros errores
+        const errorMessage = error.detail || error.message || error.title || `Error ${response.status}`;
+        throw new Error(errorMessage);
       }
 
       return await response.json();
@@ -55,6 +73,10 @@ class ApiClient {
     if (response.token) {
       this.token = response.token;
       localStorage.setItem('authToken', response.token);
+      // Guardar userId para usar en reservas
+      if (response.user && response.user.id) {
+        localStorage.setItem('userId', response.user.id);
+      }
     }
     
     return response;
@@ -78,6 +100,10 @@ class ApiClient {
     if (response.token) {
       this.token = response.token;
       localStorage.setItem('authToken', response.token);
+      // Guardar userId para usar en reservas
+      if (response.user && response.user.id) {
+        localStorage.setItem('userId', response.user.id);
+      }
     }
     
     return response;
@@ -86,14 +112,23 @@ class ApiClient {
   logout() {
     this.token = null;
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
   }
 
   // Bookings
   async getMyBookings() {
-    return this.request('/api/bookings/my');
+    const userId = localStorage.getItem('userId');
+    const url = userId ? `/api/bookings/my?userId=${userId}` : '/api/bookings/my';
+    return this.request(url);
   }
 
   async createBooking(bookingData) {
+    // Agregar userId desde localStorage
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      bookingData.userId = userId;
+    }
+    
     const response = await this.request('/api/bookings', {
       method: 'POST',
       body: JSON.stringify(bookingData),
@@ -128,6 +163,10 @@ class ApiClient {
 
   async getAdminBookings() {
     return this.request('/api/admin/bookings');
+  }
+
+  async getAdminStats() {
+    return this.request('/api/admin/stats');
   }
 }
 

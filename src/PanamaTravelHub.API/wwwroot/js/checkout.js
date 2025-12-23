@@ -83,37 +83,161 @@ function updateOrderSummary() {
 function updateParticipants() {
   numberOfParticipants = parseInt(document.getElementById('numberOfParticipants').value) || 1;
   
+  // Validar número de participantes
+  if (numberOfParticipants < 1 || numberOfParticipants > 50) {
+    numberOfParticipants = Math.max(1, Math.min(50, numberOfParticipants));
+    document.getElementById('numberOfParticipants').value = numberOfParticipants;
+  }
+  
   const participantsList = document.getElementById('participantsList');
   participantsList.innerHTML = '';
 
   for (let i = 1; i <= numberOfParticipants; i++) {
     const participantCard = document.createElement('div');
     participantCard.className = 'participant-card';
+    participantCard.setAttribute('data-participant-index', i);
     participantCard.innerHTML = `
       <div class="participant-header">Participante ${i}${i === 1 ? ' (Titular)' : ''}</div>
       <div class="form-group">
-        <label class="form-label">Nombre</label>
-        <input type="text" class="form-input" placeholder="Nombre completo" required />
+        <label class="form-label">Nombre <span class="required">*</span></label>
+        <input type="text" class="form-input participant-firstname" placeholder="Nombre completo" required maxlength="100" pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+" />
+        <span class="field-error participant-firstname-error"></span>
       </div>
       <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" class="form-input" placeholder="email@ejemplo.com" ${i === 1 ? 'required' : ''} />
+        <label class="form-label">Apellido <span class="required">*</span></label>
+        <input type="text" class="form-input participant-lastname" placeholder="Apellido completo" required maxlength="100" pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+" />
+        <span class="field-error participant-lastname-error"></span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email ${i === 1 ? '<span class="required">*</span>' : ''}</label>
+        <input type="email" class="form-input participant-email" placeholder="email@ejemplo.com" ${i === 1 ? 'required' : ''} maxlength="255" />
+        <span class="field-error participant-email-error"></span>
       </div>
       <div class="form-group">
         <label class="form-label">Teléfono</label>
-        <input type="tel" class="form-input" placeholder="+507 6000-0000" />
+        <input type="tel" class="form-input participant-phone" placeholder="+507 6000-0000" maxlength="20" />
+        <span class="field-error participant-phone-error"></span>
       </div>
       ${i > 1 ? `
       <div class="form-group">
         <label class="form-label">Fecha de Nacimiento (opcional)</label>
-        <input type="date" class="form-input" />
+        <input type="date" class="form-input participant-dob" max="${new Date().toISOString().split('T')[0]}" />
+        <span class="field-error participant-dob-error"></span>
       </div>
       ` : ''}
     `;
     participantsList.appendChild(participantCard);
+    
+    // Agregar validaciones en tiempo real
+    setupParticipantValidation(participantCard, i);
   }
 
   updateOrderSummary();
+}
+
+function setupParticipantValidation(card, index) {
+  const firstName = card.querySelector('.participant-firstname');
+  const lastName = card.querySelector('.participant-lastname');
+  const email = card.querySelector('.participant-email');
+  const phone = card.querySelector('.participant-phone');
+  const dob = card.querySelector('.participant-dob');
+
+  // Validar nombre
+  if (firstName) {
+    firstName.addEventListener('blur', function() {
+      const value = this.value.trim();
+      const error = card.querySelector('.participant-firstname-error');
+      if (!value) {
+        error.textContent = 'El nombre es requerido';
+        this.classList.add('input-error');
+      } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value)) {
+        error.textContent = 'Solo se permiten letras y espacios';
+        this.classList.add('input-error');
+      } else {
+        error.textContent = '';
+        this.classList.remove('input-error');
+      }
+    });
+  }
+
+  // Validar apellido
+  if (lastName) {
+    lastName.addEventListener('blur', function() {
+      const value = this.value.trim();
+      const error = card.querySelector('.participant-lastname-error');
+      if (!value) {
+        error.textContent = 'El apellido es requerido';
+        this.classList.add('input-error');
+      } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value)) {
+        error.textContent = 'Solo se permiten letras y espacios';
+        this.classList.add('input-error');
+      } else {
+        error.textContent = '';
+        this.classList.remove('input-error');
+      }
+    });
+  }
+
+  // Validar email
+  if (email) {
+    email.addEventListener('blur', function() {
+      const value = this.value.trim();
+      const error = card.querySelector('.participant-email-error');
+      const isRequired = index === 1;
+      if (isRequired && !value) {
+        error.textContent = 'El email es requerido para el titular';
+        this.classList.add('input-error');
+      } else if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        error.textContent = 'El email no tiene un formato válido';
+        this.classList.add('input-error');
+      } else {
+        error.textContent = '';
+        this.classList.remove('input-error');
+      }
+    });
+  }
+
+  // Validar teléfono
+  if (phone) {
+    phone.addEventListener('blur', function() {
+      const value = this.value.trim();
+      const error = card.querySelector('.participant-phone-error');
+      if (value && !/^\+?[\d\s\-\(\)]+$/.test(value)) {
+        error.textContent = 'El teléfono no tiene un formato válido';
+        this.classList.add('input-error');
+      } else {
+        error.textContent = '';
+        this.classList.remove('input-error');
+      }
+    });
+  }
+
+  // Validar fecha de nacimiento
+  if (dob) {
+    dob.addEventListener('change', function() {
+      const value = this.value;
+      const error = card.querySelector('.participant-dob-error');
+      if (value) {
+        const date = new Date(value);
+        const today = new Date();
+        const maxAge = new Date();
+        maxAge.setFullYear(today.getFullYear() - 120);
+        if (date >= today) {
+          error.textContent = 'La fecha debe ser anterior a hoy';
+          this.classList.add('input-error');
+        } else if (date < maxAge) {
+          error.textContent = 'La fecha no es válida';
+          this.classList.add('input-error');
+        } else {
+          error.textContent = '';
+          this.classList.remove('input-error');
+        }
+      } else {
+        error.textContent = '';
+        this.classList.remove('input-error');
+      }
+    });
+  }
 }
 
 function selectPaymentMethod(method) {
@@ -176,33 +300,131 @@ function setupPaymentInputs() {
   }
 }
 
-async function processPayment() {
-  const btn = document.getElementById('checkoutBtn');
-  const modal = document.getElementById('paymentModal');
-  const statusText = document.getElementById('paymentStatus');
+function validateParticipants() {
+  const participantCards = document.querySelectorAll('.participant-card');
+  let isValid = true;
+  const errors = [];
 
-  // Validar campos requeridos
+  participantCards.forEach((card, index) => {
+    const firstName = card.querySelector('.participant-firstname')?.value.trim();
+    const lastName = card.querySelector('.participant-lastname')?.value.trim();
+    const email = card.querySelector('.participant-email')?.value.trim();
+    const phone = card.querySelector('.participant-phone')?.value.trim();
+    const dob = card.querySelector('.participant-dob')?.value;
+
+    // Validar nombre
+    if (!firstName) {
+      errors.push(`Participante ${index + 1}: El nombre es requerido`);
+      card.querySelector('.participant-firstname')?.classList.add('input-error');
+      isValid = false;
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(firstName)) {
+      errors.push(`Participante ${index + 1}: El nombre solo puede contener letras`);
+      card.querySelector('.participant-firstname')?.classList.add('input-error');
+      isValid = false;
+    }
+
+    // Validar apellido
+    if (!lastName) {
+      errors.push(`Participante ${index + 1}: El apellido es requerido`);
+      card.querySelector('.participant-lastname')?.classList.add('input-error');
+      isValid = false;
+    } else if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(lastName)) {
+      errors.push(`Participante ${index + 1}: El apellido solo puede contener letras`);
+      card.querySelector('.participant-lastname')?.classList.add('input-error');
+      isValid = false;
+    }
+
+    // Validar email (requerido solo para el titular)
+    if (index === 0 && !email) {
+      errors.push(`Participante ${index + 1}: El email es requerido para el titular`);
+      card.querySelector('.participant-email')?.classList.add('input-error');
+      isValid = false;
+    } else if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push(`Participante ${index + 1}: El email no tiene un formato válido`);
+      card.querySelector('.participant-email')?.classList.add('input-error');
+      isValid = false;
+    }
+
+    // Validar teléfono
+    if (phone && !/^\+?[\d\s\-\(\)]+$/.test(phone)) {
+      errors.push(`Participante ${index + 1}: El teléfono no tiene un formato válido`);
+      card.querySelector('.participant-phone')?.classList.add('input-error');
+      isValid = false;
+    }
+
+    // Validar fecha de nacimiento
+    if (dob) {
+      const date = new Date(dob);
+      const today = new Date();
+      if (date >= today) {
+        errors.push(`Participante ${index + 1}: La fecha de nacimiento debe ser anterior a hoy`);
+        card.querySelector('.participant-dob')?.classList.add('input-error');
+        isValid = false;
+      }
+    }
+  });
+
+  if (!isValid) {
+    alert('Por favor corrige los siguientes errores:\n\n' + errors.join('\n'));
+    // Scroll al primer error
+    const firstError = document.querySelector('.input-error');
+    if (firstError) {
+      firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstError.focus();
+    }
+  }
+
+  return isValid;
+}
+
+function validatePaymentMethod() {
   if (selectedPaymentMethod === 'stripe') {
     const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
     const cardExpiry = document.getElementById('cardExpiry').value;
     const cardCvv = document.getElementById('cardCvv').value;
     const cardName = document.getElementById('cardName').value.trim();
 
-    if (!cardNumber || cardNumber.length < 13) {
-      alert('Por favor ingresa un número de tarjeta válido');
-      return;
+    // Validar número de tarjeta (algoritmo de Luhn básico)
+    if (!cardNumber || cardNumber.length < 13 || cardNumber.length > 19) {
+      alert('Por favor ingresa un número de tarjeta válido (13-19 dígitos)');
+      document.getElementById('cardNumber').classList.add('input-error');
+      document.getElementById('cardNumber').focus();
+      return false;
     }
-    if (!cardExpiry || cardExpiry.length !== 5) {
+
+    // Validar formato de fecha MM/AA
+    if (!cardExpiry || !/^\d{2}\/\d{2}$/.test(cardExpiry)) {
       alert('Por favor ingresa una fecha de vencimiento válida (MM/AA)');
-      return;
+      document.getElementById('cardExpiry').classList.add('input-error');
+      document.getElementById('cardExpiry').focus();
+      return false;
     }
-    if (!cardCvv || cardCvv.length < 3) {
-      alert('Por favor ingresa un CVV válido');
-      return;
+
+    // Validar que la fecha no esté vencida
+    const [month, year] = cardExpiry.split('/');
+    const expiryDate = new Date(2000 + parseInt(year), parseInt(month) - 1);
+    const today = new Date();
+    if (expiryDate < today) {
+      alert('La tarjeta está vencida');
+      document.getElementById('cardExpiry').classList.add('input-error');
+      document.getElementById('cardExpiry').focus();
+      return false;
     }
-    if (!cardName) {
-      alert('Por favor ingresa el nombre en la tarjeta');
-      return;
+
+    // Validar CVV
+    if (!cardCvv || cardCvv.length < 3 || cardCvv.length > 4) {
+      alert('Por favor ingresa un CVV válido (3-4 dígitos)');
+      document.getElementById('cardCvv').classList.add('input-error');
+      document.getElementById('cardCvv').focus();
+      return false;
+    }
+
+    // Validar nombre
+    if (!cardName || cardName.length < 2) {
+      alert('Por favor ingresa el nombre completo en la tarjeta');
+      document.getElementById('cardName').classList.add('input-error');
+      document.getElementById('cardName').focus();
+      return false;
     }
   }
 
@@ -210,8 +432,51 @@ async function processPayment() {
     const phone = document.getElementById('yappyPhone').value.trim();
     if (!phone) {
       alert('Por favor ingresa tu número de teléfono para Yappy');
-      return;
+      document.getElementById('yappyPhone').classList.add('input-error');
+      document.getElementById('yappyPhone').focus();
+      return false;
     }
+    if (!/^\+?[\d\s\-\(\)]+$/.test(phone)) {
+      alert('Por favor ingresa un número de teléfono válido');
+      document.getElementById('yappyPhone').classList.add('input-error');
+      document.getElementById('yappyPhone').focus();
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function processPayment() {
+  const btn = document.getElementById('checkoutBtn');
+  const modal = document.getElementById('paymentModal');
+  const statusText = document.getElementById('paymentStatus');
+
+  // Limpiar errores previos
+  document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+
+  // Validar participantes
+  if (!validateParticipants()) {
+    return;
+  }
+
+  // Validar método de pago
+  if (!validatePaymentMethod()) {
+    return;
+  }
+
+  // Verificar que el usuario esté autenticado
+  const userId = localStorage.getItem('userId');
+  if (!userId) {
+    alert('Debes iniciar sesión para realizar una reserva');
+    window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+    return;
+  }
+
+  // Verificar que haya cupos disponibles
+  if (!currentTour || currentTour.availableSpots < numberOfParticipants) {
+    alert('No hay suficientes cupos disponibles para este tour');
+    return;
   }
 
   // Mostrar modal de procesamiento
@@ -239,12 +504,11 @@ async function processPayment() {
       const participantCards = document.querySelectorAll('.participant-card');
       
       participantCards.forEach((card, index) => {
-        const inputs = card.querySelectorAll('input');
-        const firstName = inputs[0]?.value.trim() || '';
-        const lastName = inputs[1]?.value.trim() || '';
-        const email = inputs[2]?.value.trim() || '';
-        const phone = inputs[3]?.value.trim() || '';
-        const dateOfBirth = inputs[4]?.value || null;
+        const firstName = card.querySelector('.participant-firstname')?.value.trim() || '';
+        const lastName = card.querySelector('.participant-lastname')?.value.trim() || '';
+        const email = card.querySelector('.participant-email')?.value.trim() || '';
+        const phone = card.querySelector('.participant-phone')?.value.trim() || '';
+        const dateOfBirth = card.querySelector('.participant-dob')?.value || null;
 
         if (firstName && lastName) {
           participants.push({
@@ -257,6 +521,15 @@ async function processPayment() {
         }
       });
 
+      // Validar que el tour tenga cupos disponibles
+      if (currentTour.availableSpots < numberOfParticipants) {
+        statusText.textContent = 'Error: No hay suficientes cupos disponibles';
+        await sleep(2000);
+        modal.style.display = 'none';
+        btn.disabled = false;
+        return;
+      }
+
       const bookingData = {
         tourId: currentTour.id,
         tourDateId: null, // TODO: Obtener de selección de fecha
@@ -265,7 +538,7 @@ async function processPayment() {
       };
 
       // Llamar a API real
-      await api.createBooking(bookingData);
+      const response = await api.createBooking(bookingData);
 
       // Redirigir a página de confirmación
       const bookingId = response.id || generateBookingId();

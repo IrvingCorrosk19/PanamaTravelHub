@@ -91,8 +91,18 @@
   opacity: 0.6;
 }
 
-.form-input:invalid:not(:placeholder-shown) {
+.form-input:invalid:not(:placeholder-shown),
+.form-input.input-error {
   border-color: var(--danger);
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+}
+
+.field-error {
+  display: block;
+  color: var(--danger);
+  font-size: 0.875rem;
+  margin-top: var(--space-xs);
+  min-height: 1.25rem;
 }
 
 .form-toggle {

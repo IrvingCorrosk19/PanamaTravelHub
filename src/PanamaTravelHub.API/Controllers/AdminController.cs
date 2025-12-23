@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PanamaTravelHub.Application.Exceptions;
 using PanamaTravelHub.Application.Services;
+using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Domain.Entities;
 using PanamaTravelHub.Infrastructure.Data;
 using PanamaTravelHub.Infrastructure.Repositories;
@@ -69,7 +71,7 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener tours");
-            return StatusCode(500, new { message = "Error al obtener los tours" });
+            throw;
         }
     }
 
@@ -139,7 +141,7 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear tour");
-            return StatusCode(500, new { message = "Error al crear el tour" });
+            throw;
         }
     }
 
@@ -157,7 +159,7 @@ public class AdminController : ControllerBase
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (tour == null)
-                return NotFound(new { message = "Tour no encontrado" });
+                throw new NotFoundException("Tour", id);
 
             var result = new AdminTourDto
             {
@@ -181,7 +183,7 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener tour {TourId}", id);
-            return StatusCode(500, new { message = "Error al obtener el tour" });
+            throw;
         }
     }
 
@@ -193,24 +195,80 @@ public class AdminController : ControllerBase
     {
         try
         {
-            var tour = await _tourRepository.GetByIdAsync(id);
+            var tour = await _context.Tours
+                .Include(t => t.TourImages)
+                .FirstOrDefaultAsync(t => t.Id == id);
+            
             if (tour == null)
-                return NotFound(new { message = "Tour no encontrado" });
+                throw new NotFoundException("Tour", id);
 
-            tour.Name = request.Name ?? tour.Name;
-            tour.Description = request.Description ?? tour.Description;
-            tour.Itinerary = request.Itinerary ?? tour.Itinerary;
-            tour.Price = request.Price ?? tour.Price;
-            tour.MaxCapacity = request.MaxCapacity ?? tour.MaxCapacity;
-            tour.DurationHours = request.DurationHours ?? tour.DurationHours;
-            tour.Location = request.Location ?? tour.Location;
+            // Actualizar campos (si se proporcionan valores, actualizar; si son null, mantener el valor actual)
+            if (!string.IsNullOrWhiteSpace(request.Name))
+                tour.Name = request.Name;
+            
+            if (!string.IsNullOrWhiteSpace(request.Description))
+                tour.Description = request.Description;
+            
+            if (request.Itinerary != null)
+                tour.Itinerary = request.Itinerary;
+            
+            if (request.Price.HasValue)
+                tour.Price = request.Price.Value;
+            
+            if (request.MaxCapacity.HasValue)
+            {
+                var oldCapacity = tour.MaxCapacity;
+                tour.MaxCapacity = request.MaxCapacity.Value;
+                // Ajustar availableSpots si la capacidad cambió
+                if (request.MaxCapacity.Value > oldCapacity)
+                {
+                    tour.AvailableSpots += (request.MaxCapacity.Value - oldCapacity);
+                }
+                else if (request.MaxCapacity.Value < oldCapacity)
+                {
+                    tour.AvailableSpots = Math.Max(0, tour.AvailableSpots - (oldCapacity - request.MaxCapacity.Value));
+                }
+            }
+            
+            if (request.DurationHours.HasValue)
+                tour.DurationHours = request.DurationHours.Value;
+            
+            if (request.Location != null)
+                tour.Location = request.Location;
+            
             if (request.IsActive.HasValue)
                 tour.IsActive = request.IsActive.Value;
+
+            // Actualizar imágenes si se proporcionan
+            if (request.Images != null)
+            {
+                // Eliminar imágenes existentes
+                var existingImages = tour.TourImages.ToList();
+                foreach (var img in existingImages)
+                {
+                    _context.TourImages.Remove(img);
+                }
+
+                // Agregar nuevas imágenes
+                if (request.Images.Any())
+                {
+                    foreach (var imageUrl in request.Images)
+                    {
+                        var tourImage = new TourImage
+                        {
+                            TourId = tour.Id,
+                            ImageUrl = imageUrl,
+                            IsPrimary = request.Images.IndexOf(imageUrl) == 0 // Primera imagen es principal
+                        };
+                        _context.TourImages.Add(tourImage);
+                    }
+                }
+            }
 
             await _tourRepository.UpdateAsync(tour);
             await _context.SaveChangesAsync();
 
-            // Cargar imágenes
+            // Recargar imágenes
             await _context.Entry(tour)
                 .Collection(t => t.TourImages)
                 .LoadAsync();
@@ -220,6 +278,7 @@ public class AdminController : ControllerBase
                 Id = tour.Id,
                 Name = tour.Name,
                 Description = tour.Description,
+                Itinerary = tour.Itinerary,
                 Price = tour.Price,
                 MaxCapacity = tour.MaxCapacity,
                 AvailableSpots = tour.AvailableSpots,
@@ -227,7 +286,8 @@ public class AdminController : ControllerBase
                 Location = tour.Location,
                 IsActive = tour.IsActive,
                 CreatedAt = tour.CreatedAt,
-                ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
+                ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
+                Images = tour.TourImages.Select(i => i.ImageUrl).ToList()
             };
 
             return Ok(result);
@@ -235,7 +295,7 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar tour {TourId}", id);
-            return StatusCode(500, new { message = "Error al actualizar el tour" });
+            throw;
         }
     }
 
@@ -249,7 +309,7 @@ public class AdminController : ControllerBase
         {
             var tour = await _tourRepository.GetByIdAsync(id);
             if (tour == null)
-                return NotFound(new { message = "Tour no encontrado" });
+                throw new NotFoundException("Tour", id);
 
             // Verificar que no tenga reservas activas
             var hasActiveBookings = await _context.Bookings
@@ -258,7 +318,7 @@ public class AdminController : ControllerBase
                      b.Status == Domain.Enums.BookingStatus.Confirmed));
 
             if (hasActiveBookings)
-                return BadRequest(new { message = "No se puede eliminar un tour con reservas activas" });
+                throw new BusinessException("No se puede eliminar un tour con reservas activas", "TOUR_HAS_ACTIVE_BOOKINGS");
 
             tour.IsActive = false; // Soft delete
             await _tourRepository.UpdateAsync(tour);
@@ -269,7 +329,7 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al eliminar tour {TourId}", id);
-            return StatusCode(500, new { message = "Error al eliminar el tour" });
+            throw;
         }
     }
 
@@ -304,7 +364,7 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener reservas");
-            return StatusCode(500, new { message = "Error al obtener las reservas" });
+            throw;
         }
     }
 
@@ -342,7 +402,7 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener estadísticas");
-            return StatusCode(500, new { message = "Error al obtener las estadísticas" });
+            throw;
         }
     }
 }
@@ -363,31 +423,6 @@ public class AdminTourDto
     public DateTime CreatedAt { get; set; }
     public string? ImageUrl { get; set; }
     public List<string>? Images { get; set; }
-}
-
-public class CreateTourRequestDto
-{
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string? Itinerary { get; set; }
-    public decimal Price { get; set; }
-    public int MaxCapacity { get; set; }
-    public int DurationHours { get; set; }
-    public string? Location { get; set; }
-    public bool? IsActive { get; set; }
-    public List<string>? Images { get; set; }
-}
-
-public class UpdateTourRequestDto
-{
-    public string? Name { get; set; }
-    public string? Description { get; set; }
-    public string? Itinerary { get; set; }
-    public decimal? Price { get; set; }
-    public int? MaxCapacity { get; set; }
-    public int? DurationHours { get; set; }
-    public string? Location { get; set; }
-    public bool? IsActive { get; set; }
 }
 
 public class AdminBookingDto

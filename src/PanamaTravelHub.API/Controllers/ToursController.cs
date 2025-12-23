@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PanamaTravelHub.Application.Exceptions;
 using PanamaTravelHub.Domain.Entities;
 using PanamaTravelHub.Infrastructure.Data;
 using PanamaTravelHub.Infrastructure.Repositories;
@@ -192,7 +193,7 @@ public class ToursController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener tours");
-            return StatusCode(500, new { message = "Error al obtener los tours" });
+            throw;
         }
     }
 
@@ -259,7 +260,7 @@ public class ToursController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener tour {TourId}", id);
-            return StatusCode(500, new { message = "Error al obtener el tour" });
+            throw;
         }
     }
 }

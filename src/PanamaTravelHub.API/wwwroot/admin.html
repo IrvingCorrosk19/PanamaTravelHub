@@ -82,6 +82,121 @@
       padding: var(--spacing-xs) var(--spacing-sm);
       font-size: 0.85rem;
     }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      overflow-y: auto;
+    }
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-lg);
+    }
+    .modal-content {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-xl);
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .form-group {
+      margin-bottom: var(--spacing-lg);
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: var(--spacing-xs);
+      color: var(--text);
+      font-weight: 500;
+    }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: var(--spacing-sm);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .image-input-group {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-sm);
+    }
+    .image-input-group input {
+      flex: 1;
+    }
+    .badge {
+      display: inline-block;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .badge.active {
+      background: rgba(34, 197, 94, 0.2);
+      color: rgb(34, 197, 94);
+    }
+    .badge.inactive {
+      background: rgba(239, 68, 68, 0.2);
+      color: rgb(239, 68, 68);
+    }
+    .tour-image-preview {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: var(--radius);
+      margin: var(--spacing-xs);
+    }
+    .image-preview-item {
+      position: relative;
+      border: 2px solid var(--stroke);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--bg-secondary);
+    }
+    .image-preview-item img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      display: block;
+    }
+    .image-preview-item .primary-badge {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      background: var(--primary);
+      color: white;
+      padding: 2px 6px;
+      border-radius: var(--radius);
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .image-preview-item.error {
+      border-color: var(--danger);
+    }
+    .field-error {
+      color: var(--danger);
+      font-size: 0.875rem;
+      margin-top: var(--spacing-xs);
+      display: block;
+    }
+    .form-input.input-error {
+      border-color: var(--danger);
+    }
   </style>
 </head>
 <body>
@@ -114,8 +229,7 @@
       <div class="admin-tabs">
         <button class="admin-tab active" onclick="switchTab('tours')">Tours</button>
         <button class="admin-tab" onclick="switchTab('bookings')">Reservas</button>
-        <button class="admin-tab" onclick="switchTab('users')">Usuarios</button>
-        <button class="admin-tab" onclick="switchTab('reports')">Reportes</button>
+        <button class="admin-tab" onclick="switchTab('stats')">Estadísticas</button>
       </div>
 
       <!-- Tours Tab -->
@@ -129,6 +243,7 @@
             <table>
               <thead>
                 <tr>
+                  <th>Imagen</th>
                   <th>Nombre</th>
                   <th>Precio</th>
                   <th>Capacidad</th>
@@ -139,7 +254,7 @@
               </thead>
               <tbody id="toursTableBody">
                 <tr>
-                  <td colspan="6" style="text-align: center; color: var(--text-muted);">Cargando...</td>
+                  <td colspan="7" style="text-align: center; color: var(--text-muted);">Cargando...</td>
                 </tr>
               </tbody>
             </table>
@@ -157,13 +272,13 @@
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Tour</th>
                   <th>Cliente</th>
+                  <th>Email</th>
                   <th>Participantes</th>
                   <th>Total</th>
                   <th>Estado</th>
-                  <th>Acciones</th>
+                  <th>Fecha</th>
                 </tr>
               </thead>
               <tbody id="bookingsTableBody">
@@ -176,30 +291,82 @@
         </div>
       </div>
 
-      <!-- Users Tab -->
-      <div id="users" class="admin-content">
+      <!-- Stats Tab -->
+      <div id="stats" class="admin-content">
         <div class="admin-header">
-          <h2>Usuarios</h2>
+          <h2>Estadísticas</h2>
         </div>
-        <div class="admin-card">
-          <p style="color: var(--text-muted);">Funcionalidad próximamente disponible</p>
-        </div>
-      </div>
-
-      <!-- Reports Tab -->
-      <div id="reports" class="admin-content">
-        <div class="admin-header">
-          <h2>Reportes</h2>
-        </div>
-        <div class="admin-card">
-          <p style="color: var(--text-muted);">Funcionalidad próximamente disponible</p>
+        <div class="admin-card" id="statsContent">
+          <p style="color: var(--text-muted);">Cargando estadísticas...</p>
         </div>
       </div>
     </div>
   </main>
 
+  <!-- Tour Modal -->
+  <div id="tourModal" class="modal">
+    <div class="modal-content">
+      <h2 id="modalTitle">Nuevo Tour</h2>
+      <form id="tourForm" onsubmit="saveTour(event)">
+        <div class="form-group">
+          <label>Nombre del Tour *</label>
+          <input type="text" id="tourName" required />
+        </div>
+        <div class="form-group">
+          <label>Descripción *</label>
+          <textarea id="tourDescription" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Itinerario</label>
+          <textarea id="tourItinerary"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Precio (USD) *</label>
+          <input type="number" id="tourPrice" step="0.01" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Capacidad Máxima *</label>
+          <input type="number" id="tourMaxCapacity" min="1" required />
+        </div>
+        <div class="form-group">
+          <label>Duración (horas) *</label>
+          <input type="number" id="tourDurationHours" min="1" required />
+        </div>
+        <div class="form-group">
+          <label>Ubicación</label>
+          <input type="text" id="tourLocation" />
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="tourIsActive" style="width: 100%; padding: var(--spacing-sm); border: 1px solid var(--stroke); border-radius: var(--radius); background: var(--bg); color: var(--text);">
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Imágenes del Tour</label>
+          <div id="imagesContainer">
+            <div class="image-input-group">
+              <input type="url" class="image-url-input" placeholder="https://ejemplo.com/imagen.jpg" />
+              <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+            </div>
+          </div>
+          <button type="button" class="btn-secondary" onclick="addImageInput()" style="margin-top: var(--spacing-sm);">+ Agregar Imagen</button>
+          <div id="imagesPreview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--spacing-sm); margin-top: var(--spacing-md);"></div>
+          <small style="color: var(--text-muted); display: block; margin-top: var(--spacing-xs);">La primera imagen será la imagen principal. Máximo 5 imágenes.</small>
+        </div>
+        <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-xl);">
+          <button type="button" class="btn-secondary" onclick="closeTourModal()">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="/js/api.js"></script>
   <script>
+    let currentTourId = null;
+
     function checkAdminAuth() {
       const token = localStorage.getItem('authToken');
       const authRequired = document.getElementById('authRequired');
@@ -212,7 +379,6 @@
       } else {
         authRequired.style.display = 'none';
         adminContent.style.display = 'block';
-        // TODO: Verify user is admin
         return true;
       }
     }
@@ -233,40 +399,437 @@
       // Load tab data
       if (tabName === 'tours') loadTours();
       if (tabName === 'bookings') loadBookings();
+      if (tabName === 'stats') loadStats();
     }
 
     async function loadTours() {
       try {
-        // TODO: Replace with actual API call
-        // const tours = await api.getAdminTours();
-        
+        const tours = await api.getAdminTours();
         const tbody = document.getElementById('toursTableBody');
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay tours disponibles</td></tr>';
+        
+        if (!tours || tours.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay tours disponibles</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = tours.map(tour => `
+          <tr>
+            <td>
+              ${tour.imageUrl ? `<img src="${tour.imageUrl}" class="tour-image-preview" alt="${tour.name}" />` : '—'}
+            </td>
+            <td>${tour.name}</td>
+            <td>$${tour.price.toFixed(2)}</td>
+            <td>${tour.maxCapacity}</td>
+            <td>${tour.availableSpots}</td>
+            <td>
+              <span class="badge ${tour.isActive ? 'active' : 'inactive'}">
+                ${tour.isActive ? 'Activo' : 'Inactivo'}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-sm btn-primary" onclick="editTour('${tour.id}')">Editar</button>
+                <button class="btn-sm btn-secondary" onclick="deleteTour('${tour.id}')">Eliminar</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
       } catch (error) {
         console.error('Error loading tours:', error);
+        document.getElementById('toursTableBody').innerHTML = 
+          '<tr><td colspan="7" style="text-align: center; color: var(--error);">Error al cargar tours</td></tr>';
       }
     }
 
     async function loadBookings() {
       try {
-        // TODO: Replace with actual API call
-        // const bookings = await api.getAdminBookings();
-        
+        const bookings = await api.getAdminBookings();
         const tbody = document.getElementById('bookingsTableBody');
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay reservas disponibles</td></tr>';
+        
+        if (!bookings || bookings.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay reservas disponibles</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = bookings.map(booking => `
+          <tr>
+            <td>${booking.tourName || 'N/A'}</td>
+            <td>${booking.userName || 'N/A'}</td>
+            <td>${booking.userEmail || 'N/A'}</td>
+            <td>${booking.numberOfParticipants}</td>
+            <td>$${booking.totalAmount.toFixed(2)}</td>
+            <td>
+              <span class="badge ${booking.status === 'Confirmed' ? 'active' : 'inactive'}">
+                ${booking.status}
+              </span>
+            </td>
+            <td>${new Date(booking.createdAt).toLocaleDateString('es-PA')}</td>
+          </tr>
+        `).join('');
       } catch (error) {
         console.error('Error loading bookings:', error);
+        document.getElementById('bookingsTableBody').innerHTML = 
+          '<tr><td colspan="7" style="text-align: center; color: var(--error);">Error al cargar reservas</td></tr>';
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const stats = await api.request('/api/admin/stats');
+        const content = document.getElementById('statsContent');
+        
+        content.innerHTML = `
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-lg);">
+            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
+              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">${stats.totalTours}</h3>
+              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Tours Totales</p>
+            </div>
+            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
+              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">${stats.activeTours}</h3>
+              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Tours Activos</p>
+            </div>
+            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
+              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">${stats.totalBookings}</h3>
+              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Reservas Totales</p>
+            </div>
+            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
+              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">$${stats.totalRevenue.toFixed(2)}</h3>
+              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Ingresos Totales</p>
+            </div>
+            <div style="text-align: center; padding: var(--spacing-lg); background: var(--bg); border-radius: var(--radius);">
+              <h3 style="font-size: 2rem; margin: 0; color: var(--primary);">${stats.totalUsers}</h3>
+              <p style="color: var(--text-muted); margin: var(--spacing-xs) 0 0 0;">Usuarios</p>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error loading stats:', error);
+        document.getElementById('statsContent').innerHTML = 
+          '<p style="color: var(--error);">Error al cargar estadísticas</p>';
       }
     }
 
     function showAddTourModal() {
-      alert('Funcionalidad de crear tour próximamente disponible');
+      currentTourId = null;
+      document.getElementById('modalTitle').textContent = 'Nuevo Tour';
+      document.getElementById('tourForm').reset();
+      
+      // Limpiar imágenes
+      const imagesContainer = document.getElementById('imagesContainer');
+      imagesContainer.innerHTML = `
+        <div class="image-input-group">
+          <input type="url" class="image-url-input" placeholder="https://ejemplo.com/imagen.jpg" />
+          <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+        </div>
+      `;
+      document.getElementById('imagesPreview').innerHTML = '';
+      
+      // Agregar event listeners a los inputs de imágenes
+      setupImageInputs();
+      
+      // Limpiar errores
+      document.querySelectorAll('.field-error').forEach(el => el.remove());
+      document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+      
+      document.getElementById('tourModal').classList.add('active');
+    }
+    
+    function setupImageInputs() {
+      document.querySelectorAll('.image-url-input').forEach(input => {
+        input.addEventListener('input', updateImagesPreview);
+        input.addEventListener('blur', validateImageUrl);
+      });
+    }
+    
+    function addImageInput() {
+      const container = document.getElementById('imagesContainer');
+      const imageCount = container.querySelectorAll('.image-input-group').length;
+      
+      if (imageCount >= 5) {
+        alert('No se pueden agregar más de 5 imágenes');
+        return;
+      }
+      
+      const newInput = document.createElement('div');
+      newInput.className = 'image-input-group';
+      newInput.innerHTML = `
+        <input type="url" class="image-url-input" placeholder="https://ejemplo.com/imagen.jpg" />
+        <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+      `;
+      container.appendChild(newInput);
+      
+      setupImageInputs();
+    }
+    
+    function removeImage(button) {
+      const container = document.getElementById('imagesContainer');
+      if (container.querySelectorAll('.image-input-group').length <= 1) {
+        alert('Debe haber al menos una imagen');
+        return;
+      }
+      button.closest('.image-input-group').remove();
+      updateImagesPreview();
+    }
+    
+    function validateImageUrl(event) {
+      const input = event.target;
+      const url = input.value.trim();
+      
+      if (!url) {
+        input.classList.remove('input-error');
+        return;
+      }
+      
+      try {
+        new URL(url);
+        input.classList.remove('input-error');
+      } catch {
+        input.classList.add('input-error');
+      }
+    }
+    
+    function updateImagesPreview() {
+      const preview = document.getElementById('imagesPreview');
+      const inputs = document.querySelectorAll('.image-url-input');
+      preview.innerHTML = '';
+      
+      inputs.forEach((input, index) => {
+        const url = input.value.trim();
+        if (url) {
+          const previewItem = document.createElement('div');
+          previewItem.className = 'image-preview-item';
+          previewItem.innerHTML = `
+            ${index === 0 ? '<span class="primary-badge">Principal</span>' : ''}
+            <img src="${url}" alt="Preview" onerror="this.parentElement.classList.add('error')" />
+          `;
+          preview.appendChild(previewItem);
+        }
+      });
+    }
+
+    async function editTour(id) {
+      try {
+        const tour = await api.request(`/api/admin/tours/${id}`);
+        currentTourId = id;
+        
+        document.getElementById('modalTitle').textContent = 'Editar Tour';
+        document.getElementById('tourName').value = tour.name || '';
+        document.getElementById('tourDescription').value = tour.description || '';
+        document.getElementById('tourItinerary').value = tour.itinerary || '';
+        document.getElementById('tourPrice').value = tour.price || '';
+        document.getElementById('tourMaxCapacity').value = tour.maxCapacity || '';
+        document.getElementById('tourDurationHours').value = tour.durationHours || '';
+        document.getElementById('tourLocation').value = tour.location || '';
+        document.getElementById('tourIsActive').value = tour.isActive ? 'true' : 'false';
+        
+        // Cargar imágenes
+        const imagesContainer = document.getElementById('imagesContainer');
+        imagesContainer.innerHTML = '';
+        
+        if (tour.images && tour.images.length > 0) {
+          tour.images.forEach((url, index) => {
+            const imageGroup = document.createElement('div');
+            imageGroup.className = 'image-input-group';
+            imageGroup.innerHTML = `
+              <input type="url" class="image-url-input" value="${url}" placeholder="https://ejemplo.com/imagen.jpg" />
+              <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+            `;
+            imagesContainer.appendChild(imageGroup);
+          });
+        } else {
+          // Al menos un input vacío
+          const imageGroup = document.createElement('div');
+          imageGroup.className = 'image-input-group';
+          imageGroup.innerHTML = `
+            <input type="url" class="image-url-input" placeholder="https://ejemplo.com/imagen.jpg" />
+            <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+          `;
+          imagesContainer.appendChild(imageGroup);
+        }
+        
+        setupImageInputs();
+        updateImagesPreview();
+        
+        // Limpiar errores
+        document.querySelectorAll('.field-error').forEach(el => el.remove());
+        document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+        
+        document.getElementById('tourModal').classList.add('active');
+      } catch (error) {
+        console.error('Error loading tour:', error);
+        alert('Error al cargar el tour: ' + (error.message || 'Error desconocido'));
+      }
+    }
+
+    function closeTourModal() {
+      document.getElementById('tourModal').classList.remove('active');
+      currentTourId = null;
+    }
+
+    function validateTourForm() {
+      let isValid = true;
+      const errors = [];
+      
+      // Limpiar errores previos
+      document.querySelectorAll('.field-error').forEach(el => el.remove());
+      document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+      
+      // Validar nombre
+      const name = document.getElementById('tourName').value.trim();
+      if (!name) {
+        showFieldError('tourName', 'El nombre del tour es requerido');
+        isValid = false;
+      } else if (name.length > 200) {
+        showFieldError('tourName', 'El nombre no puede exceder 200 caracteres');
+        isValid = false;
+      }
+      
+      // Validar descripción
+      const description = document.getElementById('tourDescription').value.trim();
+      if (!description) {
+        showFieldError('tourDescription', 'La descripción es requerida');
+        isValid = false;
+      } else if (description.length < 50) {
+        showFieldError('tourDescription', 'La descripción debe tener al menos 50 caracteres');
+        isValid = false;
+      } else if (description.length > 2000) {
+        showFieldError('tourDescription', 'La descripción no puede exceder 2000 caracteres');
+        isValid = false;
+      }
+      
+      // Validar precio
+      const price = parseFloat(document.getElementById('tourPrice').value);
+      if (isNaN(price) || price <= 0) {
+        showFieldError('tourPrice', 'El precio debe ser mayor a 0');
+        isValid = false;
+      } else if (price > 10000) {
+        showFieldError('tourPrice', 'El precio no puede exceder $10,000');
+        isValid = false;
+      }
+      
+      // Validar capacidad
+      const maxCapacity = parseInt(document.getElementById('tourMaxCapacity').value);
+      if (isNaN(maxCapacity) || maxCapacity <= 0) {
+        showFieldError('tourMaxCapacity', 'La capacidad máxima debe ser mayor a 0');
+        isValid = false;
+      } else if (maxCapacity > 100) {
+        showFieldError('tourMaxCapacity', 'La capacidad máxima no puede exceder 100 personas');
+        isValid = false;
+      }
+      
+      // Validar duración
+      const durationHours = parseInt(document.getElementById('tourDurationHours').value);
+      if (isNaN(durationHours) || durationHours <= 0) {
+        showFieldError('tourDurationHours', 'La duración debe ser mayor a 0 horas');
+        isValid = false;
+      } else if (durationHours > 48) {
+        showFieldError('tourDurationHours', 'La duración no puede exceder 48 horas');
+        isValid = false;
+      }
+      
+      // Validar imágenes
+      const imageInputs = document.querySelectorAll('.image-url-input');
+      const images = Array.from(imageInputs)
+        .map(input => input.value.trim())
+        .filter(url => url.length > 0);
+      
+      if (images.length > 5) {
+        alert('No se pueden agregar más de 5 imágenes');
+        isValid = false;
+      }
+      
+      // Validar URLs de imágenes
+      images.forEach((url, index) => {
+        try {
+          new URL(url);
+        } catch {
+          const input = imageInputs[index];
+          input.classList.add('input-error');
+          isValid = false;
+        }
+      });
+      
+      if (!isValid && errors.length > 0) {
+        alert('Por favor corrige los siguientes errores:\n\n' + errors.join('\n'));
+      }
+      
+      return isValid;
+    }
+    
+    function showFieldError(fieldId, message) {
+      const field = document.getElementById(fieldId);
+      field.classList.add('input-error');
+      const errorDiv = document.createElement('span');
+      errorDiv.className = 'field-error';
+      errorDiv.textContent = message;
+      field.parentElement.appendChild(errorDiv);
+    }
+
+    async function saveTour(event) {
+      event.preventDefault();
+      
+      if (!validateTourForm()) {
+        return;
+      }
+      
+      // Obtener imágenes de los inputs
+      const imageInputs = document.querySelectorAll('.image-url-input');
+      const images = Array.from(imageInputs)
+        .map(input => input.value.trim())
+        .filter(url => url.length > 0);
+
+      const tourData = {
+        name: document.getElementById('tourName').value.trim(),
+        description: document.getElementById('tourDescription').value.trim(),
+        itinerary: document.getElementById('tourItinerary').value.trim() || null,
+        price: parseFloat(document.getElementById('tourPrice').value),
+        maxCapacity: parseInt(document.getElementById('tourMaxCapacity').value),
+        durationHours: parseInt(document.getElementById('tourDurationHours').value),
+        location: document.getElementById('tourLocation').value.trim() || null,
+        isActive: document.getElementById('tourIsActive').value === 'true',
+        images: images.length > 0 ? images : null
+      };
+
+      try {
+        if (currentTourId) {
+          await api.updateTour(currentTourId, tourData);
+          alert('Tour actualizado exitosamente');
+        } else {
+          await api.createTour(tourData);
+          alert('Tour creado exitosamente');
+        }
+        
+        closeTourModal();
+        loadTours();
+      } catch (error) {
+        console.error('Error saving tour:', error);
+        alert('Error al guardar el tour: ' + (error.message || 'Error desconocido'));
+      }
+    }
+
+    async function deleteTour(id) {
+      if (!confirm('¿Estás seguro de que deseas eliminar este tour?')) {
+        return;
+      }
+
+      try {
+        await api.deleteTour(id);
+        alert('Tour eliminado exitosamente');
+        loadTours();
+      } catch (error) {
+        console.error('Error deleting tour:', error);
+        alert('Error al eliminar el tour: ' + (error.message || 'Error desconocido'));
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
       if (checkAdminAuth()) {
         loadTours();
+        loadStats();
       }
+      
+      // Inicializar inputs de imágenes
+      setupImageInputs();
     });
 
     if (document.getElementById('logoutBtn')) {
@@ -275,6 +838,13 @@
         window.location.href = '/';
       });
     }
+
+    // Cerrar modal al hacer click fuera
+    document.getElementById('tourModal').addEventListener('click', (e) => {
+      if (e.target.id === 'tourModal') {
+        closeTourModal();
+      }
+    });
   </script>
 </body>
 </html>

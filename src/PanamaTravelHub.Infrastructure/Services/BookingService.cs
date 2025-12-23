@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using PanamaTravelHub.Application.Exceptions;
 using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Domain.Entities;
 using PanamaTravelHub.Domain.Enums;
@@ -35,20 +36,20 @@ public class BookingService : IBookingService
         List<BookingParticipantInfo> participants,
         CancellationToken cancellationToken = default)
     {
-        // Obtener tour
-        var tour = await _tourRepository.GetByIdAsync(tourId, cancellationToken);
-        if (tour == null)
-            throw new InvalidOperationException("Tour no encontrado");
+               // Obtener tour
+               var tour = await _tourRepository.GetByIdAsync(tourId, cancellationToken);
+               if (tour == null)
+                   throw new NotFoundException("Tour", tourId);
 
-        if (!tour.IsActive)
-            throw new InvalidOperationException("El tour no está activo");
+               if (!tour.IsActive)
+                   throw new BusinessException("El tour no está activo", "TOUR_INACTIVE");
 
-        // Verificar cupos disponibles
-        var hasSpots = await ReserveSpotsAsync(tourId, tourDateId, numberOfParticipants, cancellationToken);
-        if (!hasSpots)
-        {
-            throw new InvalidOperationException("No hay suficientes cupos disponibles");
-        }
+               // Verificar cupos disponibles
+               var hasSpots = await ReserveSpotsAsync(tourId, tourDateId, numberOfParticipants, cancellationToken);
+               if (!hasSpots)
+               {
+                   throw new BusinessException("No hay suficientes cupos disponibles para este tour", "INSUFFICIENT_SPOTS");
+               }
 
         try
         {

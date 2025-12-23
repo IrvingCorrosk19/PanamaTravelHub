@@ -1,13 +1,32 @@
 using Microsoft.EntityFrameworkCore;
+using PanamaTravelHub.API.Middleware;
+using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Infrastructure;
 using PanamaTravelHub.Infrastructure.Data;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // Deshabilitar validación automática del modelo para usar FluentValidation
+        options.SuppressModelStateInvalidFilter = true;
+    });
+
+// Configurar FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Configurar Exception Handler
+builder.Services.AddExceptionHandler<GlobalExceptionHandlerMiddleware>();
+builder.Services.AddProblemDetails();
 
 // CORS para permitir el frontend
 builder.Services.AddCors(options =>
@@ -64,6 +83,9 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseHttpsRedirection();
+
+// Exception Handler debe ir temprano en el pipeline
+app.UseExceptionHandler();
 
 // CORS debe ir antes de UseAuthorization
 app.UseCors("AllowFrontend");

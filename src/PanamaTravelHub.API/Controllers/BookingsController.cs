@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using PanamaTravelHub.Application.Exceptions;
 using PanamaTravelHub.Application.Services;
+using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Domain.Enums;
 
 namespace PanamaTravelHub.API.Controllers;
@@ -23,15 +25,24 @@ public class BookingsController : ControllerBase
     /// Obtiene las reservas del usuario actual
     /// </summary>
     [HttpGet("my")]
-    public async Task<ActionResult<IEnumerable<BookingResponseDto>>> GetMyBookings()
+    public async Task<ActionResult<IEnumerable<BookingResponseDto>>> GetMyBookings([FromQuery] Guid? userId = null)
     {
         try
         {
-            // TODO: Obtener userId del token JWT
-            // Por ahora usamos un GUID mock para testing
-            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            // Obtener userId del query parameter o usar el hardcodeado como fallback
+            Guid actualUserId;
+            if (userId.HasValue && userId.Value != Guid.Empty)
+            {
+                actualUserId = userId.Value;
+            }
+            else
+            {
+                // TODO: Obtener userId del token JWT cuando la autenticación esté implementada
+                // Por ahora usar un GUID mock para testing
+                actualUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            }
 
-            var bookings = await _bookingService.GetUserBookingsAsync(userId);
+            var bookings = await _bookingService.GetUserBookingsAsync(actualUserId);
 
             var result = bookings.Select(b => new BookingResponseDto
             {
@@ -50,7 +61,7 @@ public class BookingsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener reservas");
-            return StatusCode(500, new { message = "Error al obtener las reservas" });
+            throw;
         }
     }
 
@@ -60,33 +71,25 @@ public class BookingsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<BookingResponseDto>>> GetAllBookings()
     {
-        try
-        {
-            // TODO: Verificar que el usuario sea admin
-            var bookings = await _bookingService.GetAllBookingsAsync();
+        // TODO: Verificar que el usuario sea admin
+        var bookings = await _bookingService.GetAllBookingsAsync();
 
-            var result = bookings.Select(b => new BookingResponseDto
-            {
-                Id = b.Id,
-                TourId = b.TourId,
-                TourName = b.Tour.Name,
-                UserId = b.UserId,
-                UserEmail = b.User.Email,
-                UserName = $"{b.User.FirstName} {b.User.LastName}",
-                NumberOfParticipants = b.NumberOfParticipants,
-                TotalAmount = b.TotalAmount,
-                Status = b.Status.ToString(),
-                TourDate = b.TourDate?.TourDateTime,
-                CreatedAt = b.CreatedAt
-            });
-
-            return Ok(result);
-        }
-        catch (Exception ex)
+        var result = bookings.Select(b => new BookingResponseDto
         {
-            _logger.LogError(ex, "Error al obtener reservas");
-            return StatusCode(500, new { message = "Error al obtener las reservas" });
-        }
+            Id = b.Id,
+            TourId = b.TourId,
+            TourName = b.Tour.Name,
+            UserId = b.UserId,
+            UserEmail = b.User.Email,
+            UserName = $"{b.User.FirstName} {b.User.LastName}",
+            NumberOfParticipants = b.NumberOfParticipants,
+            TotalAmount = b.TotalAmount,
+            Status = b.Status.ToString(),
+            TourDate = b.TourDate?.TourDateTime,
+            CreatedAt = b.CreatedAt
+        });
+
+        return Ok(result);
     }
 
     /// <summary>
@@ -95,11 +98,9 @@ public class BookingsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<BookingDetailResponseDto>> GetBooking(Guid id)
     {
-        try
-        {
-            var booking = await _bookingService.GetBookingByIdAsync(id);
-            if (booking == null)
-                return NotFound(new { message = "Reserva no encontrada" });
+        var booking = await _bookingService.GetBookingByIdAsync(id);
+        if (booking == null)
+            throw new NotFoundException("Reserva", id);
 
             var result = new BookingDetailResponseDto
             {
@@ -126,13 +127,7 @@ public class BookingsController : ControllerBase
                 }).ToList()
             };
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al obtener reserva {BookingId}", id);
-            return StatusCode(500, new { message = "Error al obtener la reserva" });
-        }
+        return Ok(result);
     }
 
     /// <summary>
@@ -141,59 +136,51 @@ public class BookingsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<BookingResponseDto>> CreateBooking([FromBody] CreateBookingRequestDto request)
     {
-        try
+        // La validación se hace automáticamente por FluentValidation
+        // Obtener userId del request o usar el del body si está disponible
+        Guid userId;
+        if (request.UserId.HasValue && request.UserId.Value != Guid.Empty)
         {
-            // TODO: Obtener userId del token JWT
-            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
-            // Validaciones
-            if (request.NumberOfParticipants <= 0)
-                return BadRequest(new { message = "El número de participantes debe ser mayor a 0" });
-
-            if (request.Participants == null || request.Participants.Count != request.NumberOfParticipants)
-                return BadRequest(new { message = "El número de participantes no coincide con la lista proporcionada" });
-
-            // Convertir participantes
-            var participants = request.Participants.Select(p => new BookingParticipantInfo
-            {
-                FirstName = p.FirstName,
-                LastName = p.LastName,
-                Email = p.Email,
-                Phone = p.Phone,
-                DateOfBirth = p.DateOfBirth
-            }).ToList();
-
-            // Crear reserva
-            var booking = await _bookingService.CreateBookingAsync(
-                userId,
-                request.TourId,
-                request.TourDateId,
-                request.NumberOfParticipants,
-                participants);
-
-            var result = new BookingResponseDto
-            {
-                Id = booking.Id,
-                TourId = booking.TourId,
-                TourName = booking.Tour.Name,
-                NumberOfParticipants = booking.NumberOfParticipants,
-                TotalAmount = booking.TotalAmount,
-                Status = booking.Status.ToString(),
-                TourDate = booking.TourDate?.TourDateTime,
-                CreatedAt = booking.CreatedAt
-            };
-
-            return CreatedAtAction(nameof(GetBooking), new { id = booking.Id }, result);
+            userId = request.UserId.Value;
         }
-        catch (InvalidOperationException ex)
+        else
         {
-            return BadRequest(new { message = ex.Message });
+            // TODO: Obtener userId del token JWT cuando la autenticación esté implementada
+            // Por ahora, si no viene en el request, lanzar error
+            throw new BusinessException("Usuario no autenticado. Debes iniciar sesión para realizar una reserva.", "USER_NOT_AUTHENTICATED");
         }
-        catch (Exception ex)
+
+        // Convertir participantes
+        var participants = request.Participants.Select(p => new BookingParticipantInfo
         {
-            _logger.LogError(ex, "Error al crear reserva");
-            return StatusCode(500, new { message = "Error al crear la reserva" });
-        }
+            FirstName = p.FirstName,
+            LastName = p.LastName,
+            Email = p.Email,
+            Phone = p.Phone,
+            DateOfBirth = p.DateOfBirth
+        }).ToList();
+
+        // Crear reserva
+        var booking = await _bookingService.CreateBookingAsync(
+            userId,
+            request.TourId,
+            request.TourDateId,
+            request.NumberOfParticipants,
+            participants);
+
+        var result = new BookingResponseDto
+        {
+            Id = booking.Id,
+            TourId = booking.TourId,
+            TourName = booking.Tour.Name,
+            NumberOfParticipants = booking.NumberOfParticipants,
+            TotalAmount = booking.TotalAmount,
+            Status = booking.Status.ToString(),
+            TourDate = booking.TourDate?.TourDateTime,
+            CreatedAt = booking.CreatedAt
+        };
+
+        return CreatedAtAction(nameof(GetBooking), new { id = booking.Id }, result);
     }
 
     /// <summary>
@@ -202,20 +189,12 @@ public class BookingsController : ControllerBase
     [HttpPost("{id}/confirm")]
     public async Task<ActionResult> ConfirmBooking(Guid id)
     {
-        try
-        {
-            // TODO: Verificar que el usuario sea admin
-            var success = await _bookingService.ConfirmBookingAsync(id);
-            if (!success)
-                return BadRequest(new { message = "No se pudo confirmar la reserva" });
+        // TODO: Verificar que el usuario sea admin
+        var success = await _bookingService.ConfirmBookingAsync(id);
+        if (!success)
+            throw new BusinessException("No se pudo confirmar la reserva. Verifica que la reserva esté en estado Pending.", "CANNOT_CONFIRM_BOOKING");
 
-            return Ok(new { message = "Reserva confirmada exitosamente" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al confirmar reserva {BookingId}", id);
-            return StatusCode(500, new { message = "Error al confirmar la reserva" });
-        }
+        return Ok(new { message = "Reserva confirmada exitosamente" });
     }
 
     /// <summary>
@@ -224,25 +203,18 @@ public class BookingsController : ControllerBase
     [HttpPost("{id}/cancel")]
     public async Task<ActionResult> CancelBooking(Guid id)
     {
-        try
-        {
-            var success = await _bookingService.CancelBookingAsync(id);
-            if (!success)
-                return BadRequest(new { message = "No se pudo cancelar la reserva" });
+        var success = await _bookingService.CancelBookingAsync(id);
+        if (!success)
+            throw new BusinessException("No se pudo cancelar la reserva. Verifica que la reserva no esté completada o ya cancelada.", "CANNOT_CANCEL_BOOKING");
 
-            return Ok(new { message = "Reserva cancelada exitosamente" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al cancelar reserva {BookingId}", id);
-            return StatusCode(500, new { message = "Error al cancelar la reserva" });
-        }
+        return Ok(new { message = "Reserva cancelada exitosamente" });
     }
 }
 
 // DTOs
 public class CreateBookingRequestDto
 {
+    public Guid? UserId { get; set; }
     public Guid TourId { get; set; }
     public Guid? TourDateId { get; set; }
     public int NumberOfParticipants { get; set; }

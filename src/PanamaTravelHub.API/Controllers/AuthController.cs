@@ -1,4 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using PanamaTravelHub.Application.Exceptions;
+using PanamaTravelHub.Application.Validators;
+using PanamaTravelHub.Domain.Entities;
+using PanamaTravelHub.Infrastructure.Data;
+using PanamaTravelHub.Infrastructure.Repositories;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace PanamaTravelHub.API.Controllers;
 
@@ -7,10 +15,17 @@ namespace PanamaTravelHub.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly ILogger<AuthController> _logger;
+    private readonly ApplicationDbContext _context;
+    private readonly IRepository<User> _userRepository;
 
-    public AuthController(ILogger<AuthController> logger)
+    public AuthController(
+        ILogger<AuthController> logger,
+        ApplicationDbContext context,
+        IRepository<User> userRepository)
     {
         _logger = logger;
+        _context = context;
+        _userRepository = userRepository;
     }
 
     /// <summary>
@@ -19,61 +34,50 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto request)
     {
-        try
+        _logger.LogInformation("Registro de usuario: {Email}", request.Email);
+
+        // La validación se hace automáticamente por FluentValidation
+        // Verificar si el usuario ya existe
+        var existingUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower().Trim());
+
+        if (existingUser != null)
         {
-            // TODO: Implementar lógica real de registro
-            // Por ahora retornamos un token mock
-            _logger.LogInformation("Registro de usuario: {Email}", request.Email);
-
-            // Validación básica
-            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
-            {
-                return BadRequest(new { message = "Email y contraseña son requeridos" });
-            }
-
-            // Validar que las contraseñas coincidan (sin espacios y case-sensitive)
-            var password = request.Password?.Trim() ?? string.Empty;
-            var confirmPassword = request.ConfirmPassword?.Trim() ?? string.Empty;
-
-            // Log para debugging (solo en desarrollo)
-            _logger.LogInformation("Password comparison - Length: {PasswordLength} vs {ConfirmLength}, Equal: {AreEqual}", 
-                password.Length, confirmPassword.Length, password == confirmPassword);
-
-            if (string.IsNullOrEmpty(confirmPassword))
-            {
-                return BadRequest(new { message = "Debes confirmar tu contraseña" });
-            }
-
-            if (password != confirmPassword)
-            {
-                return BadRequest(new { message = "Las contraseñas no coinciden. Por favor verifica que ambas sean exactamente iguales." });
-            }
-
-            if (password.Length < 6)
-            {
-                return BadRequest(new { message = "La contraseña debe tener al menos 6 caracteres" });
-            }
-
-            // TODO: Crear usuario en BD, hashear password, etc.
-            var token = $"mock_token_{Guid.NewGuid()}";
-
-            return Ok(new AuthResponseDto
-            {
-                Token = token,
-                User = new UserDto
-                {
-                    Id = Guid.NewGuid(),
-                    Email = request.Email,
-                    FirstName = request.FirstName,
-                    LastName = request.LastName
-                }
-            });
+            throw new BusinessException("Este email ya está registrado", "EMAIL_ALREADY_EXISTS");
         }
-        catch (Exception ex)
+
+        // Hashear password (usando SHA256 simple por ahora, luego se puede cambiar a BCrypt)
+        var password = request.Password.Trim();
+        var passwordHash = HashPassword(password);
+
+        // Crear usuario en BD
+        var user = new User
         {
-            _logger.LogError(ex, "Error en registro");
-            return StatusCode(500, new { message = "Error al registrar usuario" });
-        }
+            Email = request.Email.Trim().ToLower(),
+            PasswordHash = passwordHash,
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim(),
+            IsActive = true
+        };
+
+        await _userRepository.AddAsync(user);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Usuario registrado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
+
+        var token = $"mock_token_{Guid.NewGuid()}";
+
+        return Ok(new AuthResponseDto
+        {
+            Token = token,
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName
+            }
+        });
     }
 
     /// <summary>
@@ -82,56 +86,74 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request)
     {
-        try
-        {
-            // TODO: Implementar lógica real de login
-            _logger.LogInformation("Login de usuario: {Email}", request.Email);
+        _logger.LogInformation("Login de usuario: {Email}", request.Email);
 
-            // Validación básica
-            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+        // La validación se hace automáticamente por FluentValidation
+        // Buscar usuario en BD
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower().Trim());
+
+        if (user == null)
+        {
+            // No revelar que el usuario no existe (protección contra user enumeration)
+            await Task.Delay(500); // Simular tiempo de procesamiento
+            throw new UnauthorizedAccessException("Email o contraseña incorrectos");
+        }
+
+        // Verificar password
+        var passwordHash = HashPassword(request.Password.Trim());
+        if (user.PasswordHash != passwordHash)
+        {
+            // Incrementar intentos fallidos
+            user.FailedLoginAttempts++;
+            await _userRepository.UpdateAsync(user);
+            await _context.SaveChangesAsync();
+
+            throw new UnauthorizedAccessException("Email o contraseña incorrectos");
+        }
+
+        // Verificar si el usuario está activo
+        if (!user.IsActive)
+        {
+            throw new BusinessException("Tu cuenta está desactivada. Contacta al administrador.", "ACCOUNT_DISABLED");
+        }
+
+        // Actualizar último login
+        user.LastLoginAt = DateTime.UtcNow;
+        user.FailedLoginAttempts = 0; // Resetear intentos fallidos
+        await _userRepository.UpdateAsync(user);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Usuario autenticado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
+
+        var token = $"mock_token_{Guid.NewGuid()}";
+
+        return Ok(new AuthResponseDto
+        {
+            Token = token,
+            User = new UserDto
             {
-                return BadRequest(new { message = "Email y contraseña son requeridos" });
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName
             }
+        });
+    }
 
-            // TODO: Validar credenciales en BD
-            // Por ahora aceptamos cualquier email/password para testing
-            var token = $"mock_token_{Guid.NewGuid()}";
-
-            return Ok(new AuthResponseDto
-            {
-                Token = token,
-                User = new UserDto
-                {
-                    Id = Guid.NewGuid(),
-                    Email = request.Email,
-                    FirstName = "Usuario",
-                    LastName = "Demo"
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error en login");
-            return StatusCode(500, new { message = "Error al iniciar sesión" });
-        }
+    /// <summary>
+    /// Hashea una contraseña usando SHA256 (temporal, luego cambiar a BCrypt)
+    /// </summary>
+    private string HashPassword(string password)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(password);
+        var hash = sha256.ComputeHash(bytes);
+        return Convert.ToBase64String(hash);
     }
 }
 
-// DTOs temporales
-public class RegisterRequestDto
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string? ConfirmPassword { get; set; }
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-}
-
-public class LoginRequestDto
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
+// DTOs de respuesta (los de request están en Application.Validators)
 
 public class AuthResponseDto
 {
