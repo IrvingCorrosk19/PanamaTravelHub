@@ -199,67 +199,174 @@
   <div id="tourModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="modalTitle">Nuevo Tour</h2>
-        <button type="button" class="modal-close" onclick="closeTourModal()" aria-label="Cerrar">×</button>
+        <div class="modal-header-content">
+          <h2 id="modalTitle">Nuevo Tour</h2>
+          <p class="modal-subtitle">Completa la información del tour</p>
+        </div>
+        <button type="button" class="modal-close" onclick="closeTourModal()" aria-label="Cerrar">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
       <div class="modal-body">
         <form id="tourForm" onsubmit="saveTour(event)">
-        <div class="form-group">
-          <label>Nombre del Tour *</label>
-          <input type="text" id="tourName" required />
-        </div>
-        <div class="form-group">
-          <label>Descripción *</label>
-          <textarea id="tourDescription" required></textarea>
-        </div>
-        <div class="form-group">
-          <label>Itinerario</label>
-          <textarea id="tourItinerary"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Precio (USD) *</label>
-          <input type="number" id="tourPrice" step="0.01" min="0" required />
-        </div>
-        <div class="form-group">
-          <label>Capacidad Máxima *</label>
-          <input type="number" id="tourMaxCapacity" min="1" required />
-        </div>
-        <div class="form-group">
-          <label>Duración (horas) *</label>
-          <input type="number" id="tourDurationHours" min="1" required />
-        </div>
-        <div class="form-group">
-          <label>Ubicación</label>
-          <input type="text" id="tourLocation" />
-        </div>
-        <div class="form-group">
-          <label>Estado</label>
-          <select id="tourIsActive">
-            <option value="true">Activo</option>
-            <option value="false">Inactivo</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Imágenes del Tour</label>
-          <div id="imagesContainer">
-            <div class="image-input-group">
-              <input type="url" class="image-url-input" placeholder="https://ejemplo.com/imagen.jpg" />
-              <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+          <!-- Información Básica -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <h3>Información Básica</h3>
+              <p class="form-section-description">Datos principales del tour</p>
+            </div>
+            <div class="form-row">
+              <div class="form-group form-group-full">
+                <label class="form-label">
+                  <span class="label-text">Nombre del Tour</span>
+                  <span class="label-required">*</span>
+                </label>
+                <input type="text" id="tourName" class="form-input" placeholder="Ej: Tour del Canal de Panamá" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group form-group-full">
+                <label class="form-label">
+                  <span class="label-text">Descripción</span>
+                  <span class="label-required">*</span>
+                </label>
+                <textarea id="tourDescription" class="form-input form-textarea" placeholder="Describe el tour de manera atractiva..." required></textarea>
+                <div class="form-hint">Mínimo 50 caracteres. Describe los aspectos más destacados del tour.</div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group form-group-full">
+                <label class="form-label">
+                  <span class="label-text">Itinerario</span>
+                  <span class="label-optional">(Opcional)</span>
+                </label>
+                <textarea id="tourItinerary" class="form-input form-textarea" placeholder="Detalla el itinerario del tour..."></textarea>
+                <div class="form-hint">Incluye los puntos de interés y actividades del tour.</div>
+              </div>
             </div>
           </div>
-          <button type="button" id="addImageBtn" class="btn-secondary" onclick="addImageInput()" style="margin-top: var(--spacing-sm);">
-            <span id="addImageText">+ Agregar Imagen</span>
-          </button>
-          <div id="imagesPreview"></div>
-          <div id="imageLimitInfo" class="image-limit-info">
-            <span>La primera imagen será la imagen principal. Máximo 5 imágenes.</span>
+
+          <!-- Detalles del Tour -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <h3>Detalles del Tour</h3>
+              <p class="form-section-description">Precio, capacidad y duración</p>
+            </div>
+            <div class="form-row form-row-3">
+              <div class="form-group">
+                <label class="form-label">
+                  <span class="label-text">Precio (USD)</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <span class="input-icon">$</span>
+                  <input type="number" id="tourPrice" class="form-input" step="0.01" min="0" placeholder="0.00" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <span class="label-text">Capacidad Máxima</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <span class="input-icon">👥</span>
+                  <input type="number" id="tourMaxCapacity" class="form-input" min="1" placeholder="20" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">
+                  <span class="label-text">Duración (horas)</span>
+                  <span class="label-required">*</span>
+                </label>
+                <div class="input-with-icon">
+                  <span class="input-icon">⏱</span>
+                  <input type="number" id="tourDurationHours" class="form-input" min="1" placeholder="4" required />
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group form-group-half">
+                <label class="form-label">
+                  <span class="label-text">Ubicación</span>
+                  <span class="label-optional">(Opcional)</span>
+                </label>
+                <div class="input-with-icon">
+                  <span class="input-icon">📍</span>
+                  <input type="text" id="tourLocation" class="form-input" placeholder="Ej: Ciudad de Panamá" />
+                </div>
+              </div>
+              <div class="form-group form-group-half">
+                <label class="form-label">
+                  <span class="label-text">Estado</span>
+                </label>
+                <select id="tourIsActive" class="form-input form-select">
+                  <option value="true">Activo</option>
+                  <option value="false">Inactivo</option>
+                </select>
+              </div>
+            </div>
           </div>
-        </div>
+
+          <!-- Imágenes -->
+          <div class="form-section">
+            <div class="form-section-header">
+              <h3>Imágenes del Tour</h3>
+              <p class="form-section-description">Agrega hasta 5 imágenes. La primera será la imagen principal.</p>
+            </div>
+            <div class="form-group">
+              <div id="imagesContainer" class="images-container">
+                <div class="image-input-group">
+                  <div class="input-with-icon">
+                    <span class="input-icon">🖼️</span>
+                    <input type="url" class="image-url-input form-input" placeholder="https://ejemplo.com/imagen.jpg" />
+                  </div>
+                  <button type="button" class="btn-icon btn-danger" onclick="removeImage(this)" title="Eliminar imagen">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <button type="button" id="addImageBtn" class="btn-add-image" onclick="addImageInput()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span id="addImageText">Agregar Imagen</span>
+              </button>
+              <div id="imagesPreview" class="images-preview"></div>
+              <div id="imageLimitInfo" class="image-limit-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>La primera imagen será la imagen principal. Máximo 5 imágenes.</span>
+              </div>
+            </div>
+          </div>
         </form>
       </div>
       <div class="form-actions">
-        <button type="button" class="btn-secondary" onclick="closeTourModal()">Cancelar</button>
-        <button type="submit" class="btn-primary" form="tourForm">Guardar Tour</button>
+        <button type="button" class="btn-secondary btn-cancel" onclick="closeTourModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary btn-save" form="tourForm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Guardar Tour
+        </button>
       </div>
     </div>
   </div>
@@ -436,8 +543,16 @@
       const imagesContainer = document.getElementById('imagesContainer');
       imagesContainer.innerHTML = `
         <div class="image-input-group">
-          <input type="url" class="image-url-input" placeholder="https://ejemplo.com/imagen.jpg" />
-          <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+          <div class="input-with-icon">
+            <span class="input-icon">🖼️</span>
+            <input type="url" class="image-url-input form-input" placeholder="https://ejemplo.com/imagen.jpg" />
+          </div>
+          <button type="button" class="btn-icon btn-danger" onclick="removeImage(this)" title="Eliminar imagen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
         </div>
       `;
       document.getElementById('imagesPreview').innerHTML = '';
@@ -473,8 +588,16 @@
       const newInput = document.createElement('div');
       newInput.className = 'image-input-group';
       newInput.innerHTML = `
-        <input type="url" class="image-url-input" placeholder="https://ejemplo.com/imagen.jpg" />
-        <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+        <div class="input-with-icon">
+          <span class="input-icon">🖼️</span>
+          <input type="url" class="image-url-input form-input" placeholder="https://ejemplo.com/imagen.jpg" />
+        </div>
+        <button type="button" class="btn-icon btn-danger" onclick="removeImage(this)" title="Eliminar imagen">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
       `;
       container.appendChild(newInput);
       
@@ -494,16 +617,37 @@
         addImageBtn.disabled = true;
         addImageText.textContent = 'Máximo 5 imágenes alcanzado';
         imageLimitInfo.className = 'image-limit-info max';
-        imageLimitInfo.innerHTML = `<span>⚠️ Has alcanzado el límite de 5 imágenes</span>`;
+        imageLimitInfo.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>Has alcanzado el límite de 5 imágenes</span>
+        `;
       } else {
         addImageBtn.disabled = false;
         addImageText.textContent = `+ Agregar Imagen (${imageCount}/5)`;
         if (imageCount >= 3) {
           imageLimitInfo.className = 'image-limit-info warning';
-          imageLimitInfo.innerHTML = `<span>⚠️ Puedes agregar ${5 - imageCount} imagen${5 - imageCount > 1 ? 'es' : ''} más</span>`;
+          imageLimitInfo.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>Puedes agregar ${5 - imageCount} imagen${5 - imageCount > 1 ? 'es' : ''} más</span>
+          `;
         } else {
           imageLimitInfo.className = 'image-limit-info';
-          imageLimitInfo.innerHTML = `<span>La primera imagen será la imagen principal. Máximo 5 imágenes. (${imageCount}/5)</span>`;
+          imageLimitInfo.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>La primera imagen será la imagen principal. Máximo 5 imágenes. (${imageCount}/5)</span>
+          `;
         }
       }
     }
@@ -579,8 +723,16 @@
             const imageGroup = document.createElement('div');
             imageGroup.className = 'image-input-group';
             imageGroup.innerHTML = `
-              <input type="url" class="image-url-input" value="${url}" placeholder="https://ejemplo.com/imagen.jpg" />
-              <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+              <div class="input-with-icon">
+                <span class="input-icon">🖼️</span>
+                <input type="url" class="image-url-input form-input" value="${url}" placeholder="https://ejemplo.com/imagen.jpg" />
+              </div>
+              <button type="button" class="btn-icon btn-danger" onclick="removeImage(this)" title="Eliminar imagen">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
             `;
             imagesContainer.appendChild(imageGroup);
           });
@@ -589,8 +741,16 @@
           const imageGroup = document.createElement('div');
           imageGroup.className = 'image-input-group';
           imageGroup.innerHTML = `
-            <input type="url" class="image-url-input" placeholder="https://ejemplo.com/imagen.jpg" />
-            <button type="button" class="btn-secondary btn-sm" onclick="removeImage(this)">Eliminar</button>
+            <div class="input-with-icon">
+              <span class="input-icon">🖼️</span>
+              <input type="url" class="image-url-input form-input" placeholder="https://ejemplo.com/imagen.jpg" />
+            </div>
+            <button type="button" class="btn-icon btn-danger" onclick="removeImage(this)" title="Eliminar imagen">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
           `;
           imagesContainer.appendChild(imageGroup);
         }
@@ -721,6 +881,19 @@
         return;
       }
       
+      const submitButton = event.target.querySelector('button[type="submit"]') || 
+                          document.querySelector('button[form="tourForm"][type="submit"]');
+      const form = document.getElementById('tourForm');
+      
+      // Mostrar estado de carga
+      if (submitButton) {
+        submitButton.classList.add('btn-loading');
+        submitButton.disabled = true;
+      }
+      if (form) {
+        form.classList.add('form-loading');
+      }
+      
       // Obtener imágenes de los inputs
       const imageInputs = document.querySelectorAll('.image-url-input');
       const images = Array.from(imageInputs)
@@ -742,17 +915,26 @@
       try {
         if (currentTourId) {
           await api.updateTour(currentTourId, tourData);
-          alert('Tour actualizado exitosamente');
+          alert('✅ Tour actualizado exitosamente');
         } else {
           await api.createTour(tourData);
-          alert('Tour creado exitosamente');
+          alert('✅ Tour creado exitosamente');
         }
         
         closeTourModal();
         loadTours();
       } catch (error) {
         console.error('Error saving tour:', error);
-        alert('Error al guardar el tour: ' + (error.message || 'Error desconocido'));
+        alert('❌ Error al guardar el tour: ' + (error.message || 'Error desconocido'));
+      } finally {
+        // Remover estado de carga
+        if (submitButton) {
+          submitButton.classList.remove('btn-loading');
+          submitButton.disabled = false;
+        }
+        if (form) {
+          form.classList.remove('form-loading');
+        }
       }
     }
 
