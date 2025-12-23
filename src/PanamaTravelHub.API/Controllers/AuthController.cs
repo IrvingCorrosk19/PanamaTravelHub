@@ -86,59 +86,72 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request)
     {
-        _logger.LogInformation("Login de usuario: {Email}", request.Email);
-
-        // La validación se hace automáticamente por FluentValidation
-        // Buscar usuario en BD
-        var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower().Trim());
-
-        if (user == null)
+        try
         {
-            // No revelar que el usuario no existe (protección contra user enumeration)
-            await Task.Delay(500); // Simular tiempo de procesamiento
-            throw new UnauthorizedAccessException("Email o contraseña incorrectos");
-        }
+            _logger.LogInformation("Login de usuario: {Email}", request.Email);
 
-        // Verificar password
-        var passwordHash = HashPassword(request.Password.Trim());
-        if (user.PasswordHash != passwordHash)
-        {
-            // Incrementar intentos fallidos
-            user.FailedLoginAttempts++;
+            if (request == null)
+            {
+                throw new BusinessException("El request no puede ser nulo", "INVALID_REQUEST");
+            }
+
+            // La validación se hace automáticamente por FluentValidation
+            // Buscar usuario en BD
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower().Trim());
+
+            if (user == null)
+            {
+                // No revelar que el usuario no existe (protección contra user enumeration)
+                await Task.Delay(500); // Simular tiempo de procesamiento
+                throw new UnauthorizedAccessException("Email o contraseña incorrectos");
+            }
+
+            // Verificar password
+            var passwordHash = HashPassword(request.Password.Trim());
+            if (user.PasswordHash != passwordHash)
+            {
+                // Incrementar intentos fallidos
+                user.FailedLoginAttempts++;
+                await _userRepository.UpdateAsync(user);
+                await _context.SaveChangesAsync();
+
+                throw new UnauthorizedAccessException("Email o contraseña incorrectos");
+            }
+
+            // Verificar si el usuario está activo
+            if (!user.IsActive)
+            {
+                throw new BusinessException("Tu cuenta está desactivada. Contacta al administrador.", "ACCOUNT_DISABLED");
+            }
+
+            // Actualizar último login
+            user.LastLoginAt = DateTime.UtcNow;
+            user.FailedLoginAttempts = 0; // Resetear intentos fallidos
             await _userRepository.UpdateAsync(user);
             await _context.SaveChangesAsync();
 
-            throw new UnauthorizedAccessException("Email o contraseña incorrectos");
-        }
+            _logger.LogInformation("Usuario autenticado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
 
-        // Verificar si el usuario está activo
-        if (!user.IsActive)
-        {
-            throw new BusinessException("Tu cuenta está desactivada. Contacta al administrador.", "ACCOUNT_DISABLED");
-        }
+            var token = $"mock_token_{Guid.NewGuid()}";
 
-        // Actualizar último login
-        user.LastLoginAt = DateTime.UtcNow;
-        user.FailedLoginAttempts = 0; // Resetear intentos fallidos
-        await _userRepository.UpdateAsync(user);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Usuario autenticado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
-
-        var token = $"mock_token_{Guid.NewGuid()}";
-
-        return Ok(new AuthResponseDto
-        {
-            Token = token,
-            User = new UserDto
+            return Ok(new AuthResponseDto
             {
-                Id = user.Id,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName
-            }
-        });
+                Token = token,
+                User = new UserDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en login para email: {Email}", request?.Email);
+            throw; // Re-lanzar para que el middleware lo maneje
+        }
     }
 
     /// <summary>

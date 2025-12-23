@@ -78,12 +78,12 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 _logger.LogWarning(exception, "Error de negocio: {Message} - {TraceId}", businessException.Message, traceId);
                 break;
 
-            case UnauthorizedAccessException:
+            case UnauthorizedAccessException unauthorizedException:
                 response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 problemDetails.Status = (int)HttpStatusCode.Unauthorized;
                 problemDetails.Title = "No autorizado";
-                problemDetails.Detail = "No tienes permisos para realizar esta acción";
-                _logger.LogWarning(exception, "Acceso no autorizado: {TraceId}", traceId);
+                problemDetails.Detail = unauthorizedException.Message ?? "No tienes permisos para realizar esta acción";
+                _logger.LogWarning(exception, "Acceso no autorizado: {Message} - {TraceId}", unauthorizedException.Message, traceId);
                 break;
 
             default:
