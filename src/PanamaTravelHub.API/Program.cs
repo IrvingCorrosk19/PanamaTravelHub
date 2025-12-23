@@ -5,15 +5,15 @@ using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Infrastructure;
 using PanamaTravelHub.Infrastructure.Data;
 using FluentValidation;
-using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers(options =>
 {
-    // Agregar filtro de validación para logging
+    // Agregar filtros de validación
     options.Filters.Add<ValidationFilter>();
+    options.Filters.Add<FluentValidationFilter>();
 })
     .ConfigureApiBehaviorOptions(options =>
     {
@@ -22,9 +22,10 @@ builder.Services.AddControllers(options =>
     });
 
 // Configurar FluentValidation
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+
+// Agregar filtro de validación automática
+builder.Services.AddScoped<FluentValidationFilter>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
