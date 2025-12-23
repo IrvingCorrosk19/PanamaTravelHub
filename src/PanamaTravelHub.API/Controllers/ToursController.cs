@@ -263,6 +263,63 @@ public class ToursController : ControllerBase
             throw;
         }
     }
+
+    /// <summary>
+    /// Obtiene el contenido de la página de inicio (público)
+    /// </summary>
+    [HttpGet("homepage-content")]
+    public async Task<ActionResult<HomePageContentPublicDto>> GetHomePageContent()
+    {
+        try
+        {
+            var content = await _context.HomePageContent.FirstOrDefaultAsync();
+            
+            if (content == null)
+            {
+                // Retornar valores por defecto si no existe
+                return Ok(new HomePageContentPublicDto
+                {
+                    HeroTitle = "Descubre Panamá",
+                    HeroSubtitle = "Explora los destinos más increíbles con nuestros tours exclusivos",
+                    HeroSearchPlaceholder = "Buscar tours...",
+                    ToursSectionTitle = "Tours Disponibles",
+                    ToursSectionSubtitle = "Selecciona tu próxima aventura",
+                    FooterBrandText = "ToursPanama",
+                    FooterDescription = "Tu plataforma de confianza para descubrir Panamá",
+                    FooterCopyright = "© 2024 ToursPanama. Todos los derechos reservados.",
+                    NavBrandText = "ToursPanama",
+                    NavToursLink = "Tours",
+                    NavBookingsLink = "Mis Reservas",
+                    NavLoginLink = "Iniciar Sesión",
+                    NavLogoutButton = "Cerrar Sesión"
+                });
+            }
+
+            var result = new HomePageContentPublicDto
+            {
+                HeroTitle = content.HeroTitle,
+                HeroSubtitle = content.HeroSubtitle,
+                HeroSearchPlaceholder = content.HeroSearchPlaceholder,
+                ToursSectionTitle = content.ToursSectionTitle,
+                ToursSectionSubtitle = content.ToursSectionSubtitle,
+                FooterBrandText = content.FooterBrandText,
+                FooterDescription = content.FooterDescription,
+                FooterCopyright = content.FooterCopyright,
+                NavBrandText = content.NavBrandText,
+                NavToursLink = content.NavToursLink,
+                NavBookingsLink = content.NavBookingsLink,
+                NavLoginLink = content.NavLoginLink,
+                NavLogoutButton = content.NavLogoutButton
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener contenido de la página de inicio");
+            throw;
+        }
+    }
 }
 
 // DTOs temporales hasta que se implemente la capa Application
@@ -285,4 +342,21 @@ public class TourImageDto
 {
     public string ImageUrl { get; set; } = string.Empty;
     public bool IsPrimary { get; set; }
+}
+
+public class HomePageContentPublicDto
+{
+    public string HeroTitle { get; set; } = string.Empty;
+    public string HeroSubtitle { get; set; } = string.Empty;
+    public string HeroSearchPlaceholder { get; set; } = string.Empty;
+    public string ToursSectionTitle { get; set; } = string.Empty;
+    public string ToursSectionSubtitle { get; set; } = string.Empty;
+    public string FooterBrandText { get; set; } = string.Empty;
+    public string FooterDescription { get; set; } = string.Empty;
+    public string FooterCopyright { get; set; } = string.Empty;
+    public string NavBrandText { get; set; } = string.Empty;
+    public string NavToursLink { get; set; } = string.Empty;
+    public string NavBookingsLink { get; set; } = string.Empty;
+    public string NavLoginLink { get; set; } = string.Empty;
+    public string NavLogoutButton { get; set; } = string.Empty;
 }

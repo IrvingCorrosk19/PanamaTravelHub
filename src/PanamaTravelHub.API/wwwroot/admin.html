@@ -37,6 +37,7 @@
       <div class="admin-tabs">
         <button class="admin-tab active" onclick="switchTab('tours')">Tours</button>
         <button class="admin-tab" onclick="switchTab('bookings')">Reservas</button>
+        <button class="admin-tab" onclick="switchTab('cms')">CMS</button>
         <button class="admin-tab" onclick="switchTab('stats')">Estadísticas</button>
       </div>
 
@@ -99,6 +100,89 @@
         </div>
       </div>
 
+      <!-- CMS Tab -->
+      <div id="cms" class="admin-content">
+        <div class="admin-header">
+          <h2>Gestión de Contenido</h2>
+          <p class="section-subtitle">Edita el contenido de la página de inicio</p>
+        </div>
+        <div class="admin-card">
+          <form id="cmsForm" onsubmit="saveHomePageContent(event)">
+            <div class="form-section">
+              <h3>Sección Hero</h3>
+              <div class="form-group">
+                <label>Título Principal *</label>
+                <input type="text" id="heroTitle" required />
+              </div>
+              <div class="form-group">
+                <label>Subtítulo *</label>
+                <input type="text" id="heroSubtitle" required />
+              </div>
+              <div class="form-group">
+                <label>Placeholder de Búsqueda *</label>
+                <input type="text" id="heroSearchPlaceholder" required />
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3>Sección de Tours</h3>
+              <div class="form-group">
+                <label>Título de Sección *</label>
+                <input type="text" id="toursSectionTitle" required />
+              </div>
+              <div class="form-group">
+                <label>Subtítulo de Sección *</label>
+                <input type="text" id="toursSectionSubtitle" required />
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3>Navegación</h3>
+              <div class="form-group">
+                <label>Texto de Marca *</label>
+                <input type="text" id="navBrandText" required />
+              </div>
+              <div class="form-group">
+                <label>Enlace Tours *</label>
+                <input type="text" id="navToursLink" required />
+              </div>
+              <div class="form-group">
+                <label>Enlace Reservas *</label>
+                <input type="text" id="navBookingsLink" required />
+              </div>
+              <div class="form-group">
+                <label>Enlace Iniciar Sesión *</label>
+                <input type="text" id="navLoginLink" required />
+              </div>
+              <div class="form-group">
+                <label>Botón Cerrar Sesión *</label>
+                <input type="text" id="navLogoutButton" required />
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3>Pie de Página</h3>
+              <div class="form-group">
+                <label>Texto de Marca *</label>
+                <input type="text" id="footerBrandText" required />
+              </div>
+              <div class="form-group">
+                <label>Descripción *</label>
+                <textarea id="footerDescription" required></textarea>
+              </div>
+              <div class="form-group">
+                <label>Copyright *</label>
+                <input type="text" id="footerCopyright" required />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Guardar Cambios</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <!-- Stats Tab -->
       <div id="stats" class="admin-content">
         <div class="admin-header">
@@ -114,8 +198,12 @@
   <!-- Tour Modal -->
   <div id="tourModal" class="modal">
     <div class="modal-content">
-      <h2 id="modalTitle">Nuevo Tour</h2>
-      <form id="tourForm" onsubmit="saveTour(event)">
+      <div class="modal-header">
+        <h2 id="modalTitle">Nuevo Tour</h2>
+        <button type="button" class="modal-close" onclick="closeTourModal()" aria-label="Cerrar">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="tourForm" onsubmit="saveTour(event)">
         <div class="form-group">
           <label>Nombre del Tour *</label>
           <input type="text" id="tourName" required />
@@ -167,11 +255,12 @@
             <span>La primera imagen será la imagen principal. Máximo 5 imágenes.</span>
           </div>
         </div>
-        <div class="form-actions">
-          <button type="button" class="btn-secondary" onclick="closeTourModal()">Cancelar</button>
-          <button type="submit" class="btn-primary">Guardar</button>
-        </div>
-      </form>
+        </form>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" onclick="closeTourModal()">Cancelar</button>
+        <button type="submit" class="btn-primary" form="tourForm">Guardar Tour</button>
+      </div>
     </div>
   </div>
 
@@ -227,6 +316,7 @@
       // Load tab data
       if (tabName === 'tours') loadTours();
       if (tabName === 'bookings') loadBookings();
+      if (tabName === 'cms') loadHomePageContent();
       if (tabName === 'stats') loadStats();
     }
 
@@ -678,6 +768,64 @@
       } catch (error) {
         console.error('Error deleting tour:', error);
         alert('Error al eliminar el tour: ' + (error.message || 'Error desconocido'));
+      }
+    }
+
+    async function loadHomePageContent() {
+      try {
+        const content = await api.request('/api/admin/homepage-content');
+        
+        document.getElementById('heroTitle').value = content.heroTitle || '';
+        document.getElementById('heroSubtitle').value = content.heroSubtitle || '';
+        document.getElementById('heroSearchPlaceholder').value = content.heroSearchPlaceholder || '';
+        document.getElementById('toursSectionTitle').value = content.toursSectionTitle || '';
+        document.getElementById('toursSectionSubtitle').value = content.toursSectionSubtitle || '';
+        document.getElementById('footerBrandText').value = content.footerBrandText || '';
+        document.getElementById('footerDescription').value = content.footerDescription || '';
+        document.getElementById('footerCopyright').value = content.footerCopyright || '';
+        document.getElementById('navBrandText').value = content.navBrandText || '';
+        document.getElementById('navToursLink').value = content.navToursLink || '';
+        document.getElementById('navBookingsLink').value = content.navBookingsLink || '';
+        document.getElementById('navLoginLink').value = content.navLoginLink || '';
+        document.getElementById('navLogoutButton').value = content.navLogoutButton || '';
+      } catch (error) {
+        console.error('Error loading homepage content:', error);
+        alert('Error al cargar el contenido: ' + (error.message || 'Error desconocido'));
+      }
+    }
+
+    async function saveHomePageContent(event) {
+      event.preventDefault();
+      
+      const contentData = {
+        heroTitle: document.getElementById('heroTitle').value.trim(),
+        heroSubtitle: document.getElementById('heroSubtitle').value.trim(),
+        heroSearchPlaceholder: document.getElementById('heroSearchPlaceholder').value.trim(),
+        toursSectionTitle: document.getElementById('toursSectionTitle').value.trim(),
+        toursSectionSubtitle: document.getElementById('toursSectionSubtitle').value.trim(),
+        footerBrandText: document.getElementById('footerBrandText').value.trim(),
+        footerDescription: document.getElementById('footerDescription').value.trim(),
+        footerCopyright: document.getElementById('footerCopyright').value.trim(),
+        navBrandText: document.getElementById('navBrandText').value.trim(),
+        navToursLink: document.getElementById('navToursLink').value.trim(),
+        navBookingsLink: document.getElementById('navBookingsLink').value.trim(),
+        navLoginLink: document.getElementById('navLoginLink').value.trim(),
+        navLogoutButton: document.getElementById('navLogoutButton').value.trim()
+      };
+
+      try {
+        await api.request('/api/admin/homepage-content', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(contentData)
+        });
+        
+        alert('Contenido guardado exitosamente');
+      } catch (error) {
+        console.error('Error saving homepage content:', error);
+        alert('Error al guardar el contenido: ' + (error.message || 'Error desconocido'));
       }
     }
 

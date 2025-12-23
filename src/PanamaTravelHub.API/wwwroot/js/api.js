@@ -219,6 +219,11 @@ class ApiClient {
   async getAdminStats() {
     return this.request('/api/admin/stats');
   }
+
+  // Homepage Content (público)
+  async getHomePageContent() {
+    return this.request('/api/tours/homepage-content');
+  }
 }
 
 // Export singleton instance

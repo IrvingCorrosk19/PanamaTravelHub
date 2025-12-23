@@ -3,10 +3,64 @@
 // Check authentication on load
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
+  loadHomePageContent();
   loadTours();
   initScrollEffects();
   initNavbarScroll();
 });
+
+// Load Homepage Content
+async function loadHomePageContent() {
+  try {
+    const content = await api.getHomePageContent();
+    
+    // Actualizar navegación
+    const navBrandText = document.getElementById('navBrandText');
+    if (navBrandText) navBrandText.textContent = content.navBrandText || 'ToursPanama';
+    
+    const navToursLink = document.getElementById('navToursLink');
+    if (navToursLink) navToursLink.textContent = content.navToursLink || 'Tours';
+    
+    const navBookingsLink = document.getElementById('navBookingsLink');
+    if (navBookingsLink) navBookingsLink.textContent = content.navBookingsLink || 'Mis Reservas';
+    
+    const loginLink = document.getElementById('loginLink');
+    if (loginLink) loginLink.textContent = content.navLoginLink || 'Iniciar Sesión';
+    
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.textContent = content.navLogoutButton || 'Cerrar Sesión';
+    
+    // Actualizar hero section
+    const heroTitle = document.getElementById('heroTitle');
+    if (heroTitle) heroTitle.textContent = content.heroTitle || 'Descubre Panamá';
+    
+    const heroSubtitle = document.getElementById('heroSubtitle');
+    if (heroSubtitle) heroSubtitle.textContent = content.heroSubtitle || 'Explora los destinos más increíbles con nuestros tours exclusivos';
+    
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.placeholder = content.heroSearchPlaceholder || 'Buscar tours...';
+    
+    // Actualizar sección de tours
+    const toursSectionTitle = document.getElementById('toursSectionTitle');
+    if (toursSectionTitle) toursSectionTitle.textContent = content.toursSectionTitle || 'Tours Disponibles';
+    
+    const toursSectionSubtitle = document.getElementById('toursSectionSubtitle');
+    if (toursSectionSubtitle) toursSectionSubtitle.textContent = content.toursSectionSubtitle || 'Selecciona tu próxima aventura';
+    
+    // Actualizar footer
+    const footerBrandText = document.getElementById('footerBrandText');
+    if (footerBrandText) footerBrandText.textContent = content.footerBrandText || 'ToursPanama';
+    
+    const footerDescription = document.getElementById('footerDescription');
+    if (footerDescription) footerDescription.textContent = content.footerDescription || 'Tu plataforma de confianza para descubrir Panamá';
+    
+    const footerCopyright = document.getElementById('footerCopyright');
+    if (footerCopyright) footerCopyright.textContent = content.footerCopyright || '© 2024 ToursPanama. Todos los derechos reservados.';
+  } catch (error) {
+    console.error('Error loading homepage content:', error);
+    // Si falla, usar valores por defecto (ya están en el HTML)
+  }
+}
 
 // Authentication
 function checkAuth() {

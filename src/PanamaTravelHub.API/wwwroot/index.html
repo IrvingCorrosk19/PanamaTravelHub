@@ -14,14 +14,14 @@
     <div class="nav-inner wrap">
       <div class="brand">
         <div class="mark"></div>
-        <span class="brand-text">ToursPanama</span>
+        <span class="brand-text" id="navBrandText">ToursPanama</span>
       </div>
       <div class="nav-links">
-        <a href="/" class="nav-link active">Tours</a>
-        <a href="/reservas.html" class="nav-link">Mis Reservas</a>
+        <a href="/" class="nav-link active" id="navToursLink">Tours</a>
+        <a href="/reservas.html" class="nav-link" id="navBookingsLink">Mis Reservas</a>
         <a href="/login.html" class="nav-link" id="loginLink">Iniciar Sesión</a>
         <a href="/admin.html" class="nav-link" id="adminLink" style="display:none;">Admin</a>
-        <button class="btn-primary" id="logoutBtn" style="display:none;">Cerrar Sesión</button>
+        <button class="btn-primary" id="logoutBtn" style="display:none;"></button>
       </div>
     </div>
   </nav>
@@ -29,8 +29,8 @@
   <!-- Hero Section -->
   <section class="hero">
     <div class="hero-content wrap">
-      <h1 class="hero-title">Descubre Panamá</h1>
-      <p class="hero-subtitle">Explora los destinos más increíbles con nuestros tours exclusivos</p>
+      <h1 class="hero-title" id="heroTitle">Descubre Panamá</h1>
+      <p class="hero-subtitle" id="heroSubtitle">Explora los destinos más increíbles con nuestros tours exclusivos</p>
       <div class="hero-search">
         <input type="text" id="searchInput" placeholder="Buscar tours..." class="search-input" />
         <button class="btn-primary" onclick="searchTours()">Buscar</button>
@@ -45,8 +45,8 @@
   <!-- Tours Grid -->
   <main class="main wrap">
     <div class="section-header">
-      <h2>Tours Disponibles</h2>
-      <p class="section-subtitle">Selecciona tu próxima aventura</p>
+      <h2 id="toursSectionTitle">Tours Disponibles</h2>
+      <p class="section-subtitle" id="toursSectionSubtitle">Selecciona tu próxima aventura</p>
     </div>
 
     <!-- Loading State -->
@@ -75,10 +75,10 @@
       <div class="footer-content">
         <div class="footer-brand">
           <div class="mark"></div>
-          <span>ToursPanama</span>
+          <span id="footerBrandText">ToursPanama</span>
         </div>
-        <p class="footer-text">Tu plataforma de confianza para descubrir Panamá</p>
-        <p class="footer-copy">&copy; 2024 ToursPanama. Todos los derechos reservados.</p>
+        <p class="footer-text" id="footerDescription">Tu plataforma de confianza para descubrir Panamá</p>
+        <p class="footer-copy" id="footerCopyright">&copy; 2024 ToursPanama. Todos los derechos reservados.</p>
       </div>
     </div>
   </footer>

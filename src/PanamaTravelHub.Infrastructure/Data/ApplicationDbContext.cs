@@ -22,6 +22,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Payment> Payments { get; set; }
     public DbSet<EmailNotification> EmailNotifications { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<HomePageContent> HomePageContent { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -405,6 +405,148 @@ public class AdminController : ControllerBase
             throw;
         }
     }
+
+    /// <summary>
+    /// Obtiene el contenido de la página de inicio
+    /// </summary>
+    [HttpGet("homepage-content")]
+    public async Task<ActionResult<HomePageContentDto>> GetHomePageContent()
+    {
+        try
+        {
+            var content = await _context.HomePageContent.FirstOrDefaultAsync();
+            
+            if (content == null)
+            {
+                // Crear contenido por defecto si no existe
+                content = new HomePageContent
+                {
+                    Id = Guid.NewGuid(),
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.HomePageContent.Add(content);
+                await _context.SaveChangesAsync();
+            }
+
+            var result = new HomePageContentDto
+            {
+                Id = content.Id,
+                HeroTitle = content.HeroTitle,
+                HeroSubtitle = content.HeroSubtitle,
+                HeroSearchPlaceholder = content.HeroSearchPlaceholder,
+                ToursSectionTitle = content.ToursSectionTitle,
+                ToursSectionSubtitle = content.ToursSectionSubtitle,
+                FooterBrandText = content.FooterBrandText,
+                FooterDescription = content.FooterDescription,
+                FooterCopyright = content.FooterCopyright,
+                NavBrandText = content.NavBrandText,
+                NavToursLink = content.NavToursLink,
+                NavBookingsLink = content.NavBookingsLink,
+                NavLoginLink = content.NavLoginLink,
+                NavLogoutButton = content.NavLogoutButton,
+                UpdatedAt = content.UpdatedAt
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener contenido de la página de inicio");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Actualiza el contenido de la página de inicio
+    /// </summary>
+    [HttpPut("homepage-content")]
+    public async Task<ActionResult<HomePageContentDto>> UpdateHomePageContent([FromBody] UpdateHomePageContentDto request)
+    {
+        try
+        {
+            var content = await _context.HomePageContent.FirstOrDefaultAsync();
+            
+            if (content == null)
+            {
+                // Crear nuevo contenido si no existe
+                content = new HomePageContent
+                {
+                    Id = Guid.NewGuid(),
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.HomePageContent.Add(content);
+            }
+
+            // Actualizar campos
+            if (!string.IsNullOrWhiteSpace(request.HeroTitle))
+                content.HeroTitle = request.HeroTitle;
+            
+            if (!string.IsNullOrWhiteSpace(request.HeroSubtitle))
+                content.HeroSubtitle = request.HeroSubtitle;
+            
+            if (!string.IsNullOrWhiteSpace(request.HeroSearchPlaceholder))
+                content.HeroSearchPlaceholder = request.HeroSearchPlaceholder;
+            
+            if (!string.IsNullOrWhiteSpace(request.ToursSectionTitle))
+                content.ToursSectionTitle = request.ToursSectionTitle;
+            
+            if (!string.IsNullOrWhiteSpace(request.ToursSectionSubtitle))
+                content.ToursSectionSubtitle = request.ToursSectionSubtitle;
+            
+            if (!string.IsNullOrWhiteSpace(request.FooterBrandText))
+                content.FooterBrandText = request.FooterBrandText;
+            
+            if (!string.IsNullOrWhiteSpace(request.FooterDescription))
+                content.FooterDescription = request.FooterDescription;
+            
+            if (!string.IsNullOrWhiteSpace(request.FooterCopyright))
+                content.FooterCopyright = request.FooterCopyright;
+            
+            if (!string.IsNullOrWhiteSpace(request.NavBrandText))
+                content.NavBrandText = request.NavBrandText;
+            
+            if (!string.IsNullOrWhiteSpace(request.NavToursLink))
+                content.NavToursLink = request.NavToursLink;
+            
+            if (!string.IsNullOrWhiteSpace(request.NavBookingsLink))
+                content.NavBookingsLink = request.NavBookingsLink;
+            
+            if (!string.IsNullOrWhiteSpace(request.NavLoginLink))
+                content.NavLoginLink = request.NavLoginLink;
+            
+            if (!string.IsNullOrWhiteSpace(request.NavLogoutButton))
+                content.NavLogoutButton = request.NavLogoutButton;
+
+            content.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var result = new HomePageContentDto
+            {
+                Id = content.Id,
+                HeroTitle = content.HeroTitle,
+                HeroSubtitle = content.HeroSubtitle,
+                HeroSearchPlaceholder = content.HeroSearchPlaceholder,
+                ToursSectionTitle = content.ToursSectionTitle,
+                ToursSectionSubtitle = content.ToursSectionSubtitle,
+                FooterBrandText = content.FooterBrandText,
+                FooterDescription = content.FooterDescription,
+                FooterCopyright = content.FooterCopyright,
+                NavBrandText = content.NavBrandText,
+                NavToursLink = content.NavToursLink,
+                NavBookingsLink = content.NavBookingsLink,
+                NavLoginLink = content.NavLoginLink,
+                NavLogoutButton = content.NavLogoutButton,
+                UpdatedAt = content.UpdatedAt
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar contenido de la página de inicio");
+            throw;
+        }
+    }
 }
 
 // DTOs
@@ -450,5 +592,41 @@ public class AdminStatsDto
     public int ConfirmedBookings { get; set; }
     public int TotalUsers { get; set; }
     public decimal TotalRevenue { get; set; }
+}
+
+public class HomePageContentDto
+{
+    public Guid Id { get; set; }
+    public string HeroTitle { get; set; } = string.Empty;
+    public string HeroSubtitle { get; set; } = string.Empty;
+    public string HeroSearchPlaceholder { get; set; } = string.Empty;
+    public string ToursSectionTitle { get; set; } = string.Empty;
+    public string ToursSectionSubtitle { get; set; } = string.Empty;
+    public string FooterBrandText { get; set; } = string.Empty;
+    public string FooterDescription { get; set; } = string.Empty;
+    public string FooterCopyright { get; set; } = string.Empty;
+    public string NavBrandText { get; set; } = string.Empty;
+    public string NavToursLink { get; set; } = string.Empty;
+    public string NavBookingsLink { get; set; } = string.Empty;
+    public string NavLoginLink { get; set; } = string.Empty;
+    public string NavLogoutButton { get; set; } = string.Empty;
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public class UpdateHomePageContentDto
+{
+    public string? HeroTitle { get; set; }
+    public string? HeroSubtitle { get; set; }
+    public string? HeroSearchPlaceholder { get; set; }
+    public string? ToursSectionTitle { get; set; }
+    public string? ToursSectionSubtitle { get; set; }
+    public string? FooterBrandText { get; set; }
+    public string? FooterDescription { get; set; }
+    public string? FooterCopyright { get; set; }
+    public string? NavBrandText { get; set; }
+    public string? NavToursLink { get; set; }
+    public string? NavBookingsLink { get; set; }
+    public string? NavLoginLink { get; set; }
+    public string? NavLogoutButton { get; set; }
 }
 
