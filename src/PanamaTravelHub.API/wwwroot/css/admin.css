@@ -2,6 +2,39 @@
    PANEL ADMINISTRATIVO - Diseño Premium
    ========================= */
 
+/* Variables de espaciado - usando las del main.css */
+:root {
+  --spacing-xs: var(--space-xs);
+  --spacing-sm: var(--space-sm);
+  --spacing-md: var(--space-md);
+  --spacing-lg: var(--space-lg);
+  --spacing-xl: var(--space-xl);
+  --spacing-2xl: var(--space-2xl);
+  --spacing-3xl: var(--space-3xl);
+  
+  /* Variables adicionales para admin */
+  --stroke: var(--border);
+  --text: var(--text);
+  --text-muted: var(--text-muted);
+  --text-secondary: var(--text-secondary);
+  --bg: var(--bg);
+  --bg-secondary: var(--bg-secondary);
+  --card: var(--card);
+  --primary: var(--primary);
+  --primary-dark: var(--primary-dark);
+  --primary-light: var(--primary-light);
+  --danger: var(--danger);
+  --warning: var(--warning);
+  --radius: var(--radius);
+  --radius-sm: var(--radius-sm);
+  --radius-lg: var(--radius-lg);
+  --shadow: var(--shadow);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+}
+
 .admin-container {
   padding: var(--spacing-2xl) 0;
   min-height: calc(100vh - 200px);
@@ -105,40 +138,57 @@ table {
   width: 100%;
   border-collapse: collapse;
   background: var(--card);
+  font-size: 0.9375rem;
 }
 
 thead {
-  background: var(--bg-secondary);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, #e2e8f0 100%);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 th {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
   text-align: left;
   color: var(--text);
-  font-weight: 600;
-  font-size: 0.875rem;
+  font-weight: 700;
+  font-size: 0.8125rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--stroke);
+  letter-spacing: 0.8px;
+  border-bottom: 2px solid var(--primary);
+  white-space: nowrap;
 }
 
 td {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-light);
   vertical-align: middle;
+  font-size: 0.9375rem;
 }
 
 tbody tr {
   transition: all 0.2s ease;
+  background: white;
 }
 
 tbody tr:hover {
-  background: var(--bg-secondary);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(6, 182, 212, 0.02) 100%);
+  transform: scale(1.001);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 tbody tr:last-child td {
   border-bottom: none;
+}
+
+tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+tbody tr:nth-child(even):hover {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(6, 182, 212, 0.02) 100%);
 }
 
 /* Action Buttons */
@@ -195,17 +245,16 @@ tbody tr:last-child td {
 
 .modal.active {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: var(--spacing-xl);
-  padding-top: 5vh;
+  padding: var(--spacing-lg);
 }
 
 .modal-content {
   background: var(--card);
   border-radius: var(--radius-lg);
   padding: 0;
-  max-width: 800px;
+  max-width: 900px;
   width: 100%;
   max-height: 90vh;
   overflow: hidden;
@@ -214,6 +263,8 @@ tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--stroke);
+  margin: auto;
+  position: relative;
 }
 
 .modal-header {
@@ -298,6 +349,8 @@ tbody tr:last-child td {
   overflow-y: auto;
   flex: 1;
   background: linear-gradient(to bottom, #ffffff 0%, #f8fafc 100%);
+  max-height: calc(92vh - 220px);
+  min-height: 300px;
 }
 
 .modal-body::-webkit-scrollbar {
@@ -415,8 +468,8 @@ tbody tr:last-child td {
 }
 
 .form-section-header {
-  margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
   border-bottom: 2px solid var(--stroke);
 }
 
@@ -437,8 +490,8 @@ tbody tr:last-child td {
 
 .form-row {
   display: grid;
-  gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
 .form-row:last-child {
@@ -451,6 +504,10 @@ tbody tr:last-child td {
 
 .form-group {
   margin-bottom: 0;
+}
+
+.form-group:not(:last-child) {
+  margin-bottom: var(--spacing-md);
 }
 
 .form-group-full {
