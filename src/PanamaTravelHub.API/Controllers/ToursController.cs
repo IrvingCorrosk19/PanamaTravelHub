@@ -291,7 +291,13 @@ public class ToursController : ControllerBase
                     NavToursLink = "Tours",
                     NavBookingsLink = "Mis Reservas",
                     NavLoginLink = "Iniciar Sesión",
-                    NavLogoutButton = "Cerrar Sesión"
+                    NavLogoutButton = "Cerrar Sesión",
+                    HeroSearchButton = "Buscar",
+                    LoadingToursText = "Cargando tours...",
+                    ErrorLoadingToursText = "Error al cargar los tours. Por favor, intenta de nuevo.",
+                    NoToursFoundText = "No se encontraron tours disponibles.",
+                    PageTitle = "ToursPanama — Descubre los Mejores Tours en Panamá",
+                    MetaDescription = "Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas."
                 });
             }
 
@@ -309,7 +315,13 @@ public class ToursController : ControllerBase
                 NavToursLink = content.NavToursLink,
                 NavBookingsLink = content.NavBookingsLink,
                 NavLoginLink = content.NavLoginLink,
-                NavLogoutButton = content.NavLogoutButton
+                NavLogoutButton = content.NavLogoutButton,
+                HeroSearchButton = content.HeroSearchButton,
+                LoadingToursText = content.LoadingToursText,
+                ErrorLoadingToursText = content.ErrorLoadingToursText,
+                NoToursFoundText = content.NoToursFoundText,
+                PageTitle = content.PageTitle,
+                MetaDescription = content.MetaDescription
             };
 
             return Ok(result);
@@ -359,4 +371,10 @@ public class HomePageContentPublicDto
     public string NavBookingsLink { get; set; } = string.Empty;
     public string NavLoginLink { get; set; } = string.Empty;
     public string NavLogoutButton { get; set; } = string.Empty;
+    public string HeroSearchButton { get; set; } = string.Empty;
+    public string LoadingToursText { get; set; } = string.Empty;
+    public string ErrorLoadingToursText { get; set; } = string.Empty;
+    public string NoToursFoundText { get; set; } = string.Empty;
+    public string PageTitle { get; set; } = string.Empty;
+    public string MetaDescription { get; set; } = string.Empty;
 }

@@ -435,8 +435,12 @@ public class AdminController : ControllerBase
                 HeroTitle = content.HeroTitle,
                 HeroSubtitle = content.HeroSubtitle,
                 HeroSearchPlaceholder = content.HeroSearchPlaceholder,
+                HeroSearchButton = content.HeroSearchButton,
                 ToursSectionTitle = content.ToursSectionTitle,
                 ToursSectionSubtitle = content.ToursSectionSubtitle,
+                LoadingToursText = content.LoadingToursText,
+                ErrorLoadingToursText = content.ErrorLoadingToursText,
+                NoToursFoundText = content.NoToursFoundText,
                 FooterBrandText = content.FooterBrandText,
                 FooterDescription = content.FooterDescription,
                 FooterCopyright = content.FooterCopyright,
@@ -445,6 +449,8 @@ public class AdminController : ControllerBase
                 NavBookingsLink = content.NavBookingsLink,
                 NavLoginLink = content.NavLoginLink,
                 NavLogoutButton = content.NavLogoutButton,
+                PageTitle = content.PageTitle,
+                MetaDescription = content.MetaDescription,
                 UpdatedAt = content.UpdatedAt
             };
 
@@ -517,6 +523,24 @@ public class AdminController : ControllerBase
             
             if (!string.IsNullOrWhiteSpace(request.NavLogoutButton))
                 content.NavLogoutButton = request.NavLogoutButton;
+            
+            if (!string.IsNullOrWhiteSpace(request.HeroSearchButton))
+                content.HeroSearchButton = request.HeroSearchButton;
+            
+            if (!string.IsNullOrWhiteSpace(request.LoadingToursText))
+                content.LoadingToursText = request.LoadingToursText;
+            
+            if (!string.IsNullOrWhiteSpace(request.ErrorLoadingToursText))
+                content.ErrorLoadingToursText = request.ErrorLoadingToursText;
+            
+            if (!string.IsNullOrWhiteSpace(request.NoToursFoundText))
+                content.NoToursFoundText = request.NoToursFoundText;
+            
+            if (!string.IsNullOrWhiteSpace(request.PageTitle))
+                content.PageTitle = request.PageTitle;
+            
+            if (!string.IsNullOrWhiteSpace(request.MetaDescription))
+                content.MetaDescription = request.MetaDescription;
 
             content.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
@@ -537,6 +561,12 @@ public class AdminController : ControllerBase
                 NavBookingsLink = content.NavBookingsLink,
                 NavLoginLink = content.NavLoginLink,
                 NavLogoutButton = content.NavLogoutButton,
+                HeroSearchButton = content.HeroSearchButton,
+                LoadingToursText = content.LoadingToursText,
+                ErrorLoadingToursText = content.ErrorLoadingToursText,
+                NoToursFoundText = content.NoToursFoundText,
+                PageTitle = content.PageTitle,
+                MetaDescription = content.MetaDescription,
                 UpdatedAt = content.UpdatedAt
             };
 
@@ -684,6 +714,12 @@ public class HomePageContentDto
     public string NavBookingsLink { get; set; } = string.Empty;
     public string NavLoginLink { get; set; } = string.Empty;
     public string NavLogoutButton { get; set; } = string.Empty;
+    public string HeroSearchButton { get; set; } = string.Empty;
+    public string LoadingToursText { get; set; } = string.Empty;
+    public string ErrorLoadingToursText { get; set; } = string.Empty;
+    public string NoToursFoundText { get; set; } = string.Empty;
+    public string PageTitle { get; set; } = string.Empty;
+    public string MetaDescription { get; set; } = string.Empty;
     public DateTime? UpdatedAt { get; set; }
 }
 
@@ -702,6 +738,12 @@ public class UpdateHomePageContentDto
     public string? NavBookingsLink { get; set; }
     public string? NavLoginLink { get; set; }
     public string? NavLogoutButton { get; set; }
+    public string? HeroSearchButton { get; set; }
+    public string? LoadingToursText { get; set; }
+    public string? ErrorLoadingToursText { get; set; }
+    public string? NoToursFoundText { get; set; }
+    public string? PageTitle { get; set; }
+    public string? MetaDescription { get; set; }
 }
 
 public class ImageUploadResponseDto

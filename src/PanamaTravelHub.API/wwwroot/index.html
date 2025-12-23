@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ToursPanama — Descubre los Mejores Tours en Panamá</title>
-  <meta name="description" content="Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas." />
+  <title id="pageTitle">ToursPanama — Descubre los Mejores Tours en Panamá</title>
+  <meta name="description" id="metaDescription" content="Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas." />
   <meta name="theme-color" content="#0b1220" />
   <link rel="stylesheet" href="/css/main.css" />
 </head>
@@ -33,7 +33,7 @@
       <p class="hero-subtitle" id="heroSubtitle">Explora los destinos más increíbles con nuestros tours exclusivos</p>
       <div class="hero-search">
         <input type="text" id="searchInput" placeholder="Buscar tours..." class="search-input" />
-        <button class="btn-primary" onclick="searchTours()">Buscar</button>
+        <button class="btn-primary" id="searchButton" onclick="searchTours()">Buscar</button>
       </div>
     </div>
     <div class="grain"></div>
@@ -52,12 +52,12 @@
     <!-- Loading State -->
     <div id="loadingState" class="loading">
       <div class="spinner"></div>
-      <p>Cargando tours...</p>
+      <p id="loadingToursText">Cargando tours...</p>
     </div>
 
     <!-- Error State -->
     <div id="errorState" class="error-state" style="display:none;">
-      <p>❌ Error al cargar los tours. Por favor, intenta de nuevo.</p>
+      <p id="errorLoadingToursText">❌ Error al cargar los tours. Por favor, intenta de nuevo.</p>
     </div>
 
     <!-- Tours Grid -->
@@ -65,7 +65,7 @@
 
     <!-- Empty State -->
     <div id="emptyState" class="empty-state" style="display:none;">
-      <p>No se encontraron tours disponibles.</p>
+      <p id="noToursFoundText">No se encontraron tours disponibles.</p>
     </div>
   </main>
 

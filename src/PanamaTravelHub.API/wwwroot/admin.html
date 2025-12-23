@@ -122,6 +122,10 @@
                 <label>Placeholder de Búsqueda *</label>
                 <input type="text" id="heroSearchPlaceholder" required />
               </div>
+              <div class="form-group">
+                <label>Texto del Botón Buscar *</label>
+                <input type="text" id="heroSearchButton" required />
+              </div>
             </div>
 
             <div class="form-section">
@@ -133,6 +137,18 @@
               <div class="form-group">
                 <label>Subtítulo de Sección *</label>
                 <input type="text" id="toursSectionSubtitle" required />
+              </div>
+              <div class="form-group">
+                <label>Texto "Cargando tours..." *</label>
+                <input type="text" id="loadingToursText" required />
+              </div>
+              <div class="form-group">
+                <label>Texto de Error *</label>
+                <input type="text" id="errorLoadingToursText" required />
+              </div>
+              <div class="form-group">
+                <label>Texto "No se encontraron tours" *</label>
+                <input type="text" id="noToursFoundText" required />
               </div>
             </div>
 
@@ -173,6 +189,20 @@
               <div class="form-group">
                 <label>Copyright *</label>
                 <input type="text" id="footerCopyright" required />
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3>SEO y Meta Tags</h3>
+              <div class="form-group">
+                <label>Título de la Página (Title) *</label>
+                <input type="text" id="pageTitle" required />
+                <div class="form-hint">Aparece en la pestaña del navegador y en los resultados de búsqueda</div>
+              </div>
+              <div class="form-group">
+                <label>Meta Descripción *</label>
+                <textarea id="metaDescription" required></textarea>
+                <div class="form-hint">Descripción que aparece en los resultados de búsqueda (máx. 160 caracteres recomendado)</div>
               </div>
             </div>
 
@@ -1029,8 +1059,12 @@
         document.getElementById('heroTitle').value = content.heroTitle || '';
         document.getElementById('heroSubtitle').value = content.heroSubtitle || '';
         document.getElementById('heroSearchPlaceholder').value = content.heroSearchPlaceholder || '';
+        document.getElementById('heroSearchButton').value = content.heroSearchButton || '';
         document.getElementById('toursSectionTitle').value = content.toursSectionTitle || '';
         document.getElementById('toursSectionSubtitle').value = content.toursSectionSubtitle || '';
+        document.getElementById('loadingToursText').value = content.loadingToursText || '';
+        document.getElementById('errorLoadingToursText').value = content.errorLoadingToursText || '';
+        document.getElementById('noToursFoundText').value = content.noToursFoundText || '';
         document.getElementById('footerBrandText').value = content.footerBrandText || '';
         document.getElementById('footerDescription').value = content.footerDescription || '';
         document.getElementById('footerCopyright').value = content.footerCopyright || '';
@@ -1039,6 +1073,8 @@
         document.getElementById('navBookingsLink').value = content.navBookingsLink || '';
         document.getElementById('navLoginLink').value = content.navLoginLink || '';
         document.getElementById('navLogoutButton').value = content.navLogoutButton || '';
+        document.getElementById('pageTitle').value = content.pageTitle || '';
+        document.getElementById('metaDescription').value = content.metaDescription || '';
       } catch (error) {
         console.error('Error loading homepage content:', error);
         alert('Error al cargar el contenido: ' + (error.message || 'Error desconocido'));
@@ -1052,8 +1088,12 @@
         heroTitle: document.getElementById('heroTitle').value.trim(),
         heroSubtitle: document.getElementById('heroSubtitle').value.trim(),
         heroSearchPlaceholder: document.getElementById('heroSearchPlaceholder').value.trim(),
+        heroSearchButton: document.getElementById('heroSearchButton').value.trim(),
         toursSectionTitle: document.getElementById('toursSectionTitle').value.trim(),
         toursSectionSubtitle: document.getElementById('toursSectionSubtitle').value.trim(),
+        loadingToursText: document.getElementById('loadingToursText').value.trim(),
+        errorLoadingToursText: document.getElementById('errorLoadingToursText').value.trim(),
+        noToursFoundText: document.getElementById('noToursFoundText').value.trim(),
         footerBrandText: document.getElementById('footerBrandText').value.trim(),
         footerDescription: document.getElementById('footerDescription').value.trim(),
         footerCopyright: document.getElementById('footerCopyright').value.trim(),
@@ -1061,7 +1101,9 @@
         navToursLink: document.getElementById('navToursLink').value.trim(),
         navBookingsLink: document.getElementById('navBookingsLink').value.trim(),
         navLoginLink: document.getElementById('navLoginLink').value.trim(),
-        navLogoutButton: document.getElementById('navLogoutButton').value.trim()
+        navLogoutButton: document.getElementById('navLogoutButton').value.trim(),
+        pageTitle: document.getElementById('pageTitle').value.trim(),
+        metaDescription: document.getElementById('metaDescription').value.trim()
       };
 
       try {

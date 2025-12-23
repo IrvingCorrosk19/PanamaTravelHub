@@ -40,12 +40,31 @@ async function loadHomePageContent() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.placeholder = content.heroSearchPlaceholder || 'Buscar tours...';
     
+    const searchButton = document.getElementById('searchButton');
+    if (searchButton) searchButton.textContent = content.heroSearchButton || 'Buscar';
+    
+    // Actualizar título y meta description
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.textContent = content.pageTitle || 'ToursPanama — Descubre los Mejores Tours en Panamá';
+    
+    const metaDescription = document.getElementById('metaDescription');
+    if (metaDescription) metaDescription.setAttribute('content', content.metaDescription || 'Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.');
+    
     // Actualizar sección de tours
     const toursSectionTitle = document.getElementById('toursSectionTitle');
     if (toursSectionTitle) toursSectionTitle.textContent = content.toursSectionTitle || 'Tours Disponibles';
     
     const toursSectionSubtitle = document.getElementById('toursSectionSubtitle');
     if (toursSectionSubtitle) toursSectionSubtitle.textContent = content.toursSectionSubtitle || 'Selecciona tu próxima aventura';
+    
+    const loadingToursText = document.getElementById('loadingToursText');
+    if (loadingToursText) loadingToursText.textContent = content.loadingToursText || 'Cargando tours...';
+    
+    const errorLoadingToursText = document.getElementById('errorLoadingToursText');
+    if (errorLoadingToursText) errorLoadingToursText.textContent = content.errorLoadingToursText || 'Error al cargar los tours. Por favor, intenta de nuevo.';
+    
+    const noToursFoundText = document.getElementById('noToursFoundText');
+    if (noToursFoundText) noToursFoundText.textContent = content.noToursFoundText || 'No se encontraron tours disponibles.';
     
     // Actualizar footer
     const footerBrandText = document.getElementById('footerBrandText');

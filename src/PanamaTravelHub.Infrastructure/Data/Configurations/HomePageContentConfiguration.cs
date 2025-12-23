@@ -84,6 +84,36 @@ public class HomePageContentConfiguration : IEntityTypeConfiguration<HomePageCon
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(h => h.HeroSearchButton)
+            .HasColumnName("hero_search_button")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(h => h.LoadingToursText)
+            .HasColumnName("loading_tours_text")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder.Property(h => h.ErrorLoadingToursText)
+            .HasColumnName("error_loading_tours_text")
+            .HasMaxLength(300)
+            .IsRequired();
+
+        builder.Property(h => h.NoToursFoundText)
+            .HasColumnName("no_tours_found_text")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder.Property(h => h.PageTitle)
+            .HasColumnName("page_title")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder.Property(h => h.MetaDescription)
+            .HasColumnName("meta_description")
+            .HasMaxLength(500)
+            .IsRequired();
+
         builder.Property(h => h.CreatedAt)
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP")
