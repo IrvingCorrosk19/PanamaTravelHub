@@ -548,6 +548,79 @@ public class AdminController : ControllerBase
             throw;
         }
     }
+
+    /// <summary>
+    /// Sube una imagen para un tour
+    /// </summary>
+    [HttpPost("upload-image")]
+    public async Task<ActionResult<ImageUploadResponseDto>> UploadImage(IFormFile file)
+    {
+        try
+        {
+            _logger.LogInformation("Iniciando subida de imagen. FileName: {FileName}, Size: {Size}", 
+                file?.FileName, file?.Length);
+
+            if (file == null || file.Length == 0)
+            {
+                _logger.LogWarning("No se proporcionó ningún archivo");
+                return BadRequest(new { message = "No se proporcionó ningún archivo" });
+            }
+
+            // Validar tipo de archivo
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(fileExtension))
+            {
+                _logger.LogWarning("Tipo de archivo no permitido: {Extension}", fileExtension);
+                return BadRequest(new { message = "Tipo de archivo no permitido. Solo se permiten: JPG, JPEG, PNG, GIF, WEBP" });
+            }
+
+            // Validar tamaño (máximo 5MB)
+            const long maxFileSize = 5 * 1024 * 1024; // 5MB
+            if (file.Length > maxFileSize)
+            {
+                _logger.LogWarning("Archivo demasiado grande: {Size} bytes", file.Length);
+                return BadRequest(new { message = "El archivo es demasiado grande. Tamaño máximo: 5MB" });
+            }
+
+            // Crear directorio de uploads si no existe
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "tours");
+            if (!Directory.Exists(uploadsPath))
+            {
+                _logger.LogInformation("Creando directorio de uploads: {Path}", uploadsPath);
+                Directory.CreateDirectory(uploadsPath);
+            }
+
+            // Generar nombre único para el archivo
+            var fileName = $"{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadsPath, fileName);
+
+            _logger.LogInformation("Guardando archivo en: {FilePath}", filePath);
+
+            // Guardar archivo
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Retornar URL relativa
+            var imageUrl = $"/uploads/tours/{fileName}";
+
+            _logger.LogInformation("Imagen subida exitosamente. URL: {Url}", imageUrl);
+
+            return Ok(new ImageUploadResponseDto
+            {
+                Url = imageUrl,
+                FileName = fileName,
+                Size = file.Length
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al subir imagen. FileName: {FileName}", file?.FileName);
+            return StatusCode(500, new { message = "Error al subir la imagen: " + ex.Message });
+        }
+    }
 }
 
 // DTOs

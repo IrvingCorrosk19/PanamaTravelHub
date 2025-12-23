@@ -1118,57 +1118,129 @@
     }
 
     async function handleFiles(files) {
+      console.log('📁 Archivos recibidos:', files.length);
+      
       const currentCount = uploadedImages.length + document.querySelectorAll('.image-url-input').length;
       const remainingSlots = 5 - currentCount;
 
+      console.log('📊 Estado actual:', {
+        uploadedImages: uploadedImages.length,
+        urlInputs: document.querySelectorAll('.image-url-input').length,
+        currentCount: currentCount,
+        remainingSlots: remainingSlots
+      });
+
       if (files.length === 0) {
+        console.warn('⚠️ No se recibieron archivos');
         alert('Por favor selecciona archivos de imagen válidos');
         return;
       }
 
       if (files.length > remainingSlots) {
+        console.warn('⚠️ Demasiados archivos:', files.length, 'slots disponibles:', remainingSlots);
         alert(`Solo puedes agregar ${remainingSlots} imagen${remainingSlots > 1 ? 'es' : ''} más. Máximo 5 imágenes.`);
         files = files.slice(0, remainingSlots);
       }
 
       for (const file of files) {
-        if (uploadedImages.length >= 5) break;
+        if (uploadedImages.length >= 5) {
+          console.warn('⚠️ Límite de imágenes alcanzado');
+          break;
+        }
 
         // Validar tamaño (5MB)
         if (file.size > 5 * 1024 * 1024) {
+          console.warn('⚠️ Archivo demasiado grande:', file.name, file.size);
           alert(`El archivo "${file.name}" es demasiado grande. Tamaño máximo: 5MB`);
           continue;
         }
 
-        await uploadImage(file);
+        try {
+          await uploadImage(file);
+        } catch (error) {
+          console.error('❌ Error en handleFiles:', error);
+          // Continuar con el siguiente archivo
+        }
       }
     }
 
     async function uploadImage(file) {
+      console.log('📤 Iniciando subida de imagen:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+
       const formData = new FormData();
       formData.append('file', file);
 
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch('/api/admin/upload-image', {
+        console.log('🔑 Token disponible:', !!token);
+
+        const url = '/api/admin/upload-image';
+        console.log('🌐 URL de subida:', url);
+
+        const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
+            // NO incluir Content-Type para FormData, el navegador lo hace automáticamente
           },
           body: formData
         });
 
+        console.log('📥 Response recibido:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Error al subir la imagen');
+          let errorMessage = `Error ${response.status}: ${response.statusText}`;
+          
+          try {
+            const contentType = response.headers.get('content-type');
+            console.log('📄 Content-Type del error:', contentType);
+            
+            if (contentType && contentType.includes('application/json')) {
+              const error = await response.json();
+              console.error('❌ Error JSON:', error);
+              errorMessage = error.message || error.detail || errorMessage;
+            } else {
+              const text = await response.text();
+              console.error('❌ Error texto:', text);
+              errorMessage = text || errorMessage;
+            }
+          } catch (parseError) {
+            console.error('❌ Error al parsear respuesta de error:', parseError);
+          }
+          
+          throw new Error(errorMessage);
+        }
+
+        const contentType = response.headers.get('content-type');
+        console.log('📄 Content-Type de respuesta:', contentType);
+
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.warn('⚠️ Respuesta no es JSON:', text);
+          throw new Error('Respuesta del servidor no es JSON válido');
         }
 
         const result = await response.json();
+        console.log('✅ Imagen subida exitosamente:', result);
+
         uploadedImages.push(result.url);
         updateImagesPreview();
         updateImageLimitInfo();
       } catch (error) {
-        console.error('Error uploading image:', error);
+        console.error('❌ Error completo al subir imagen:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
         alert('Error al subir la imagen: ' + error.message);
       }
     }
