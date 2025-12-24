@@ -653,6 +653,464 @@ public class AdminController : ControllerBase
         }
     }
 
+    // ============================================
+    // MEDIA LIBRARY ENDPOINTS
+    // ============================================
+
+    /// <summary>
+    /// Obtiene todos los archivos de la media library
+    /// </summary>
+    [HttpGet("media")]
+    public async Task<ActionResult<IEnumerable<MediaFileDto>>> GetMediaFiles(
+        [FromQuery] string? category = null,
+        [FromQuery] bool? isImage = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        try
+        {
+            var query = _context.MediaFiles.AsQueryable();
+
+            if (!string.IsNullOrEmpty(category))
+            {
+                query = query.Where(m => m.Category == category);
+            }
+
+            if (isImage.HasValue)
+            {
+                query = query.Where(m => m.IsImage == isImage.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+            var mediaFiles = await query
+                .OrderByDescending(m => m.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = mediaFiles.Select(m => new MediaFileDto
+            {
+                Id = m.Id,
+                FileName = m.FileName,
+                FileUrl = m.FileUrl,
+                MimeType = m.MimeType,
+                FileSize = m.FileSize,
+                AltText = m.AltText,
+                Description = m.Description,
+                Category = m.Category,
+                IsImage = m.IsImage,
+                Width = m.Width,
+                Height = m.Height,
+                CreatedAt = m.CreatedAt
+            });
+
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+            Response.Headers["X-Page"] = page.ToString();
+            Response.Headers["X-Page-Size"] = pageSize.ToString();
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener archivos de media");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Sube un archivo a la media library
+    /// </summary>
+    [HttpPost("media")]
+    public async Task<ActionResult<MediaFileDto>> UploadMediaFile(
+        IFormFile file,
+        [FromForm] string? altText = null,
+        [FromForm] string? description = null,
+        [FromForm] string? category = null)
+    {
+        try
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { message = "No se proporcionó ningún archivo" });
+            }
+
+            // Validar tamaño (máximo 10MB)
+            const long maxFileSize = 10 * 1024 * 1024; // 10MB
+            if (file.Length > maxFileSize)
+            {
+                return BadRequest(new { message = "El archivo es demasiado grande. Tamaño máximo: 10MB" });
+            }
+
+            // Crear directorio de uploads si no existe
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "media");
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+            }
+
+            // Generar nombre único
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            var fileName = $"{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(uploadsPath, fileName);
+
+            // Guardar archivo
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var fileUrl = $"/uploads/media/{fileName}";
+            var isImage = file.ContentType.StartsWith("image/");
+
+            // Obtener dimensiones si es imagen (opcional, requiere paquete adicional)
+            // Por ahora, dejamos width y height como null
+            // Se pueden obtener usando SixLabors.ImageSharp u otro paquete si es necesario
+            int? width = null;
+            int? height = null;
+
+            // Obtener ID del usuario actual (si está autenticado)
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            Guid? uploadedBy = userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId) ? userId : null;
+
+            var mediaFile = new MediaFile
+            {
+                FileName = file.FileName,
+                FilePath = filePath,
+                FileUrl = fileUrl,
+                MimeType = file.ContentType,
+                FileSize = file.Length,
+                AltText = altText,
+                Description = description,
+                Category = category,
+                IsImage = isImage,
+                Width = width,
+                Height = height,
+                UploadedBy = uploadedBy,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.MediaFiles.Add(mediaFile);
+            await _context.SaveChangesAsync();
+
+            var result = new MediaFileDto
+            {
+                Id = mediaFile.Id,
+                FileName = mediaFile.FileName,
+                FileUrl = mediaFile.FileUrl,
+                MimeType = mediaFile.MimeType,
+                FileSize = mediaFile.FileSize,
+                AltText = mediaFile.AltText,
+                Description = mediaFile.Description,
+                Category = mediaFile.Category,
+                IsImage = mediaFile.IsImage,
+                Width = mediaFile.Width,
+                Height = mediaFile.Height,
+                CreatedAt = mediaFile.CreatedAt
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al subir archivo a media library");
+            return StatusCode(500, new { message = "Error al subir el archivo: " + ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Elimina un archivo de la media library
+    /// </summary>
+    [HttpDelete("media/{id}")]
+    public async Task<IActionResult> DeleteMediaFile(Guid id)
+    {
+        try
+        {
+            var mediaFile = await _context.MediaFiles.FindAsync(id);
+            if (mediaFile == null)
+            {
+                return NotFound(new { message = "Archivo no encontrado" });
+            }
+
+            // Eliminar archivo físico
+            if (System.IO.File.Exists(mediaFile.FilePath))
+            {
+                System.IO.File.Delete(mediaFile.FilePath);
+            }
+
+            _context.MediaFiles.Remove(mediaFile);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar archivo de media library");
+            throw;
+        }
+    }
+
+    // ============================================
+    // PAGES ENDPOINTS
+    // ============================================
+
+    /// <summary>
+    /// Obtiene todas las páginas
+    /// </summary>
+    [HttpGet("pages")]
+    public async Task<ActionResult<IEnumerable<PageDto>>> GetPages(
+        [FromQuery] bool? isPublished = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        try
+        {
+            var query = _context.Pages.AsQueryable();
+
+            if (isPublished.HasValue)
+            {
+                query = query.Where(p => p.IsPublished == isPublished.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+            var pages = await query
+                .OrderBy(p => p.DisplayOrder)
+                .ThenByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = pages.Select(p => new PageDto
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Slug = p.Slug,
+                Excerpt = p.Excerpt,
+                IsPublished = p.IsPublished,
+                PublishedAt = p.PublishedAt,
+                DisplayOrder = p.DisplayOrder,
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt
+            });
+
+            Response.Headers["X-Total-Count"] = totalCount.ToString();
+            Response.Headers["X-Page"] = page.ToString();
+            Response.Headers["X-Page-Size"] = pageSize.ToString();
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener páginas");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Obtiene una página por ID
+    /// </summary>
+    [HttpGet("pages/{id}")]
+    public async Task<ActionResult<PageDetailDto>> GetPage(Guid id)
+    {
+        try
+        {
+            var page = await _context.Pages.FindAsync(id);
+            if (page == null)
+            {
+                return NotFound(new { message = "Página no encontrada" });
+            }
+
+            var result = new PageDetailDto
+            {
+                Id = page.Id,
+                Title = page.Title,
+                Slug = page.Slug,
+                Content = page.Content,
+                Excerpt = page.Excerpt,
+                MetaTitle = page.MetaTitle,
+                MetaDescription = page.MetaDescription,
+                MetaKeywords = page.MetaKeywords,
+                IsPublished = page.IsPublished,
+                PublishedAt = page.PublishedAt,
+                Template = page.Template,
+                DisplayOrder = page.DisplayOrder,
+                CreatedAt = page.CreatedAt,
+                UpdatedAt = page.UpdatedAt
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener página");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Crea una nueva página
+    /// </summary>
+    [HttpPost("pages")]
+    public async Task<ActionResult<PageDetailDto>> CreatePage([FromBody] CreatePageRequestDto request)
+    {
+        try
+        {
+            // Verificar que el slug sea único
+            var existingPage = await _context.Pages.FirstOrDefaultAsync(p => p.Slug == request.Slug);
+            if (existingPage != null)
+            {
+                return BadRequest(new { message = "Ya existe una página con este slug" });
+            }
+
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            Guid? createdBy = userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId) ? userId : null;
+
+            var page = new Page
+            {
+                Title = request.Title,
+                Slug = request.Slug,
+                Content = request.Content ?? string.Empty,
+                Excerpt = request.Excerpt,
+                MetaTitle = request.MetaTitle,
+                MetaDescription = request.MetaDescription,
+                MetaKeywords = request.MetaKeywords,
+                IsPublished = request.IsPublished ?? false,
+                PublishedAt = request.IsPublished == true ? DateTime.UtcNow : null,
+                Template = request.Template,
+                DisplayOrder = request.DisplayOrder ?? 0,
+                CreatedBy = createdBy,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Pages.Add(page);
+            await _context.SaveChangesAsync();
+
+            var result = new PageDetailDto
+            {
+                Id = page.Id,
+                Title = page.Title,
+                Slug = page.Slug,
+                Content = page.Content,
+                Excerpt = page.Excerpt,
+                MetaTitle = page.MetaTitle,
+                MetaDescription = page.MetaDescription,
+                MetaKeywords = page.MetaKeywords,
+                IsPublished = page.IsPublished,
+                PublishedAt = page.PublishedAt,
+                Template = page.Template,
+                DisplayOrder = page.DisplayOrder,
+                CreatedAt = page.CreatedAt,
+                UpdatedAt = page.UpdatedAt
+            };
+
+            return CreatedAtAction(nameof(GetPage), new { id = page.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear página");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Actualiza una página
+    /// </summary>
+    [HttpPut("pages/{id}")]
+    public async Task<ActionResult<PageDetailDto>> UpdatePage(Guid id, [FromBody] UpdatePageRequestDto request)
+    {
+        try
+        {
+            var page = await _context.Pages.FindAsync(id);
+            if (page == null)
+            {
+                return NotFound(new { message = "Página no encontrada" });
+            }
+
+            // Verificar que el slug sea único (si cambió)
+            if (request.Slug != null && request.Slug != page.Slug)
+            {
+                var existingPage = await _context.Pages.FirstOrDefaultAsync(p => p.Slug == request.Slug && p.Id != id);
+                if (existingPage != null)
+                {
+                    return BadRequest(new { message = "Ya existe una página con este slug" });
+                }
+            }
+
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            Guid? updatedBy = userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId) ? userId : null;
+
+            if (request.Title != null) page.Title = request.Title;
+            if (request.Slug != null) page.Slug = request.Slug;
+            if (request.Content != null) page.Content = request.Content;
+            if (request.Excerpt != null) page.Excerpt = request.Excerpt;
+            if (request.MetaTitle != null) page.MetaTitle = request.MetaTitle;
+            if (request.MetaDescription != null) page.MetaDescription = request.MetaDescription;
+            if (request.MetaKeywords != null) page.MetaKeywords = request.MetaKeywords;
+            if (request.IsPublished.HasValue)
+            {
+                page.IsPublished = request.IsPublished.Value;
+                page.PublishedAt = request.IsPublished.Value && page.PublishedAt == null ? DateTime.UtcNow : page.PublishedAt;
+            }
+            if (request.Template != null) page.Template = request.Template;
+            if (request.DisplayOrder.HasValue) page.DisplayOrder = request.DisplayOrder.Value;
+            
+            page.UpdatedBy = updatedBy;
+            page.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            var result = new PageDetailDto
+            {
+                Id = page.Id,
+                Title = page.Title,
+                Slug = page.Slug,
+                Content = page.Content,
+                Excerpt = page.Excerpt,
+                MetaTitle = page.MetaTitle,
+                MetaDescription = page.MetaDescription,
+                MetaKeywords = page.MetaKeywords,
+                IsPublished = page.IsPublished,
+                PublishedAt = page.PublishedAt,
+                Template = page.Template,
+                DisplayOrder = page.DisplayOrder,
+                CreatedAt = page.CreatedAt,
+                UpdatedAt = page.UpdatedAt
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar página");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Elimina una página
+    /// </summary>
+    [HttpDelete("pages/{id}")]
+    public async Task<IActionResult> DeletePage(Guid id)
+    {
+        try
+        {
+            var page = await _context.Pages.FindAsync(id);
+            if (page == null)
+            {
+                return NotFound(new { message = "Página no encontrada" });
+            }
+
+            _context.Pages.Remove(page);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar página");
+            throw;
+        }
+    }
+
     /// <summary>
     /// Obtiene las fechas de un tour (Admin)
     /// </summary>
@@ -1266,5 +1724,73 @@ public class RoleDto
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+}
+
+// Media Library DTOs
+public class MediaFileDto
+{
+    public Guid Id { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string FileUrl { get; set; } = string.Empty;
+    public string MimeType { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string? AltText { get; set; }
+    public string? Description { get; set; }
+    public string? Category { get; set; }
+    public bool IsImage { get; set; }
+    public int? Width { get; set; }
+    public int? Height { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+// Pages DTOs
+public class PageDto
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
+    public string? Excerpt { get; set; }
+    public bool IsPublished { get; set; }
+    public DateTime? PublishedAt { get; set; }
+    public int DisplayOrder { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public class PageDetailDto : PageDto
+{
+    public string Content { get; set; } = string.Empty;
+    public string? MetaTitle { get; set; }
+    public string? MetaDescription { get; set; }
+    public string? MetaKeywords { get; set; }
+    public string? Template { get; set; }
+}
+
+public class CreatePageRequestDto
+{
+    public string Title { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
+    public string? Content { get; set; }
+    public string? Excerpt { get; set; }
+    public string? MetaTitle { get; set; }
+    public string? MetaDescription { get; set; }
+    public string? MetaKeywords { get; set; }
+    public bool? IsPublished { get; set; }
+    public string? Template { get; set; }
+    public int? DisplayOrder { get; set; }
+}
+
+public class UpdatePageRequestDto
+{
+    public string? Title { get; set; }
+    public string? Slug { get; set; }
+    public string? Content { get; set; }
+    public string? Excerpt { get; set; }
+    public string? MetaTitle { get; set; }
+    public string? MetaDescription { get; set; }
+    public string? MetaKeywords { get; set; }
+    public bool? IsPublished { get; set; }
+    public string? Template { get; set; }
+    public int? DisplayOrder { get; set; }
 }
 

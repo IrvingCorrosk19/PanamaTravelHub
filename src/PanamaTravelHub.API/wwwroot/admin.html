@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
   <link rel="stylesheet" href="/css/admin.css" />
+  <!-- TinyMCE Editor -->
+  <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body>
   <nav class="nav">
@@ -41,6 +43,8 @@
         <button class="admin-tab" onclick="switchTab('bookings')">Reservas</button>
         <button class="admin-tab" onclick="switchTab('users')">Usuarios</button>
         <button class="admin-tab" onclick="switchTab('cms')">CMS</button>
+        <button class="admin-tab" onclick="switchTab('media')">Media</button>
+        <button class="admin-tab" onclick="switchTab('pages')">Páginas</button>
         <button class="admin-tab" onclick="switchTab('stats')">Estadísticas</button>
       </div>
 
@@ -451,6 +455,96 @@
         </div>
       </div>
 
+      <!-- Media Library Tab -->
+      <div id="media" class="admin-content">
+        <div class="admin-header">
+          <h2>Media Library</h2>
+          <p class="section-subtitle">Gestiona tus archivos multimedia</p>
+        </div>
+        
+        <div class="admin-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+            <div>
+              <button class="btn-primary" onclick="showUploadMediaModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Subir Archivo
+              </button>
+            </div>
+            <div style="display: flex; gap: var(--spacing-md);">
+              <select id="mediaCategoryFilter" class="form-input" style="width: 200px;" onchange="loadMediaFiles()">
+                <option value="">Todas las categorías</option>
+                <option value="Tours">Tours</option>
+                <option value="Hero">Hero / Banner</option>
+                <option value="Gallery">Galería</option>
+                <option value="Testimonials">Testimonios</option>
+                <option value="Blog">Blog</option>
+                <option value="Documents">Documentos</option>
+                <option value="Other">Otros</option>
+              </select>
+              <select id="mediaTypeFilter" class="form-input" style="width: 150px;" onchange="loadMediaFiles()">
+                <option value="">Todos los tipos</option>
+                <option value="true">Solo imágenes</option>
+                <option value="false">Otros archivos</option>
+              </select>
+            </div>
+          </div>
+          
+          <div id="mediaFilesGrid" class="media-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--spacing-lg);">
+            <p style="color: var(--text-muted); grid-column: 1 / -1;">Cargando archivos...</p>
+          </div>
+          
+          <div id="mediaPagination" style="margin-top: var(--spacing-lg); text-align: center;"></div>
+        </div>
+      </div>
+
+      <!-- Pages Tab -->
+      <div id="pages" class="admin-content">
+        <div class="admin-header">
+          <h2>Gestión de Páginas</h2>
+          <p class="section-subtitle">Crea y gestiona páginas dinámicas</p>
+        </div>
+        
+        <div class="admin-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+            <button class="btn-primary" onclick="showAddPageModal()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Nueva Página
+            </button>
+            <select id="pagesStatusFilter" class="form-input" style="width: 200px;" onchange="loadPages()">
+              <option value="">Todas las páginas</option>
+              <option value="true">Publicadas</option>
+              <option value="false">Borradores</option>
+            </select>
+          </div>
+          
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Título</th>
+                  <th>Slug</th>
+                  <th>Estado</th>
+                  <th>Orden</th>
+                  <th>Actualizada</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="pagesTableBody">
+                <tr>
+                  <td colspan="6" style="text-align: center; color: var(--text-muted);">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Stats Tab -->
       <div id="stats" class="admin-content">
         <div class="admin-header">
@@ -678,6 +772,134 @@
     </div>
   </div>
 
+  <!-- Modal para Media Library Upload -->
+  <div id="uploadMediaModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2>Subir Archivo a Media Library</h2>
+        <button class="close" onclick="closeUploadMediaModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="uploadMediaForm" onsubmit="uploadMediaFile(event)">
+          <div class="form-group">
+            <label class="form-label">Archivo</label>
+            <input type="file" id="mediaFileInput" class="form-input" required accept="image/*,video/*,.pdf,.doc,.docx" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alt Text (para imágenes)</label>
+            <input type="text" id="mediaAltText" class="form-input" placeholder="Descripción de la imagen" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descripción</label>
+            <textarea id="mediaDescription" class="form-input" rows="3" placeholder="Descripción opcional del archivo"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoría</label>
+            <select id="mediaCategory" class="form-input">
+              <option value="">Sin categoría</option>
+              <option value="Tours">Tours</option>
+              <option value="Hero">Hero / Banner</option>
+              <option value="Gallery">Galería</option>
+              <option value="Testimonials">Testimonios</option>
+              <option value="Blog">Blog</option>
+              <option value="Documents">Documentos</option>
+              <option value="Other">Otros</option>
+            </select>
+            <div class="form-hint">Organiza tus archivos por categorías para facilitar la búsqueda</div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="closeUploadMediaModal()">Cancelar</button>
+            <button type="submit" class="btn-primary">Subir Archivo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Páginas -->
+  <div id="pageModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="modal-header">
+        <h2 id="pageModalTitle">Nueva Página</h2>
+        <button class="close" onclick="closePageModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="pageForm" onsubmit="savePage(event)">
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label class="form-label">
+                <span class="label-text">Título</span>
+                <span class="label-required">*</span>
+              </label>
+              <input type="text" id="pageTitle" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <span class="label-text">Slug (URL)</span>
+                <span class="label-required">*</span>
+              </label>
+              <input type="text" id="pageSlug" class="form-input" required placeholder="ejemplo-pagina" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contenido</label>
+            <textarea id="pageContent" class="form-input" rows="15"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Resumen (Excerpt)</label>
+            <textarea id="pageExcerpt" class="form-input" rows="2" placeholder="Breve descripción de la página"></textarea>
+          </div>
+          <div class="form-section">
+            <h3>SEO</h3>
+            <div class="form-group">
+              <label class="form-label">Meta Title</label>
+              <input type="text" id="pageMetaTitle" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Meta Description</label>
+              <textarea id="pageMetaDescription" class="form-input" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Meta Keywords</label>
+              <input type="text" id="pageMetaKeywords" class="form-input" placeholder="palabra1, palabra2, palabra3" />
+            </div>
+          </div>
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label class="form-label">Template</label>
+              <select id="pageTemplate" class="form-input">
+                <option value="default">Default (Página estándar)</option>
+                <option value="full-width">Full Width (Ancho completo)</option>
+                <option value="sidebar">Sidebar (Con barra lateral)</option>
+                <option value="landing">Landing Page (Página de aterrizaje)</option>
+                <option value="about">About (Sobre nosotros)</option>
+                <option value="contact">Contact (Contacto)</option>
+                <option value="blog">Blog (Entrada de blog)</option>
+                <option value="gallery">Gallery (Galería)</option>
+              </select>
+              <div class="form-hint">Selecciona el template que mejor se adapte al contenido</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Orden de Visualización</label>
+              <input type="number" id="pageDisplayOrder" class="form-input" value="0" min="0" />
+              <div class="form-hint">Menor número = aparece primero en menús</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="pageIsPublished" />
+              Publicar página
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="closePageModal()">Cancelar</button>
+            <button type="submit" class="btn-primary">Guardar Página</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/api.js"></script>
   <script>
     let currentTourId = null;
@@ -732,6 +954,8 @@
       if (tabName === 'bookings') loadBookings();
       if (tabName === 'users') loadUsers();
       if (tabName === 'cms') loadHomePageContent();
+      if (tabName === 'media') loadMediaFiles();
+      if (tabName === 'pages') loadPages();
       if (tabName === 'stats') loadStats();
     }
 
@@ -1137,6 +1361,30 @@
       document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
       
       document.getElementById('tourModal').classList.add('active');
+      
+      // Inicializar TinyMCE después de abrir el modal
+      setTimeout(() => {
+        if (typeof tinymce !== 'undefined') {
+          tinymce.init({
+            selector: '#tourDescription, #tourItinerary',
+            height: 400,
+            menubar: false,
+            plugins: [
+              'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+              'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+              'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+            ],
+            toolbar: 'undo redo | blocks | ' +
+              'bold italic forecolor | alignleft aligncenter ' +
+              'alignright alignjustify | bullist numlist outdent indent | ' +
+              'removeformat | help | link image',
+            content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; }',
+            language: 'es',
+            branding: false,
+            promotion: false
+          });
+        }
+      }, 100);
     }
     
     function setupImageInputs() {
@@ -1365,6 +1613,40 @@
         document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
         
         document.getElementById('tourModal').classList.add('active');
+        
+        // Inicializar TinyMCE después de abrir el modal y cargar datos
+        setTimeout(() => {
+          if (typeof tinymce !== 'undefined') {
+            // Remover instancias existentes
+            tinymce.remove('#tourDescription, #tourItinerary');
+            // Inicializar nuevas instancias
+            tinymce.init({
+              selector: '#tourDescription, #tourItinerary',
+              height: 400,
+              menubar: false,
+              plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+              ],
+              toolbar: 'undo redo | blocks | ' +
+                'bold italic forecolor | alignleft aligncenter ' +
+                'alignright alignjustify | bullist numlist outdent indent | ' +
+                'removeformat | help | link image',
+              content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; }',
+              language: 'es',
+              branding: false,
+              promotion: false
+            });
+            // Establecer contenido después de inicializar
+            if (tinymce.get('tourDescription')) {
+              tinymce.get('tourDescription').setContent(tour.description || '');
+            }
+            if (tinymce.get('tourItinerary')) {
+              tinymce.get('tourItinerary').setContent(tour.itinerary || '');
+            }
+          }
+        }, 200);
       } catch (error) {
         console.error('Error loading tour:', error);
         alert('Error al cargar el tour: ' + (error.message || 'Error desconocido'));
@@ -1372,6 +1654,10 @@
     }
 
     function closeTourModal() {
+      // Remover instancias de TinyMCE al cerrar
+      if (typeof tinymce !== 'undefined') {
+        tinymce.remove('#tourDescription, #tourItinerary');
+      }
       document.getElementById('tourModal').classList.remove('active');
       currentTourId = null;
     }
@@ -1500,8 +1786,12 @@
 
       const tourData = {
         name: document.getElementById('tourName').value.trim(),
-        description: document.getElementById('tourDescription').value.trim(),
-        itinerary: document.getElementById('tourItinerary').value.trim() || null,
+        description: (typeof tinymce !== 'undefined' && tinymce.get('tourDescription')) 
+          ? tinymce.get('tourDescription').getContent() 
+          : document.getElementById('tourDescription').value.trim(),
+        itinerary: (typeof tinymce !== 'undefined' && tinymce.get('tourItinerary')) 
+          ? tinymce.get('tourItinerary').getContent() 
+          : document.getElementById('tourItinerary').value.trim() || null,
         price: parseFloat(document.getElementById('tourPrice').value),
         maxCapacity: parseInt(document.getElementById('tourMaxCapacity').value),
         durationHours: parseInt(document.getElementById('tourDurationHours').value),
@@ -1807,7 +2097,37 @@
       return [...uploadedImages, ...urlInputs].slice(0, 5);
     }
 
+    // Inicializar TinyMCE para campos de texto enriquecido
+    function initTinyMCE() {
+      if (typeof tinymce !== 'undefined') {
+        tinymce.init({
+          selector: '#tourDescription, #tourItinerary',
+          height: 400,
+          menubar: false,
+          plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+          ],
+          toolbar: 'undo redo | blocks | ' +
+            'bold italic forecolor | alignleft aligncenter ' +
+            'alignright alignjustify | bullist numlist outdent indent | ' +
+            'removeformat | help | link image',
+          content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; }',
+          language: 'es',
+          branding: false,
+          promotion: false,
+          setup: function(editor) {
+            editor.on('change', function() {
+              editor.save();
+            });
+          }
+        });
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+      initTinyMCE();
       if (checkAdminAuth()) {
         loadTours();
         loadStats();
@@ -1833,6 +2153,441 @@
         closeTourModal();
       }
     });
+
+    // ============================================
+    // MEDIA LIBRARY FUNCTIONS
+    // ============================================
+    let currentMediaPage = 1;
+    const mediaPageSize = 20;
+
+    async function loadMediaFiles() {
+      try {
+        const category = document.getElementById('mediaCategoryFilter')?.value || '';
+        const isImage = document.getElementById('mediaTypeFilter')?.value || '';
+        
+        const params = new URLSearchParams({
+          page: currentMediaPage.toString(),
+          pageSize: mediaPageSize.toString()
+        });
+        if (category) params.append('category', category);
+        if (isImage) params.append('isImage', isImage);
+
+        const mediaFiles = await api.request(`/api/admin/media?${params}`);
+        
+        // Actualizar lista de categorías disponibles en el filtro
+        updateMediaCategories(mediaFiles);
+        
+        renderMediaFiles(mediaFiles);
+      } catch (error) {
+        console.error('Error loading media files:', error);
+        const grid = document.getElementById('mediaFilesGrid');
+        if (grid) {
+          grid.innerHTML = '<p style="color: var(--error); grid-column: 1 / -1;">Error al cargar archivos</p>';
+        }
+      }
+    }
+
+    function updateMediaCategories(mediaFiles) {
+      // Extraer categorías únicas de los archivos
+      const categories = new Set();
+      if (mediaFiles && Array.isArray(mediaFiles)) {
+        mediaFiles.forEach(file => {
+          if (file.category) {
+            categories.add(file.category);
+          }
+        });
+      }
+      
+      // Agregar categorías dinámicas al filtro (manteniendo las predefinidas)
+      const filterSelect = document.getElementById('mediaCategoryFilter');
+      if (filterSelect) {
+        const existingOptions = Array.from(filterSelect.options).map(opt => opt.value);
+        categories.forEach(cat => {
+          if (!existingOptions.includes(cat)) {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            filterSelect.appendChild(option);
+          }
+        });
+      }
+    }
+
+    function renderMediaFiles(mediaFiles) {
+      const grid = document.getElementById('mediaFilesGrid');
+      if (!grid) return;
+      
+      if (!mediaFiles || mediaFiles.length === 0) {
+        grid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1 / -1;">No hay archivos</p>';
+        return;
+      }
+
+      grid.innerHTML = mediaFiles.map(file => `
+        <div class="media-item" style="border: 1px solid var(--border); border-radius: var(--radius); padding: var(--spacing-md); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.transform=''; this.style.boxShadow=''">
+          ${file.isImage ? `
+            <img src="${file.fileUrl}" alt="${file.altText || ''}" style="width: 100%; height: 150px; object-fit: cover; border-radius: var(--radius); margin-bottom: var(--spacing-sm); cursor: pointer;" onclick="selectMediaFile('${file.fileUrl}', ${file.isImage})" />
+          ` : `
+            <div style="width: 100%; height: 150px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center; border-radius: var(--radius); margin-bottom: var(--spacing-sm); cursor: pointer;" onclick="selectMediaFile('${file.fileUrl}', ${file.isImage})">
+              <span style="font-size: 48px;">📄</span>
+            </div>
+          `}
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: var(--spacing-xs); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.fileName}">${file.fileName}</div>
+          ${file.category ? `<div style="font-size: 10px; color: var(--primary); background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: var(--spacing-xs);">${file.category}</div>` : ''}
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: var(--spacing-xs);">${formatFileSize(file.fileSize)}</div>
+          <div style="margin-top: var(--spacing-sm); display: flex; gap: var(--spacing-xs);">
+            <button class="btn-secondary" style="flex: 1; font-size: 12px; padding: 4px 8px;" onclick="selectMediaFile('${file.fileUrl}', ${file.isImage})" title="Insertar en editor">Usar</button>
+            <button class="btn-danger" style="font-size: 12px; padding: 4px 8px;" onclick="deleteMediaFile('${file.id}')" title="Eliminar">×</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    function showUploadMediaModal() {
+      const modal = document.getElementById('uploadMediaModal');
+      if (modal) {
+        modal.classList.add('active');
+        const form = document.getElementById('uploadMediaForm');
+        if (form) form.reset();
+      }
+    }
+
+    function closeUploadMediaModal() {
+      const modal = document.getElementById('uploadMediaModal');
+      if (modal) modal.classList.remove('active');
+    }
+
+    async function uploadMediaFile(event) {
+      event.preventDefault();
+      const fileInput = document.getElementById('mediaFileInput');
+      const file = fileInput?.files[0];
+
+      if (!file) {
+        alert('Por favor selecciona un archivo');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('altText', document.getElementById('mediaAltText')?.value || '');
+      formData.append('description', document.getElementById('mediaDescription')?.value || '');
+      formData.append('category', document.getElementById('mediaCategory')?.value || '');
+
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('/api/admin/media', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Error al subir archivo');
+        }
+
+        closeUploadMediaModal();
+        loadMediaFiles();
+        alert('Archivo subido exitosamente');
+      } catch (error) {
+        console.error('Error uploading media:', error);
+        alert('Error al subir archivo: ' + error.message);
+      }
+    }
+
+    function selectMediaFile(url, isImage) {
+      if (typeof tinymce !== 'undefined') {
+        const editor = tinymce.activeEditor;
+        if (editor && isImage) {
+          editor.insertContent(`<img src="${url}" alt="" />`);
+          alert('Imagen insertada en el editor');
+        } else {
+          navigator.clipboard.writeText(url);
+          alert('URL copiada al portapapeles');
+        }
+      } else {
+        navigator.clipboard.writeText(url);
+        alert('URL copiada');
+      }
+    }
+
+    async function deleteMediaFile(id) {
+      if (!confirm('¿Estás seguro de eliminar este archivo?')) return;
+      try {
+        await api.request(`/api/admin/media/${id}`, { method: 'DELETE' });
+        loadMediaFiles();
+        alert('Archivo eliminado');
+      } catch (error) {
+        console.error('Error deleting media:', error);
+        alert('Error al eliminar archivo');
+      }
+    }
+
+    // ============================================
+    // PAGES FUNCTIONS
+    // ============================================
+    let currentPageId = null;
+
+    async function loadPages() {
+      try {
+        const isPublished = document.getElementById('pagesStatusFilter')?.value || '';
+        const params = new URLSearchParams();
+        if (isPublished) params.append('isPublished', isPublished);
+
+        const pages = await api.request(`/api/admin/pages?${params}`);
+        renderPages(pages);
+      } catch (error) {
+        console.error('Error loading pages:', error);
+        const tbody = document.getElementById('pagesTableBody');
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--error);">Error al cargar páginas</td></tr>';
+        }
+      }
+    }
+
+    function renderPages(pages) {
+      const tbody = document.getElementById('pagesTableBody');
+      if (!tbody) return;
+      
+      if (!pages || pages.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No hay páginas. Crea tu primera página usando el botón "Nueva Página".</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = pages.map(page => `
+        <tr>
+          <td><strong>${page.title}</strong>${page.template ? `<br><small style="color: var(--text-muted); font-size: 11px;">Template: ${page.template}</small>` : ''}</td>
+          <td><code style="font-size: 12px; background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">/${page.slug}</code></td>
+          <td><span class="badge ${page.isPublished ? 'active' : 'inactive'}">${page.isPublished ? 'Publicada' : 'Borrador'}</span></td>
+          <td>${page.displayOrder}</td>
+          <td>${page.updatedAt ? new Date(page.updatedAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}</td>
+          <td>
+            <button class="btn-icon" onclick="editPage('${page.id}')" title="Editar">✏️</button>
+            ${page.isPublished ? `<a href="/${page.slug}" target="_blank" class="btn-icon" title="Ver página" style="text-decoration: none; display: inline-block;">👁️</a>` : ''}
+            <button class="btn-icon btn-danger" onclick="deletePage('${page.id}')" title="Eliminar">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function showAddPageModal() {
+      currentPageId = null;
+      const titleEl = document.getElementById('pageModalTitle');
+      if (titleEl) titleEl.textContent = 'Nueva Página';
+      const form = document.getElementById('pageForm');
+      if (form) form.reset();
+      const modal = document.getElementById('pageModal');
+      if (modal) modal.classList.add('active');
+      
+      setTimeout(() => {
+        if (typeof tinymce !== 'undefined') {
+          tinymce.init({
+            selector: '#pageContent',
+            height: 400,
+            menubar: false,
+            plugins: ['advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen', 'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'],
+            toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help | link image',
+            content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; }',
+            language: 'es',
+            branding: false,
+            promotion: false
+          });
+        }
+      }, 100);
+    }
+
+    function closePageModal() {
+      if (typeof tinymce !== 'undefined') {
+        tinymce.remove('#pageContent');
+      }
+      const modal = document.getElementById('pageModal');
+      if (modal) modal.classList.remove('active');
+      currentPageId = null;
+    }
+
+    async function editPage(id) {
+      try {
+        const page = await api.request(`/api/admin/pages/${id}`);
+        currentPageId = id;
+        
+        const titleEl = document.getElementById('pageModalTitle');
+        if (titleEl) titleEl.textContent = 'Editar Página';
+        document.getElementById('pageTitle').value = page.title || '';
+        document.getElementById('pageSlug').value = page.slug || '';
+        document.getElementById('pageExcerpt').value = page.excerpt || '';
+        document.getElementById('pageMetaTitle').value = page.metaTitle || '';
+        document.getElementById('pageMetaDescription').value = page.metaDescription || '';
+        document.getElementById('pageMetaKeywords').value = page.metaKeywords || '';
+        document.getElementById('pageTemplate').value = page.template || '';
+        document.getElementById('pageDisplayOrder').value = page.displayOrder || 0;
+        document.getElementById('pageIsPublished').checked = page.isPublished || false;
+        
+        const modal = document.getElementById('pageModal');
+        if (modal) modal.classList.add('active');
+        
+        setTimeout(() => {
+          if (typeof tinymce !== 'undefined') {
+            tinymce.remove('#pageContent');
+            tinymce.init({
+              selector: '#pageContent',
+              height: 400,
+              menubar: false,
+              plugins: ['advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen', 'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'],
+              toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help | link image',
+              content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; }',
+              language: 'es',
+              branding: false,
+              promotion: false
+            });
+            setTimeout(() => {
+              const editor = tinymce.get('pageContent');
+              if (editor) editor.setContent(page.content || '');
+            }, 200);
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Error loading page:', error);
+        alert('Error al cargar la página');
+      }
+    }
+
+    async function savePage(event) {
+      event.preventDefault();
+      
+      // Validaciones
+      const title = document.getElementById('pageTitle').value.trim();
+      const slug = document.getElementById('pageSlug').value.trim();
+      
+      if (!title) {
+        alert('El título es requerido');
+        return;
+      }
+      
+      if (!slug) {
+        alert('El slug es requerido');
+        return;
+      }
+      
+      // Validar formato de slug
+      const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+      if (!slugRegex.test(slug)) {
+        alert('El slug solo puede contener letras minúsculas, números y guiones. No puede empezar ni terminar con guión.');
+        return;
+      }
+      
+      const content = (typeof tinymce !== 'undefined' && tinymce.get('pageContent')) 
+        ? tinymce.get('pageContent').getContent() 
+        : document.getElementById('pageContent').value;
+
+      const pageData = {
+        title: title,
+        slug: slug,
+        content: content,
+        excerpt: document.getElementById('pageExcerpt').value.trim() || null,
+        metaTitle: document.getElementById('pageMetaTitle').value.trim() || null,
+        metaDescription: document.getElementById('pageMetaDescription').value.trim() || null,
+        metaKeywords: document.getElementById('pageMetaKeywords').value.trim() || null,
+        template: document.getElementById('pageTemplate').value || 'default',
+        displayOrder: parseInt(document.getElementById('pageDisplayOrder').value) || 0,
+        isPublished: document.getElementById('pageIsPublished').checked
+      };
+
+      try {
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        if (submitButton) {
+          submitButton.disabled = true;
+          submitButton.textContent = 'Guardando...';
+        }
+        
+        if (currentPageId) {
+          await api.request(`/api/admin/pages/${currentPageId}`, {
+            method: 'PUT',
+            body: JSON.stringify(pageData)
+          });
+        } else {
+          await api.request('/api/admin/pages', {
+            method: 'POST',
+            body: JSON.stringify(pageData)
+          });
+        }
+        
+        closePageModal();
+        loadPages();
+        alert('Página guardada exitosamente');
+      } catch (error) {
+        console.error('Error saving page:', error);
+        const errorMessage = error.message || 'Error desconocido';
+        if (errorMessage.includes('slug')) {
+          alert('Error: Ya existe una página con este slug. Por favor, usa un slug diferente.');
+        } else {
+          alert('Error al guardar la página: ' + errorMessage);
+        }
+      } finally {
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Guardar Página';
+        }
+      }
+    }
+
+    async function deletePage(id) {
+      if (!confirm('¿Estás seguro de eliminar esta página?')) return;
+      try {
+        await api.request(`/api/admin/pages/${id}`, { method: 'DELETE' });
+        loadPages();
+        alert('Página eliminada');
+      } catch (error) {
+        console.error('Error deleting page:', error);
+        alert('Error al eliminar página');
+      }
+    }
+
+    // Auto-generar slug desde título
+    const pageTitleInput = document.getElementById('pageTitle');
+    if (pageTitleInput) {
+      pageTitleInput.addEventListener('input', function() {
+        if (!currentPageId) {
+          const slugInput = document.getElementById('pageSlug');
+          if (slugInput && slugInput.value === '') {
+            // Generar slug válido: minúsculas, sin acentos, solo letras/números/guiones
+            const slug = this.value
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+              .replace(/[^a-z0-9\s-]/g, '') // Solo letras, números, espacios y guiones
+              .trim()
+              .replace(/\s+/g, '-') // Espacios a guiones
+              .replace(/-+/g, '-') // Múltiples guiones a uno
+              .replace(/(^-|-$)/g, ''); // Eliminar guiones al inicio/final
+            slugInput.value = slug;
+          }
+        }
+      });
+      
+      // Validar slug en tiempo real
+      const slugInput = document.getElementById('pageSlug');
+      if (slugInput) {
+        slugInput.addEventListener('input', function() {
+          const slug = this.value;
+          const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+          if (slug && !slugRegex.test(slug)) {
+            this.style.borderColor = 'var(--error)';
+            this.title = 'El slug solo puede contener letras minúsculas, números y guiones';
+          } else {
+            this.style.borderColor = '';
+            this.title = '';
+          }
+        });
+      }
+    }
   </script>
 </body>
 </html>

@@ -24,6 +24,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<HomePageContent> HomePageContent { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<MediaFile> MediaFiles { get; set; }
+    public DbSet<Page> Pages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
