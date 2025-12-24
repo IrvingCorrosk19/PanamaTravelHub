@@ -1,6 +1,24 @@
 // API Client para ToursPanama
 const API_BASE_URL = window.location.origin;
 
+// Asegurar que logger esté disponible
+if (typeof logger === 'undefined') {
+  // Si logger.js no se ha cargado, crear un logger básico
+  window.logger = {
+    debug: (...args) => console.debug(...args),
+    info: (...args) => console.info(...args),
+    warn: (...args) => console.warn(...args),
+    error: (msg, err, ctx) => {
+      console.error('❌', msg, err || ctx);
+      if (err && err.stack) console.error('Stack:', err.stack);
+    },
+    success: (...args) => console.log('✅', ...args),
+    logRequest: (method, url, opts) => console.log('🌐', method, url, opts),
+    logResponse: (res, data) => console.log('📥', res.status, data),
+    logHttpError: (res, err) => console.error('❌ HTTP', res.status, err)
+  };
+}
+
 class ApiClient {
   constructor() {
     this.baseUrl = API_BASE_URL;
@@ -12,12 +30,9 @@ class ApiClient {
 
     async request(endpoint, options = {}) {
       const url = `${this.baseUrl}${endpoint}`;
-      console.log('🌐 API Request:', {
-        method: options.method || 'GET',
-        url: url,
-        hasBody: !!options.body,
-        hasToken: !!this.token
-      });
+      const method = options.method || 'GET';
+      
+      logger.logRequest(method, url, options);
 
       const config = {
         ...options,
@@ -32,49 +47,64 @@ class ApiClient {
       
       if (this.accessToken) {
         config.headers['Authorization'] = `Bearer ${this.accessToken}`;
+        logger.debug('Token incluido en request');
+      } else {
+        logger.debug('No hay token disponible');
       }
 
       try {
-        console.log('📤 Enviando request...');
+        logger.debug('Enviando request...');
         const response = await fetch(url, config);
-        console.log('📥 Response recibido:', {
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok,
-          headers: Object.fromEntries(response.headers.entries())
-        });
+        
+        logger.logResponse(response);
         
         if (!response.ok) {
           // Si es 401 (Unauthorized), intentar refresh token
           if (response.status === 401 && this.refreshToken && !endpoint.includes('/api/auth/refresh') && !endpoint.includes('/api/auth/login')) {
-            console.log('🔄 Token expirado, intentando refresh...');
+            logger.info('Token expirado, intentando refresh...');
             const refreshed = await this.refreshAccessToken();
             if (refreshed) {
               // Reintentar request con nuevo token
               config.headers['Authorization'] = `Bearer ${this.accessToken}`;
+              logger.debug('Reintentando request con nuevo token');
               const retryResponse = await fetch(url, config);
               if (retryResponse.ok) {
                 const data = await retryResponse.json();
-                console.log('✅ Request exitoso después de refresh');
+                logger.success('Request exitoso después de refresh');
                 return data;
+              } else {
+                logger.logHttpError(retryResponse);
               }
             }
           }
 
-          console.error('❌ Response no OK. Status:', response.status);
-          const error = await response.json().catch((parseError) => {
-            console.error('❌ Error al parsear JSON del error:', parseError);
-            return { 
+          // Intentar parsear el error
+          let errorData = null;
+          try {
+            const errorText = await response.text();
+            try {
+              errorData = JSON.parse(errorText);
+            } catch {
+              errorData = { 
+                title: 'Error desconocido',
+                detail: errorText || 'Ocurrió un error al procesar la solicitud',
+                status: response.status
+              };
+            }
+          } catch (parseError) {
+            logger.error('Error al parsear respuesta de error', parseError);
+            errorData = { 
               title: 'Error desconocido',
               detail: 'Ocurrió un error al procesar la solicitud',
               status: response.status
             };
-          });
+          }
           
-          console.error('❌ Error completo:', error);
+          // Loggear el error HTTP
+          logger.logHttpError(response, errorData);
           
           // Manejar errores de validación (ProblemDetails)
-          if (error.errors && typeof error.errors === 'object') {
+          if (errorData.errors && typeof errorData.errors === 'object') {
             // FluentValidation devuelve errores en formato { "PropertyName": ["Error1", "Error2"] }
             const validationErrors = [];
             
@@ -87,8 +117,8 @@ class ApiClient {
               'LastName': 'Apellido'
             };
             
-            Object.keys(error.errors).forEach(field => {
-              const fieldErrors = error.errors[field];
+            Object.keys(errorData.errors).forEach(field => {
+              const fieldErrors = errorData.errors[field];
               if (Array.isArray(fieldErrors)) {
                 fieldErrors.forEach(err => {
                   if (typeof err === 'string') {
@@ -100,13 +130,13 @@ class ApiClient {
             });
             
             if (validationErrors.length > 0) {
-              console.error('❌ Errores de validación:', validationErrors);
+              logger.error('Errores de validación detectados', null, { validationErrors });
               throw new Error(validationErrors.join('\n'));
             }
           }
           
           // Manejar errores específicos del backend
-          let errorMessage = error.detail || error.message || error.title;
+          let errorMessage = errorData.detail || errorData.message || errorData.title;
           
           // Mensajes más descriptivos para errores comunes
           if (errorMessage && errorMessage.includes('EMAIL_ALREADY_EXISTS')) {
@@ -149,19 +179,24 @@ class ApiClient {
             }
           }
           
-          console.error('❌ Error message:', errorMessage);
-          console.error('❌ Error traceId:', error.traceId);
+          logger.error('Error procesado', null, {
+            errorMessage,
+            traceId: errorData.traceId,
+            instance: errorData.instance,
+            type: errorData.type
+          });
+          
           throw new Error(errorMessage);
         }
 
         const data = await response.json();
-        console.log('✅ Response exitoso:', data);
+        logger.success('Response exitoso', { data });
         return data;
       } catch (error) {
-        console.error('❌ API Error completo:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
+        logger.error('Error en API request', error, {
+          endpoint,
+          method: options.method || 'GET',
+          url: `${this.baseUrl}${endpoint}`
         });
         throw error;
       }
@@ -178,13 +213,13 @@ class ApiClient {
 
   // Auth
   async login(email, password) {
-    console.log('🔐 Iniciando login:', { email, passwordLength: password?.length });
+    logger.info('Iniciando login', { email, passwordLength: password?.length });
     try {
       const response = await this.request('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
-      console.log('✅ Login exitoso:', response);
+      logger.success('Login exitoso', { userId: response.user?.id });
       
       // Guardar accessToken y refreshToken
       if (response.accessToken && response.refreshToken) {
@@ -194,24 +229,24 @@ class ApiClient {
         localStorage.setItem('refreshToken', response.refreshToken);
         // Mantener compatibilidad con código antiguo
         localStorage.setItem('authToken', response.accessToken);
-        console.log('💾 Tokens guardados en localStorage');
+        logger.debug('Tokens guardados en localStorage');
       }
       
       // Guardar userId para usar en reservas
       if (response.user && response.user.id) {
         localStorage.setItem('userId', response.user.id);
-        console.log('💾 UserId guardado:', response.user.id);
+        logger.debug('UserId guardado', { userId: response.user.id });
       }
       
       // Guardar roles del usuario
       if (response.user && response.user.roles) {
         localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
-        console.log('💾 Roles guardados:', response.user.roles);
+        logger.debug('Roles guardados', { roles: response.user.roles });
       }
       
       return response;
     } catch (error) {
-      console.error('❌ Error en login:', error);
+      logger.error('Error en login', error);
       throw error;
     }
   }
@@ -229,14 +264,14 @@ class ApiClient {
     const currentRefreshToken = localStorage.getItem('refreshToken');
 
     if (!currentRefreshToken) {
-      console.log('❌ No hay refresh token disponible');
+      logger.warn('No hay refresh token disponible');
       this.isRefreshing = false;
       this.handleAuthFailure();
       return false;
     }
 
     try {
-      console.log('🔄 Refrescando access token...');
+      logger.info('Refrescando access token...');
       const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -257,7 +292,7 @@ class ApiClient {
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
         localStorage.setItem('authToken', data.accessToken); // Compatibilidad
-        console.log('✅ Access token refrescado exitosamente');
+        logger.success('Access token refrescado exitosamente');
         
         // Resolver todas las peticiones en cola
         this.failedQueue.forEach(resolve => resolve(true));
@@ -269,7 +304,7 @@ class ApiClient {
 
       throw new Error('No se recibieron tokens en la respuesta');
     } catch (error) {
-      console.error('❌ Error al refrescar token:', error);
+      logger.error('Error al refrescar token', error);
       this.isRefreshing = false;
       this.failedQueue.forEach(resolve => resolve(false));
       this.failedQueue = [];
@@ -280,7 +315,7 @@ class ApiClient {
 
   // Manejar fallo de autenticación
   handleAuthFailure() {
-    console.log('🚪 Sesión expirada, cerrando sesión...');
+    logger.warn('Sesión expirada, cerrando sesión...');
     this.logout();
     // Redirigir a login si no estamos ya ahí
     if (!window.location.pathname.includes('login.html')) {
@@ -338,9 +373,9 @@ class ApiClient {
           method: 'POST',
           body: JSON.stringify({ refreshToken }),
         });
-        console.log('✅ Logout exitoso, refresh token revocado');
+        logger.success('Logout exitoso, refresh token revocado');
       } catch (error) {
-        console.error('⚠️ Error al revocar refresh token:', error);
+        logger.warn('Error al revocar refresh token', error);
         // Continuar con logout local aunque falle el servidor
       }
     }
@@ -353,7 +388,7 @@ class ApiClient {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('userRoles');
-    console.log('💾 Tokens eliminados de localStorage');
+    logger.debug('Tokens eliminados de localStorage');
   }
 
   // Obtener información del usuario actual
