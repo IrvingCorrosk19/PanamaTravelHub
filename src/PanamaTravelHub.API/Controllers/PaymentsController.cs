@@ -15,20 +15,20 @@ namespace PanamaTravelHub.API.Controllers;
 [Authorize]
 public class PaymentsController : ControllerBase
 {
-    private readonly IPaymentProvider _paymentProvider;
+    private readonly IPaymentProviderFactory _paymentProviderFactory;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<PaymentsController> _logger;
     private readonly IConfiguration _configuration;
     private readonly IEmailNotificationService _emailNotificationService;
 
     public PaymentsController(
-        IPaymentProvider paymentProvider,
+        IPaymentProviderFactory paymentProviderFactory,
         ApplicationDbContext context,
         ILogger<PaymentsController> logger,
         IConfiguration configuration,
         IEmailNotificationService emailNotificationService)
     {
-        _paymentProvider = paymentProvider;
+        _paymentProviderFactory = paymentProviderFactory;
         _context = context;
         _logger = logger;
         _configuration = configuration;
@@ -85,6 +85,10 @@ public class PaymentsController : ControllerBase
                 return BadRequest(new { message = "Esta reserva ya tiene un pago procesado" });
             }
 
+            // Obtener el proveedor de pago según el método seleccionado
+            var provider = request.Provider ?? PaymentProvider.Stripe; // Por defecto Stripe
+            var paymentProvider = _paymentProviderFactory.GetProvider(provider);
+
             // Crear el payment intent en el proveedor
             var metadata = new Dictionary<string, string>
             {
@@ -92,7 +96,7 @@ public class PaymentsController : ControllerBase
                 { "userId", booking.UserId.ToString() }
             };
 
-            var paymentIntentResult = await _paymentProvider.CreatePaymentIntentAsync(
+            var paymentIntentResult = await paymentProvider.CreatePaymentIntentAsync(
                 booking.TotalAmount,
                 request.Currency ?? "USD",
                 metadata,
@@ -108,7 +112,7 @@ public class PaymentsController : ControllerBase
             var payment = new Payment
             {
                 BookingId = booking.Id,
-                Provider = _paymentProvider.Provider,
+                Provider = provider,
                 Status = PaymentStatus.Initiated,
                 Amount = booking.TotalAmount,
                 Currency = request.Currency ?? "USD",
@@ -153,8 +157,11 @@ public class PaymentsController : ControllerBase
                 return NotFound(new { message = "Pago no encontrado" });
             }
 
+            // Obtener el proveedor correcto según el pago
+            var paymentProvider = _paymentProviderFactory.GetProvider(payment.Provider);
+            
             // Confirmar el pago con el proveedor
-            var confirmationResult = await _paymentProvider.ConfirmPaymentAsync(request.PaymentIntentId);
+            var confirmationResult = await paymentProvider.ConfirmPaymentAsync(request.PaymentIntentId);
 
             if (!confirmationResult.Success)
             {
@@ -198,7 +205,7 @@ public class PaymentsController : ControllerBase
                         {
                             CustomerName = customerName,
                             Amount = payment.Amount.ToString("C"),
-                            PaymentMethod = _paymentProvider.Provider.ToString(),
+                            PaymentMethod = payment.Provider.ToString(),
                             TransactionId = payment.ProviderTransactionId ?? "N/A",
                             PaymentDate = DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm"),
                             BookingId = payment.Booking.Id.ToString(),
@@ -275,15 +282,25 @@ public class PaymentsController : ControllerBase
             }
 
             // Procesar el webhook según el proveedor
-            IPaymentProvider? paymentProvider = null;
+            PaymentProvider paymentProviderEnum;
             if (provider.ToLower() == "stripe")
             {
-                paymentProvider = _paymentProvider;
+                paymentProviderEnum = PaymentProvider.Stripe;
+            }
+            else if (provider.ToLower() == "paypal")
+            {
+                paymentProviderEnum = PaymentProvider.PayPal;
+            }
+            else if (provider.ToLower() == "yappy")
+            {
+                paymentProviderEnum = PaymentProvider.Yappy;
             }
             else
             {
                 return BadRequest(new { message = $"Proveedor {provider} no soportado" });
             }
+            
+            var paymentProvider = _paymentProviderFactory.GetProvider(paymentProviderEnum);
 
             var webhookResult = await paymentProvider.ProcessWebhookAsync(payload, signature);
 
@@ -368,7 +385,8 @@ public class PaymentsController : ControllerBase
                 return BadRequest(new { message = "PaymentIntentId no encontrado" });
             }
 
-            var refundResult = await _paymentProvider.ProcessRefundAsync(
+            var paymentProvider = _paymentProviderFactory.GetProvider(payment.Provider);
+            var refundResult = await paymentProvider.ProcessRefundAsync(
                 payment.ProviderPaymentIntentId,
                 request.Amount
             );

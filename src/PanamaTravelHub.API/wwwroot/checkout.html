@@ -76,8 +76,14 @@
               <div class="payment-method-header">
                 <input type="radio" name="paymentMethod" value="stripe" id="stripe" checked />
                 <label for="stripe" class="payment-method-label">
-                  <span class="payment-icon">💳</span>
+                  <div class="payment-icon-wrapper" style="background: linear-gradient(135deg, #635bff 0%, #0a2540 100%);">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                      <line x1="1" y1="10" x2="23" y2="10"/>
+                    </svg>
+                  </div>
                   <span class="payment-name">Tarjeta de Crédito/Débito</span>
+                  <span class="payment-subtitle">Visa, Mastercard, Amex</span>
                 </label>
               </div>
               <div class="payment-method-details" id="stripeDetails">
@@ -115,13 +121,33 @@
               <div class="payment-method-header">
                 <input type="radio" name="paymentMethod" value="paypal" id="paypal" />
                 <label for="paypal" class="payment-method-label">
-                  <span class="payment-icon">🅿️</span>
+                  <div class="payment-icon-wrapper" style="background: linear-gradient(135deg, #0070ba 0%, #003087 100%);">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                      <path d="M7 13h10M7 6h10M7 20h10M5 13h.01M5 6h.01M5 20h.01" stroke-linecap="round"/>
+                    </svg>
+                  </div>
                   <span class="payment-name">PayPal</span>
+                  <span class="payment-subtitle">Rápido y seguro</span>
                 </label>
               </div>
               <div class="payment-method-details" id="paypalDetails" style="display:none;">
-                <p class="payment-info">Serás redirigido a PayPal para completar el pago de forma segura.</p>
-                <p class="payment-info">💳 Acepta tarjetas y cuenta PayPal</p>
+                <div class="payment-features">
+                  <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span>Paga con tu cuenta PayPal</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span>Acepta tarjetas sin cuenta</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span>Protección al comprador</span>
+                  </div>
+                </div>
+                <div class="test-mode-notice">
+                  <strong>🧪 Modo de Pruebas:</strong> Serás redirigido a PayPal Sandbox para completar el pago de prueba.
+                </div>
               </div>
             </div>
 
@@ -129,17 +155,39 @@
               <div class="payment-method-header">
                 <input type="radio" name="paymentMethod" value="yappy" id="yappy" />
                 <label for="yappy" class="payment-method-label">
-                  <span class="payment-icon">📱</span>
+                  <div class="payment-icon-wrapper" style="background: linear-gradient(135deg, #00a859 0%, #007a3d 100%);">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                      <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                      <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                  </div>
                   <span class="payment-name">Yappy</span>
+                  <span class="payment-subtitle">Pago móvil panameño</span>
                 </label>
               </div>
               <div class="payment-method-details" id="yappyDetails" style="display:none;">
                 <div class="form-group">
                   <label class="form-label">Número de Teléfono</label>
                   <input type="tel" class="form-input" placeholder="+507 6000-0000" id="yappyPhone" />
+                  <div class="form-hint">Ingresa tu número de teléfono para recibir el código QR</div>
                 </div>
-                <p class="payment-info">Recibirás un código QR para escanear con tu app Yappy.</p>
-                <p class="payment-info">🇵🇦 Método de pago panameño</p>
+                <div class="payment-features">
+                  <div class="feature-item">
+                    <span class="feature-icon">🇵🇦</span>
+                    <span>Método de pago panameño</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">📱</span>
+                    <span>Escanea el código QR con tu app</span>
+                  </div>
+                  <div class="feature-item">
+                    <span class="feature-icon">⚡</span>
+                    <span>Confirmación instantánea</span>
+                  </div>
+                </div>
+                <div class="test-mode-notice">
+                  <strong>🧪 Modo de Pruebas:</strong> Se generará un código QR simulado para pruebas.
+                </div>
               </div>
             </div>
           </div>

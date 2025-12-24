@@ -47,7 +47,13 @@ public static class DependencyInjection
         services.AddScoped<PanamaTravelHub.Application.Services.IJwtService, PanamaTravelHub.Application.Services.JwtService>();
 
         // Registrar proveedores de pago
-        services.AddScoped<IPaymentProvider, StripePaymentProvider>();
+        services.AddScoped<StripePaymentProvider>();
+        services.AddScoped<PayPalPaymentProvider>();
+        services.AddScoped<YappyPaymentProvider>();
+        services.AddScoped<IPaymentProviderFactory, PaymentProviderFactory>();
+        
+        // Por defecto, usar Stripe (para compatibilidad con código existente)
+        services.AddScoped<IPaymentProvider>(sp => sp.GetRequiredService<StripePaymentProvider>());
 
         // Registrar servicios de email
         services.AddScoped<IEmailService, EmailService>();

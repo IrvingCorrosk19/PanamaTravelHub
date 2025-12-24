@@ -352,10 +352,22 @@ class ApiClient {
   }
 
   // Payments
-  async createPayment(bookingId, currency = 'USD') {
+  async createPayment(bookingId, currency = 'USD', provider = 'stripe') {
+    const providerMap = {
+      'stripe': 1,
+      'paypal': 2,
+      'yappy': 3
+    };
+    
+    const requestBody = {
+      bookingId: bookingId,
+      currency: currency,
+      provider: providerMap[provider.toLowerCase()] || 1
+    };
+    
     return this.request('/api/payments/create', {
       method: 'POST',
-      body: JSON.stringify({ bookingId, currency }),
+      body: JSON.stringify(requestBody),
       headers: { 'Content-Type': 'application/json' }
     });
   }

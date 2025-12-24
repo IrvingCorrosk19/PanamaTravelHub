@@ -699,7 +699,7 @@ async function processPayment() {
       statusText.textContent = 'Iniciando pago con Stripe...';
       
       // Crear el payment intent
-      const paymentResponse = await api.createPayment(bookingId, 'USD');
+      const paymentResponse = await api.createPayment(bookingId, 'USD', 'stripe');
       
       if (!paymentResponse.clientSecret) {
         throw new Error('No se pudo crear el payment intent');
@@ -754,18 +754,60 @@ async function processPayment() {
       window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
       
     } else if (selectedPaymentMethod === 'paypal') {
-      // TODO: Implementar PayPal
-      statusText.textContent = 'PayPal aún no está implementado';
-      await sleep(2000);
-      modal.style.display = 'none';
-      btn.disabled = false;
+      statusText.textContent = 'Iniciando pago con PayPal...';
+      
+      // Crear el payment intent
+      const paymentResponse = await api.createPayment(bookingId, 'USD', 'paypal');
+      
+      if (!paymentResponse.checkoutUrl) {
+        throw new Error('No se pudo crear el checkout de PayPal');
+      }
+
+      statusText.textContent = 'Redirigiendo a PayPal...';
+      
+      // Redirigir a PayPal (en modo de pruebas, esto será una simulación)
+      // En producción, esto redirigiría a PayPal Sandbox o Live
+      if (paymentResponse.checkoutUrl.includes('sandbox.paypal.com') || paymentResponse.checkoutUrl.includes('localhost')) {
+        // Modo simulación - confirmar directamente
+        await sleep(1500);
+        statusText.textContent = 'Simulando pago de PayPal...';
+        await api.confirmPayment(paymentResponse.paymentIntentId);
+        
+        const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
+        window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
+      } else {
+        // Redirigir a PayPal
+        window.location.href = paymentResponse.checkoutUrl;
+      }
       
     } else if (selectedPaymentMethod === 'yappy') {
-      // TODO: Implementar Yappy
-      statusText.textContent = 'Yappy aún no está implementado';
+      const phone = document.getElementById('yappyPhone').value.trim();
+      
+      if (!phone) {
+        throw new Error('Por favor ingresa tu número de teléfono para Yappy');
+      }
+
+      statusText.textContent = 'Generando código QR de Yappy...';
+      
+      // Crear el payment intent
+      const paymentResponse = await api.createPayment(bookingId, 'USD', 'yappy');
+      
+      if (!paymentResponse.checkoutUrl) {
+        throw new Error('No se pudo generar el código QR de Yappy');
+      }
+
+      statusText.textContent = 'Mostrando código QR...';
+      
+      // En modo de pruebas, simular la confirmación después de mostrar el QR
+      // En producción, esto mostraría un modal con el QR y esperaría el webhook
       await sleep(2000);
-      modal.style.display = 'none';
-      btn.disabled = false;
+      statusText.textContent = 'Simulando escaneo de QR...';
+      await sleep(1500);
+      
+      await api.confirmPayment(paymentResponse.paymentIntentId);
+      
+      const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
+      window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
     }
 
   } catch (error) {
