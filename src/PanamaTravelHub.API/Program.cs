@@ -14,6 +14,8 @@ using PanamaTravelHub.Infrastructure.Data;
 using FluentValidation;
 using Serilog;
 using Serilog.Events;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 
 // Configurar Npgsql para usar UTC para todos los DateTime
 // Esto es necesario porque PostgreSQL requiere DateTime en UTC
@@ -116,6 +118,13 @@ builder.Services.AddCors(options =>
 // Add Infrastructure (DbContext, Repositories, etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Configurar Data Protection para usar PostgreSQL (IMPORTANTE para producción)
+// Esto evita que las keys se pierdan cuando Render recrea contenedores
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<ApplicationDbContext>()
+    .SetApplicationName("PanamaTravelHub")
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90)); // Keys válidas por 90 días
+
 // Configurar JWT Authentication
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey no configurada");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "PanamaTravelHub";
@@ -209,6 +218,16 @@ if (builder.Environment.IsDevelopment())
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
+
+// ForwardedHeaders para Render (detectar HTTPS desde el proxy)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -219,7 +238,11 @@ if (app.Environment.IsDevelopment())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.UseHttpsRedirection();
+// En Render, el proxy ya maneja HTTPS, así que solo redirigir en desarrollo
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Exception Handler debe ir temprano en el pipeline
 app.UseExceptionHandler();
