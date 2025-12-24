@@ -42,5 +42,18 @@ public class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
 
         builder.HasIndex(ur => ur.RoleId)
             .HasDatabaseName("idx_user_roles_role_id");
+
+        // Relaciones de navegación - Configuración explícita para evitar ambigüedad
+        builder.HasOne(ur => ur.User)
+            .WithMany(u => u.UserRoles)
+            .HasForeignKey(ur => ur.UserId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
+
+        builder.HasOne(ur => ur.Role)
+            .WithMany(r => r.UserRoles)
+            .HasForeignKey(ur => ur.RoleId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
     }
 }

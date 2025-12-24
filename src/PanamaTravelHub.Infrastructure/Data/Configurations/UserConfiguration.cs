@@ -82,10 +82,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasDatabaseName("idx_users_is_active");
 
         // Relaciones
-        builder.HasMany(u => u.UserRoles)
-            .WithOne(ur => ur.User)
-            .HasForeignKey(ur => ur.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // Nota: La relación User-UserRole se define en UserRoleConfiguration para evitar ambigüedad
 
         builder.HasMany(u => u.Bookings)
             .WithOne(b => b.User)

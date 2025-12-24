@@ -37,9 +37,6 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
             .HasDatabaseName("idx_roles_name");
 
         // Relaciones
-        builder.HasMany(r => r.UserRoles)
-            .WithOne(ur => ur.Role)
-            .HasForeignKey(ur => ur.RoleId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // Nota: La relación Role-UserRole se define en UserRoleConfiguration para evitar ambigüedad
     }
 }
