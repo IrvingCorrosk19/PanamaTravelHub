@@ -33,15 +33,21 @@ public class ToursController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("=== INICIO GetTours ===");
+            
             // Obtener tours activos desde la base de datos
+            _logger.LogInformation("Consultando tours activos desde la base de datos...");
             var tours = await _context.Tours
                 .Include(t => t.TourImages)
                 .Where(t => t.IsActive)
                 .OrderByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
+            _logger.LogInformation("Tours encontrados en BD: {Count}", tours.Count);
+
             if (!tours.Any())
             {
+                _logger.LogWarning("No se encontraron tours en BD, usando datos mock como fallback");
                 // Si no hay tours en BD, retornar datos mock como fallback
                 var mockTours = new List<TourDto>
                 {
@@ -166,10 +172,12 @@ public class ToursController : ControllerBase
                     }
                 }
                 };
+                _logger.LogInformation("Retornando {Count} tours mock", mockTours.Count);
                 return Ok(mockTours);
             }
 
             // Convertir a DTOs
+            _logger.LogInformation("Convirtiendo {Count} tours a DTOs...", tours.Count);
             var result = tours.Select(t => new TourDto
             {
                 Id = t.Id,
@@ -186,8 +194,16 @@ public class ToursController : ControllerBase
                     ImageUrl = i.ImageUrl,
                     IsPrimary = i.IsPrimary
                 }).ToList()
-            });
+            }).ToList();
 
+            _logger.LogInformation("Tours convertidos: {Count}", result.Count);
+            foreach (var tour in result)
+            {
+                _logger.LogInformation("Tour: {Name} (ID: {Id}), Precio: {Price}, Imágenes: {ImageCount}", 
+                    tour.Name, tour.Id, tour.Price, tour.TourImages?.Count ?? 0);
+            }
+
+            _logger.LogInformation("=== FIN GetTours - Retornando {Count} tours ===", result.Count);
             return Ok(result);
         }
         catch (Exception ex)

@@ -137,9 +137,17 @@ async function loadTours() {
     // Llamar a la API real
     let tours = [];
     try {
+      console.log('🔍 [loadTours] Llamando a api.getTours()...');
       tours = await api.getTours();
+      console.log('✅ [loadTours] Respuesta recibida:', tours);
+      console.log('📊 [loadTours] Tipo de datos:', Array.isArray(tours) ? 'Array' : typeof tours);
+      console.log('📊 [loadTours] Cantidad de tours:', tours?.length || 0);
+      if (tours && tours.length > 0) {
+        console.log('📋 [loadTours] Primer tour:', tours[0]);
+      }
       loadingManager.hideInline(toursGrid);
     } catch (error) {
+      console.error('❌ [loadTours] Error al obtener tours:', error);
       // Si falla la API, usar datos mock como fallback
       console.warn('API no disponible, usando datos mock:', error);
       tours = [
@@ -214,14 +222,22 @@ async function loadTours() {
 
     loadingState.style.display = 'none';
 
-    if (tours.length === 0) {
+    console.log('🔍 [loadTours] Validando tours...');
+    console.log('📊 [loadTours] Total tours recibidos:', tours?.length || 0);
+
+    if (!tours || tours.length === 0) {
+      console.warn('⚠️ [loadTours] No hay tours para mostrar');
       emptyState.style.display = 'block';
       return;
     }
 
     // Validar y sanitizar tours antes de renderizar
+    console.log('🔍 [loadTours] Filtrando tours válidos...');
     const validTours = tours.filter(tour => {
-      if (!tour || !tour.id) {
+      // El backend puede retornar Id (mayúscula) o id (minúscula)
+      const tourId = tour.id || tour.Id;
+      if (!tour || !tourId) {
+        console.warn('⚠️ [loadTours] Tour inválido encontrado:', tour);
         if (typeof logger !== 'undefined') {
           logger.warn('Tour inválido encontrado', { tour });
         }
@@ -230,7 +246,10 @@ async function loadTours() {
       return true;
     });
 
+    console.log('✅ [loadTours] Tours válidos:', validTours.length);
+
     if (validTours.length === 0) {
+      console.warn('⚠️ [loadTours] No hay tours válidos después del filtrado');
       emptyState.style.display = 'block';
       return;
     }
@@ -298,27 +317,44 @@ function createTourCard(tour) {
     throw new Error('Tour es null o undefined');
   }
 
+  // Normalizar propiedades (el backend puede retornar Id/Name con mayúscula)
+  const tourId = tour.id || tour.Id;
+  const tourName = tour.name || tour.Name;
+  const tourDescription = tour.description || tour.Description;
+  const tourPrice = tour.price !== undefined ? tour.price : tour.Price;
+  const tourLocation = tour.location || tour.Location;
+  const tourImages = tour.tourImages || tour.TourImages || [];
+  const availableSpots = tour.availableSpots !== undefined ? tour.availableSpots : tour.AvailableSpots;
+  const maxCapacity = tour.maxCapacity !== undefined ? tour.maxCapacity : tour.MaxCapacity;
+
+  console.log('🎴 [createTourCard] Creando card para tour:', { 
+    id: tourId, 
+    name: tourName, 
+    price: tourPrice,
+    images: tourImages.length 
+  });
+
   // Validar y sanitizar datos del tour
   // Prioridad: tourImages[0].imageUrl > imageUrl > imagen de referencia > placeholder
-  const imageUrl = tour.tourImages?.[0]?.imageUrl 
+  const imageUrl = tourImages?.[0]?.imageUrl || tourImages?.[0]?.ImageUrl
     || tour.imageUrl 
-    || getDefaultTourImage(tour.id)
+    || getDefaultTourImage(tourId)
     || 'https://via.placeholder.com/400x220?text=Tour+Image';
   
-  const availability = (tour.availableSpots ?? 0) > 0 ? 'Disponible' : 'Agotado';
-  const availabilityClass = (tour.availableSpots ?? 0) > 0 ? 'success' : 'danger';
+  const availability = (availableSpots ?? 0) > 0 ? 'Disponible' : 'Agotado';
+  const availabilityClass = (availableSpots ?? 0) > 0 ? 'success' : 'danger';
   
   // Validar precio - puede venir como número, string, o undefined
   let price = 0;
-  if (tour.price != null && tour.price !== undefined) {
-    if (typeof tour.price === 'number') {
-      price = isNaN(tour.price) ? 0 : Math.max(0, tour.price); // Asegurar que no sea negativo
-    } else if (typeof tour.price === 'string') {
-      const parsed = parseFloat(tour.price);
+  if (tourPrice != null && tourPrice !== undefined) {
+    if (typeof tourPrice === 'number') {
+      price = isNaN(tourPrice) ? 0 : Math.max(0, tourPrice); // Asegurar que no sea negativo
+    } else if (typeof tourPrice === 'string') {
+      const parsed = parseFloat(tourPrice);
       price = isNaN(parsed) ? 0 : Math.max(0, parsed);
     } else {
       // Si es otro tipo, intentar convertirlo
-      const converted = Number(tour.price);
+      const converted = Number(tourPrice);
       price = isNaN(converted) ? 0 : Math.max(0, converted);
     }
   }
@@ -330,26 +366,25 @@ function createTourCard(tour) {
   
   const formattedPrice = price.toFixed(2);
   
-  // Validar otros campos
-  const tourName = tour.name || 'Tour sin nombre';
-  const tourDescription = tour.description || 'Sin descripción disponible';
-  const durationHours = tour.durationHours ?? tour.durationHours ?? 0;
-  const location = tour.location || 'Ubicación no especificada';
-  const tourId = tour.id || '';
+  // Validar otros campos con valores normalizados
+  const finalTourName = tourName || 'Tour sin nombre';
+  const finalTourDescription = tourDescription || 'Sin descripción disponible';
+  const durationHours = tour.durationHours || tour.DurationHours || 0;
+  const finalLocation = tourLocation || 'Ubicación no especificada';
 
   return `
     <div class="tour-card" onclick="window.location.href='/tour-detail.html?id=${tourId}'" style="opacity: 0; transform: translateY(30px);">
-      ${(tour.availableSpots ?? 0) > 0 ? '<div class="tour-card-badge">Disponible</div>' : '<div class="tour-card-badge" style="background: var(--danger);">Agotado</div>'}
-      <img src="${imageUrl}" alt="${tourName}" class="tour-card-image" loading="lazy" onerror="this.src='${getDefaultTourImage(tourId)}'" />
+      ${(availableSpots ?? 0) > 0 ? '<div class="tour-card-badge">Disponible</div>' : '<div class="tour-card-badge" style="background: var(--danger);">Agotado</div>'}
+      <img src="${imageUrl}" alt="${finalTourName}" class="tour-card-image" loading="lazy" onerror="this.src='${getDefaultTourImage(tourId)}'" />
       <div class="tour-card-content">
-        <h3 class="tour-card-title">${tourName}</h3>
-        <p class="tour-card-description">${tourDescription}</p>
+        <h3 class="tour-card-title">${finalTourName}</h3>
+        <p class="tour-card-description">${finalTourDescription}</p>
         <div class="tour-card-footer">
           <div>
             <div class="tour-card-price">$${formattedPrice}</div>
             <div class="tour-card-info">
               <span>⏱ ${durationHours}h</span>
-              <span>📍 ${location}</span>
+              <span>📍 ${finalLocation}</span>
             </div>
           </div>
         </div>
