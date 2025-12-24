@@ -4,100 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reserva Confirmada — ToursPanama</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/success.css" />
   <style>
-    .success-container {
-      min-height: calc(100vh - 200px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-2xl) var(--space-md);
-    }
-
-    .success-card {
-      background: var(--card);
-      border: 2px solid var(--accent);
-      border-radius: var(--radius-lg);
-      padding: var(--space-2xl);
-      max-width: 600px;
-      width: 100%;
-      text-align: center;
-      box-shadow: var(--shadow-xl);
-      animation: fadeInUp 0.6s ease-out;
-    }
-
-    .success-icon {
-      width: 80px;
-      height: 80px;
-      background: var(--accent);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto var(--space-lg);
-      font-size: 2.5rem;
-      animation: scaleIn 0.5s ease-out;
-    }
-
-    @keyframes scaleIn {
-      from {
-        transform: scale(0);
-      }
-      to {
-        transform: scale(1);
-      }
-    }
-
-    .success-title {
-      font-size: 2rem;
-      font-weight: var(--font-weight-extrabold);
-      margin-bottom: var(--space-md);
-      color: var(--text);
-    }
-
-    .success-message {
-      color: var(--text-secondary);
-      font-size: 1.1rem;
-      line-height: 1.7;
-      margin-bottom: var(--space-xl);
-    }
-
-    .booking-details {
-      background: var(--bg-secondary);
-      border-radius: var(--radius);
-      padding: var(--space-lg);
-      margin: var(--space-xl) 0;
-      text-align: left;
-    }
-
-    .booking-detail-item {
-      display: flex;
-      justify-content: space-between;
-      padding: var(--space-sm) 0;
-      border-bottom: 1px solid var(--border-light);
-    }
-
-    .booking-detail-item:last-child {
-      border-bottom: none;
-    }
-
-    .booking-detail-label {
-      color: var(--text-secondary);
-      font-weight: var(--font-weight-medium);
-    }
-
-    .booking-detail-value {
-      color: var(--text);
-      font-weight: var(--font-weight-semibold);
-    }
-
-    .success-actions {
-      display: flex;
-      gap: var(--space-md);
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: var(--space-xl);
-    }
   </style>
 </head>
 <body>

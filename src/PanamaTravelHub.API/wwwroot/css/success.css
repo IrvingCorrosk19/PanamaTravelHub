@@ -1,0 +1,156 @@
+/* =========================
+   Estilos para Página de Éxito
+   Diseño Celebración y Profesional
+   ========================= */
+
+.success-container {
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-md);
+  position: relative;
+  z-index: 1;
+}
+
+.success-card {
+  background: var(--card);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-xl);
+  animation: fadeInUp 0.6s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.success-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
+  z-index: 1;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-lg);
+  font-size: 2.5rem;
+  color: white;
+  animation: scaleIn 0.5s ease-out;
+  box-shadow: 0 8px 24px -8px rgba(16, 185, 129, 0.3);
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.success-title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-extrabold);
+  margin-bottom: var(--space-md);
+  color: var(--text);
+  position: relative;
+  z-index: 2;
+}
+
+.success-message {
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+  line-height: 1.7;
+  margin-bottom: var(--space-xl);
+  position: relative;
+  z-index: 2;
+}
+
+.booking-details {
+  background: var(--gradient-subtle);
+  border-radius: var(--radius);
+  padding: var(--space-lg);
+  margin: var(--space-xl) 0;
+  text-align: left;
+  border: 1px solid var(--border);
+  position: relative;
+  z-index: 2;
+}
+
+.booking-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.booking-detail-item:last-child {
+  border-bottom: none;
+}
+
+.booking-detail-label {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--text-base);
+}
+
+.booking-detail-value {
+  color: var(--text);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-base);
+}
+
+.success-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: var(--space-xl);
+  position: relative;
+  z-index: 2;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .success-card {
+    padding: var(--space-xl);
+    margin: var(--space-md);
+  }
+
+  .success-title {
+    font-size: var(--text-2xl);
+  }
+
+  .success-message {
+    font-size: var(--text-base);
+  }
+
+  .success-actions {
+    flex-direction: column;
+  }
+
+  .success-actions .btn-primary,
+  .success-actions .btn-secondary {
+    width: 100%;
+  }
+}
+
