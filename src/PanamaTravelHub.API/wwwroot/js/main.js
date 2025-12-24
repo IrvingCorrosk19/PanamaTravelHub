@@ -233,7 +233,11 @@ async function loadTours() {
       });
     }, 100);
   } catch (error) {
-    console.error('Error loading tours:', error);
+    if (typeof logger !== 'undefined') {
+      logger.error('Error loading tours', error, { endpoint: '/api/tours' });
+    } else {
+      console.error('Error loading tours:', error);
+    }
     loadingState.style.display = 'none';
     errorState.style.display = 'block';
     loadingManager.hideInline(toursGrid);
@@ -242,23 +246,35 @@ async function loadTours() {
 
 // Create Tour Card
 function createTourCard(tour) {
-  const imageUrl = tour.tourImages?.[0]?.imageUrl || 'https://via.placeholder.com/400x220';
-  const availability = tour.availableSpots > 0 ? 'Disponible' : 'Agotado';
-  const availabilityClass = tour.availableSpots > 0 ? 'success' : 'danger';
+  // Validar y sanitizar datos del tour
+  const imageUrl = tour.tourImages?.[0]?.imageUrl || tour.imageUrl || 'https://via.placeholder.com/400x220';
+  const availability = (tour.availableSpots ?? 0) > 0 ? 'Disponible' : 'Agotado';
+  const availabilityClass = (tour.availableSpots ?? 0) > 0 ? 'success' : 'danger';
+  
+  // Validar precio - puede venir como número, string, o undefined
+  const price = tour.price != null ? (typeof tour.price === 'number' ? tour.price : parseFloat(tour.price) || 0) : 0;
+  const formattedPrice = price.toFixed(2);
+  
+  // Validar otros campos
+  const tourName = tour.name || 'Tour sin nombre';
+  const tourDescription = tour.description || 'Sin descripción disponible';
+  const durationHours = tour.durationHours ?? tour.durationHours ?? 0;
+  const location = tour.location || 'Ubicación no especificada';
+  const tourId = tour.id || '';
 
   return `
-    <div class="tour-card" onclick="window.location.href='/tour-detail.html?id=${tour.id}'" style="opacity: 0; transform: translateY(30px);">
-      ${tour.availableSpots > 0 ? '<div class="tour-card-badge">Disponible</div>' : '<div class="tour-card-badge" style="background: var(--danger);">Agotado</div>'}
-      <img src="${imageUrl}" alt="${tour.name}" class="tour-card-image" loading="lazy" onerror="this.src='https://via.placeholder.com/400x220?text=Tour+Image'" />
+    <div class="tour-card" onclick="window.location.href='/tour-detail.html?id=${tourId}'" style="opacity: 0; transform: translateY(30px);">
+      ${(tour.availableSpots ?? 0) > 0 ? '<div class="tour-card-badge">Disponible</div>' : '<div class="tour-card-badge" style="background: var(--danger);">Agotado</div>'}
+      <img src="${imageUrl}" alt="${tourName}" class="tour-card-image" loading="lazy" onerror="this.src='https://via.placeholder.com/400x220?text=Tour+Image'" />
       <div class="tour-card-content">
-        <h3 class="tour-card-title">${tour.name}</h3>
-        <p class="tour-card-description">${tour.description}</p>
+        <h3 class="tour-card-title">${tourName}</h3>
+        <p class="tour-card-description">${tourDescription}</p>
         <div class="tour-card-footer">
           <div>
-            <div class="tour-card-price">$${tour.price.toFixed(2)}</div>
+            <div class="tour-card-price">$${formattedPrice}</div>
             <div class="tour-card-info">
-              <span>⏱ ${tour.durationHours}h</span>
-              <span>📍 ${tour.location}</span>
+              <span>⏱ ${durationHours}h</span>
+              <span>📍 ${location}</span>
             </div>
           </div>
         </div>

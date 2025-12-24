@@ -345,19 +345,19 @@ class ApiClient {
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('refreshToken', response.refreshToken);
       localStorage.setItem('authToken', response.accessToken); // Compatibilidad
-      console.log('💾 Tokens guardados en localStorage');
+      logger.debug('Tokens guardados en localStorage');
     }
     
     // Guardar userId para usar en reservas
     if (response.user && response.user.id) {
       localStorage.setItem('userId', response.user.id);
-      console.log('💾 UserId guardado:', response.user.id);
+      logger.debug('UserId guardado', { userId: response.user.id });
     }
     
     // Guardar roles del usuario
     if (response.user && response.user.roles) {
       localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
-      console.log('💾 Roles guardados:', response.user.roles);
+      logger.debug('Roles guardados', { roles: response.user.roles });
     }
     
     return response;
