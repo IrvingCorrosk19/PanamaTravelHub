@@ -139,7 +139,7 @@ public class StripePaymentProvider : IPaymentProvider
         }
     }
 
-    public async Task<WebhookResult> ProcessWebhookAsync(string payload, string signature)
+    public Task<WebhookResult> ProcessWebhookAsync(string payload, string signature)
     {
         try
         {
@@ -147,11 +147,11 @@ public class StripePaymentProvider : IPaymentProvider
             if (string.IsNullOrEmpty(webhookSecret))
             {
                 _logger.LogWarning("Stripe WebhookSecret no configurada. Los webhooks no se pueden verificar.");
-                return new WebhookResult
+                return Task.FromResult(new WebhookResult
                 {
                     Success = false,
                     ErrorMessage = "Webhook secret no configurado"
-                };
+                });
             }
 
             var stripeEvent = EventUtility.ConstructEvent(
@@ -199,38 +199,38 @@ public class StripePaymentProvider : IPaymentProvider
 
                 default:
                     _logger.LogInformation("Evento de webhook no manejado: {EventType}", stripeEvent.Type);
-                    return new WebhookResult
+                    return Task.FromResult(new WebhookResult
                     {
                         Success = true, // No es un error, solo no lo manejamos
                         ErrorMessage = $"Evento no manejado: {stripeEvent.Type}"
-                    };
+                    });
             }
 
-            return new WebhookResult
+            return Task.FromResult(new WebhookResult
             {
                 Success = status != null,
                 PaymentIntentId = paymentIntentId,
                 Status = status,
                 TransactionId = transactionId
-            };
+            });
         }
         catch (StripeException ex)
         {
             _logger.LogError(ex, "Error al procesar webhook de Stripe");
-            return new WebhookResult
+            return Task.FromResult(new WebhookResult
             {
                 Success = false,
                 ErrorMessage = ex.Message
-            };
+            });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error inesperado al procesar webhook");
-            return new WebhookResult
+            return Task.FromResult(new WebhookResult
             {
                 Success = false,
                 ErrorMessage = "Error inesperado al procesar el webhook"
-            };
+            });
         }
     }
 

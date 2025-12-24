@@ -121,7 +121,7 @@ public class PaymentsController : ControllerBase
             return Ok(new CreatePaymentResponseDto
             {
                 PaymentId = payment.Id,
-                PaymentIntentId = paymentIntentResult.PaymentIntentId,
+                PaymentIntentId = paymentIntentResult.PaymentIntentId ?? string.Empty,
                 ClientSecret = paymentIntentResult.ClientSecret,
                 CheckoutUrl = paymentIntentResult.CheckoutUrl,
                 Amount = payment.Amount,
