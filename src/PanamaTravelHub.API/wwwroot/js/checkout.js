@@ -678,6 +678,9 @@ async function processPayment() {
       return;
     }
 
+    // Mostrar loading global
+    loadingManager.showGlobal('Procesando tu reserva...');
+
     // Crear la reserva primero
     statusText.textContent = 'Creando reserva...';
     const bookingData = {
@@ -751,6 +754,7 @@ async function processPayment() {
 
       // Redirigir a página de éxito
       const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
+      loadingManager.hideGlobal();
       window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
       
     } else if (selectedPaymentMethod === 'paypal') {
@@ -774,9 +778,11 @@ async function processPayment() {
         await api.confirmPayment(paymentResponse.paymentIntentId);
         
         const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
+        loadingManager.hideGlobal();
         window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
       } else {
         // Redirigir a PayPal
+        loadingManager.hideGlobal();
         window.location.href = paymentResponse.checkoutUrl;
       }
       
@@ -807,11 +813,13 @@ async function processPayment() {
       await api.confirmPayment(paymentResponse.paymentIntentId);
       
       const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
+      loadingManager.hideGlobal();
       window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
     }
 
   } catch (error) {
     console.error('Error processing payment:', error);
+    loadingManager.hideGlobal();
     statusText.textContent = error.message || 'Error al procesar el pago. Por favor intenta de nuevo.';
     await sleep(3000);
     modal.style.display = 'none';

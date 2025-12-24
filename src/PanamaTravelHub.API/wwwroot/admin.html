@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
   <link rel="stylesheet" href="/css/admin.css" />
+  <link rel="stylesheet" href="/css/loading.css" />
   <!-- TinyMCE Editor -->
   <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
@@ -900,6 +901,7 @@
     </div>
   </div>
 
+  <script src="/js/loading.js"></script>
   <script src="/js/api.js"></script>
   <script>
     let currentTourId = null;
@@ -1220,9 +1222,12 @@
     }
 
     async function loadTours() {
+      const tbody = document.getElementById('toursTableBody');
+      const loaderId = loadingManager.showInline(tbody, 'Cargando tours...');
+      
       try {
         const tours = await api.getAdminTours();
-        const tbody = document.getElementById('toursTableBody');
+        loadingManager.hideInline(tbody);
         
         if (!tours || tours.length === 0) {
           tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay tours disponibles</td></tr>';
@@ -1253,15 +1258,19 @@
         `).join('');
       } catch (error) {
         console.error('Error loading tours:', error);
+        loadingManager.hideInline(tbody);
         document.getElementById('toursTableBody').innerHTML = 
           '<tr><td colspan="7" style="text-align: center; color: var(--error);">Error al cargar tours</td></tr>';
       }
     }
 
     async function loadBookings() {
+      const tbody = document.getElementById('bookingsTableBody');
+      const loaderId = loadingManager.showInline(tbody, 'Cargando reservas...');
+      
       try {
         const bookings = await api.getAdminBookings();
-        const tbody = document.getElementById('bookingsTableBody');
+        loadingManager.hideInline(tbody);
         
         if (!bookings || bookings.length === 0) {
           tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay reservas disponibles</td></tr>';
@@ -1800,18 +1809,24 @@
         images: images.length > 0 ? images : null
       };
 
+      const submitButton = event.target.querySelector('button[type="submit"]') || document.querySelector('button[form="tourForm"][type="submit"]');
+      const loaderId = submitButton ? loadingManager.showInButton(submitButton, currentTourId ? 'Guardando cambios...' : 'Creando tour...') : null;
+
       try {
         if (currentTourId) {
           await api.updateTour(currentTourId, tourData);
+          if (submitButton && loaderId) loadingManager.hideInButton(submitButton);
           alert('✅ Tour actualizado exitosamente');
         } else {
           await api.createTour(tourData);
+          if (submitButton && loaderId) loadingManager.hideInButton(submitButton);
           alert('✅ Tour creado exitosamente');
         }
         
         closeTourModal();
         loadTours();
       } catch (error) {
+        if (submitButton && loaderId) loadingManager.hideInButton(submitButton);
         console.error('Error saving tour:', error);
         alert('❌ Error al guardar el tour: ' + (error.message || 'Error desconocido'));
       } finally {
@@ -1904,8 +1919,10 @@
           body: JSON.stringify(contentData)
         });
         
+        if (submitButton && loaderId) loadingManager.hideInButton(submitButton);
         alert('Contenido guardado exitosamente');
       } catch (error) {
+        if (submitButton && loaderId) loadingManager.hideInButton(submitButton);
         console.error('Error saving homepage content:', error);
         alert('Error al guardar el contenido: ' + (error.message || 'Error desconocido'));
       }

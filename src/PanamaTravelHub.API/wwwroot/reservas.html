@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
   <link rel="stylesheet" href="/css/reservations.css" />
+  <link rel="stylesheet" href="/css/loading.css" />
   <style>
   </style>
 </head>
@@ -71,6 +72,7 @@
     </div>
   </main>
 
+  <script src="/js/loading.js"></script>
   <script src="/js/api.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -120,12 +122,13 @@
       try {
         loadingState.style.display = 'block';
         emptyState.style.display = 'none';
-        reservationsList.innerHTML = '';
+        const loaderId = loadingManager.showInline(reservationsList, 'Cargando tus reservas...');
 
         // Llamar a la API real
         let reservations = [];
         try {
           reservations = await api.getMyBookings();
+          loadingManager.hideInline(reservationsList);
         } catch (error) {
           console.warn('Error al cargar reservas:', error);
           // Si es error 401 (no autorizado), limpiar token y redirigir

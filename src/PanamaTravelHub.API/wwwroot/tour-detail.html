@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
   <link rel="stylesheet" href="/css/detail.css" />
+  <link rel="stylesheet" href="/css/loading.css" />
 </head>
 <body>
   <nav class="nav">
@@ -172,6 +173,7 @@
     </div>
   </footer>
 
+  <script src="/js/loading.js"></script>
   <script src="/js/api.js"></script>
   <script>
     let currentTour = null;
@@ -185,11 +187,14 @@
         return;
       }
 
+      const loaderId = loadingManager.showInElement(document.querySelector('.tour-detail-container') || document.body, 'Cargando información del tour...');
       try {
         // Llamar a la API real
         try {
           currentTour = await api.getTour(tourId);
+          loadingManager.hideInElement(loaderId);
         } catch (error) {
+          loadingManager.hideInElement(loaderId);
           // Si falla, usar datos mock
           console.warn('API no disponible, usando datos mock:', error);
           currentTour = {

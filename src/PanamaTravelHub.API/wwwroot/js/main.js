@@ -131,10 +131,14 @@ async function loadTours() {
     emptyState.style.display = 'none';
     toursGrid.innerHTML = '';
 
+    // Mostrar loader inline en el grid
+    const loaderId = loadingManager.showInline(toursGrid, 'Cargando tours...');
+
     // Llamar a la API real
     let tours = [];
     try {
       tours = await api.getTours();
+      loadingManager.hideInline(toursGrid);
     } catch (error) {
       // Si falla la API, usar datos mock como fallback
       console.warn('API no disponible, usando datos mock:', error);
@@ -232,6 +236,7 @@ async function loadTours() {
     console.error('Error loading tours:', error);
     loadingState.style.display = 'none';
     errorState.style.display = 'block';
+    loadingManager.hideInline(toursGrid);
   }
 }
 
