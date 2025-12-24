@@ -444,6 +444,31 @@
   }
 }
 
+.test-mode-notice {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: #856404;
+}
+
+.test-mode-notice strong {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.test-mode-notice ul {
+  margin: var(--spacing-xs) 0 0 var(--spacing-md);
+  padding-left: var(--spacing-md);
+  list-style-type: disc;
+}
+
+.test-mode-notice li {
+  margin-bottom: 2px;
+}
+
 .payment-info {
   color: var(--text-secondary);
   font-size: 0.95rem;
