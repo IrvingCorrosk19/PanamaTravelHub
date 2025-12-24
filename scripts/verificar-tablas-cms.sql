@@ -35,3 +35,4 @@ FROM information_schema.columns
 WHERE table_schema = 'public' AND table_name = 'pages'
 ORDER BY ordinal_position;
 
+

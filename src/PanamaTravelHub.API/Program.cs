@@ -176,6 +176,25 @@ builder.Services.Configure<IpRateLimitOptions>(options =>
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
+// Configurar Health Checks (debe ir ANTES de builder.Build())
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        connectionString: builder.Configuration.GetConnectionString("DefaultConnection") ?? "",
+        name: "postgresql",
+        tags: new[] { "db", "postgresql" },
+        timeout: TimeSpan.FromSeconds(5));
+
+// Health check UI (solo en desarrollo)
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddHealthChecksUI(setup =>
+    {
+        setup.SetEvaluationTimeInSeconds(10);
+        setup.MaximumHistoryEntriesPerEndpoint(50);
+        setup.AddHealthCheckEndpoint("API", "/health");
+    });
+}
+
 // Alternativa más simple: Rate limiting básico sin paquete externo
 // Se puede implementar con middleware personalizado si AspNetCoreRateLimit da problemas
 
@@ -221,24 +240,6 @@ app.UseAuthorization();
 // Audit middleware (debe ir después de authentication para tener acceso al usuario)
 app.UseMiddleware<AuditMiddleware>();
 app.MapControllers();
-
-// Configurar Health Checks
-builder.Services.AddHealthChecks()
-    .AddNpgSql(
-        connectionString: builder.Configuration.GetConnectionString("DefaultConnection") ?? "",
-        name: "postgresql",
-        tags: new[] { "db", "postgresql" },
-        timeout: TimeSpan.FromSeconds(5));
-
-// Health check UI (solo en desarrollo)
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddHealthChecksUI(setup =>
-    {
-        setup.SetEvaluationTimeInSeconds(10);
-        setup.MaximumHistoryEntriesPerEndpoint(50);
-    });
-}
 
 // Health check endpoints
 app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions

@@ -46,3 +46,4 @@ Ahora puedes hacer reservas de prueba sin usar dinero real.
 
 **¿Problemas?** Revisa `CONFIGURACION_STRIPE_PRUEBAS.md` para más detalles.
 
+

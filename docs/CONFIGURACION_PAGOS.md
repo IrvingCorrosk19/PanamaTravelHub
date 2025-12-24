@@ -206,3 +206,4 @@ Antes de pasar a producción:
 5. Prueba cada pasarela en un entorno de staging primero
 6. Monitorea los logs y las transacciones
 
+

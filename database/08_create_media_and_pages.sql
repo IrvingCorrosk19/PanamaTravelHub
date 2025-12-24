@@ -68,3 +68,4 @@ COMMENT ON COLUMN media_files.category IS 'Categoría para organizar archivos (T
 COMMENT ON COLUMN pages.slug IS 'URL amigable única para la página';
 COMMENT ON COLUMN pages.template IS 'Template a usar para renderizar la página';
 
+

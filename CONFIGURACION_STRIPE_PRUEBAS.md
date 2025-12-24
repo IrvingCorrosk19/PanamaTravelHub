@@ -181,3 +181,4 @@ Stripe proporciona tarjetas de prueba para simular diferentes escenarios:
 
 **¿Necesitas ayuda?** Revisa los logs de la aplicación o consulta la documentación de Stripe.
 
+
