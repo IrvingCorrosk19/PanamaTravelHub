@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de Reserva</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .booking-info {
+            background-color: #f9fafb;
+            border-left: 4px solid #2563eb;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #6b7280;
+        }
+        .info-value {
+            color: #111827;
+            text-align: right;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .footer a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .highlight {
+            color: #2563eb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>✅ Reserva Confirmada</h1>
+        </div>
+        <div class="content">
+            <p>Hola <strong>{{CustomerName}}</strong>,</p>
+            <p>¡Gracias por tu reserva! Tu tour ha sido confirmado exitosamente.</p>
+            
+            <div class="booking-info">
+                <div class="info-row">
+                    <span class="info-label">Tour:</span>
+                    <span class="info-value"><strong>{{TourName}}</strong></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Fecha y Hora:</span>
+                    <span class="info-value">{{TourDate}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Número de Participantes:</span>
+                    <span class="info-value">{{NumberOfParticipants}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Total Pagado:</span>
+                    <span class="info-value highlight">{{TotalAmount}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Número de Reserva:</span>
+                    <span class="info-value">{{BookingId}}</span>
+                </div>
+            </div>
+
+            <p><strong>Próximos pasos:</strong></p>
+            <ul>
+                <li>Recibirás un recordatorio 24 horas antes del tour</li>
+                <li>Llega 15 minutos antes de la hora programada</li>
+                <li>Trae una identificación válida</li>
+            </ul>
+
+            <p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
+            
+            <p>¡Esperamos que disfrutes tu experiencia en Panamá!</p>
+            
+            <p>Saludos,<br>
+            <strong>El equipo de Panama Travel Hub</strong></p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{Year}} Panama Travel Hub. Todos los derechos reservados.</p>
+            <p>Este es un email automático, por favor no respondas a este mensaje.</p>
+        </div>
+    </div>
+</body>
+</html>
+

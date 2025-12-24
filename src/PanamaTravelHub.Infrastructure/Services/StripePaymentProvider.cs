@@ -4,6 +4,7 @@ using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Domain.Enums;
 using Stripe;
 using Stripe.Checkout;
+using Stripe.Events;
 
 namespace PanamaTravelHub.Infrastructure.Services;
 
@@ -167,7 +168,7 @@ public class StripePaymentProvider : IPaymentProvider
 
             switch (stripeEvent.Type)
             {
-                case Events.PaymentIntentSucceeded:
+                case "payment_intent.succeeded":
                     var paymentIntentSucceeded = stripeEvent.Data.Object as PaymentIntent;
                     if (paymentIntentSucceeded != null)
                     {
@@ -177,7 +178,7 @@ public class StripePaymentProvider : IPaymentProvider
                     }
                     break;
 
-                case Events.PaymentIntentPaymentFailed:
+                case "payment_intent.payment_failed":
                     var paymentIntentFailed = stripeEvent.Data.Object as PaymentIntent;
                     if (paymentIntentFailed != null)
                     {
@@ -186,7 +187,7 @@ public class StripePaymentProvider : IPaymentProvider
                     }
                     break;
 
-                case Events.ChargeRefunded:
+                case "charge.refunded":
                     var chargeRefunded = stripeEvent.Data.Object as Charge;
                     if (chargeRefunded != null)
                     {

@@ -237,7 +237,7 @@ if (builder.Environment.IsDevelopment())
     {
         setup.SetEvaluationTimeInSeconds(10);
         setup.MaximumHistoryEntriesPerEndpoint(50);
-    }).AddInMemoryStorage();
+    });
 }
 
 // Health check endpoints

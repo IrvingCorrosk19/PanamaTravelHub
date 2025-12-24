@@ -212,14 +212,7 @@ public class BookingsController : ControllerBase
 }
 
 // DTOs
-public class CreateBookingRequestDto
-{
-    public Guid? UserId { get; set; }
-    public Guid TourId { get; set; }
-    public Guid? TourDateId { get; set; }
-    public int NumberOfParticipants { get; set; }
-    public List<ParticipantRequestDto> Participants { get; set; } = new();
-}
+// CreateBookingRequestDto y ParticipantRequestDto están definidos en PanamaTravelHub.Application.Validators
 
 public class ParticipantRequestDto
 {

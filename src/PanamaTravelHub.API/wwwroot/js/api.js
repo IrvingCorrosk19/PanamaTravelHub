@@ -377,6 +377,38 @@ class ApiClient {
     return this.request(`/api/tours/${tourId}/dates`);
   }
 
+  // Admin Users
+  async getAdminUsers(search = '', isActive = null, role = '') {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (isActive !== null) params.append('isActive', isActive);
+    if (role) params.append('role', role);
+    
+    const queryString = params.toString();
+    return this.request(`/api/admin/users${queryString ? '?' + queryString : ''}`);
+  }
+
+  async getAdminUser(userId) {
+    return this.request(`/api/admin/users/${userId}`);
+  }
+
+  async updateAdminUser(userId, userData) {
+    return this.request(`/api/admin/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async unlockAdminUser(userId) {
+    return this.request(`/api/admin/users/${userId}/unlock`, {
+      method: 'POST',
+    });
+  }
+
+  async getAdminRoles() {
+    return this.request('/api/admin/roles');
+  }
+
   async getAdminStats() {
     return this.request('/api/admin/stats');
   }

@@ -30,12 +30,12 @@ public class EmailService : IEmailService
         try
         {
             var smtpHost = _configuration["Email:Smtp:Host"];
-            var smtpPort = _configuration.GetValue<int>("Email:Smtp:Port", 587);
+            var smtpPort = int.TryParse(_configuration["Email:Smtp:Port"], out var port) ? port : 587;
             var smtpUsername = _configuration["Email:Smtp:Username"];
             var smtpPassword = _configuration["Email:Smtp:Password"];
             var fromEmail = _configuration["Email:From:Address"] ?? "noreply@panamatravelhub.com";
             var fromName = _configuration["Email:From:Name"] ?? "Panama Travel Hub";
-            var enableSsl = _configuration.GetValue<bool>("Email:Smtp:EnableSsl", true);
+            var enableSsl = bool.TryParse(_configuration["Email:Smtp:EnableSsl"], out var ssl) ? ssl : true;
 
             if (string.IsNullOrEmpty(smtpHost))
             {

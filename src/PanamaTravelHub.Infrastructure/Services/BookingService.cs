@@ -15,17 +15,20 @@ public class BookingService : IBookingService
     private readonly IRepository<Tour> _tourRepository;
     private readonly IRepository<Booking> _bookingRepository;
     private readonly ILogger<BookingService> _logger;
+    private readonly IEmailNotificationService _emailNotificationService;
 
     public BookingService(
         ApplicationDbContext context,
         IRepository<Tour> tourRepository,
         IRepository<Booking> bookingRepository,
-        ILogger<BookingService> logger)
+        ILogger<BookingService> logger,
+        IEmailNotificationService emailNotificationService)
     {
         _context = context;
         _tourRepository = tourRepository;
         _bookingRepository = bookingRepository;
         _logger = logger;
+        _emailNotificationService = emailNotificationService;
     }
 
     public async Task<Booking> CreateBookingAsync(
@@ -125,7 +128,72 @@ public class BookingService : IBookingService
                 .Reference(b => b.User)
                 .LoadAsync(cancellationToken);
 
+            if (booking.TourDateId.HasValue)
+            {
+                await _context.Entry(booking)
+                    .Reference(b => b.TourDate)
+                    .LoadAsync(cancellationToken);
+            }
+
             _logger.LogInformation("Reserva creada exitosamente: {BookingId}", booking.Id);
+
+            // Enviar email de confirmación de reserva
+            try
+            {
+                var tourDateStr = booking.TourDate?.TourDateTime.ToString("dd/MM/yyyy HH:mm") ?? "Por confirmar";
+                var customerName = $"{booking.User.FirstName} {booking.User.LastName}";
+                
+                await _emailNotificationService.QueueTemplatedEmailAsync(
+                    toEmail: booking.User.Email,
+                    subject: $"Confirmación de Reserva - {booking.Tour.Name}",
+                    templateName: "booking-confirmation",
+                    templateData: new
+                    {
+                        CustomerName = customerName,
+                        TourName = booking.Tour.Name,
+                        TourDate = tourDateStr,
+                        NumberOfParticipants = booking.NumberOfParticipants,
+                        TotalAmount = booking.TotalAmount.ToString("C"),
+                        BookingId = booking.Id.ToString(),
+                        Year = DateTime.UtcNow.Year
+                    },
+                    type: EmailNotificationType.BookingConfirmation,
+                    userId: booking.UserId,
+                    bookingId: booking.Id
+                );
+
+                // Programar email de recordatorio 24 horas antes del tour
+                if (booking.TourDate?.TourDateTime != null)
+                {
+                    var reminderTime = booking.TourDate.TourDateTime.AddHours(-24);
+                    if (reminderTime > DateTime.UtcNow)
+                    {
+                        await _emailNotificationService.QueueTemplatedEmailAsync(
+                            toEmail: booking.User.Email,
+                            subject: $"Recordatorio: Tu tour {booking.Tour.Name} es mañana",
+                            templateName: "booking-reminder",
+                            templateData: new
+                            {
+                                CustomerName = customerName,
+                                TourName = booking.Tour.Name,
+                                TourDate = booking.TourDate.TourDateTime.ToString("dd/MM/yyyy HH:mm"),
+                                Location = booking.Tour.Location ?? "Se confirmará por email",
+                                NumberOfParticipants = booking.NumberOfParticipants,
+                                Year = DateTime.UtcNow.Year
+                            },
+                            type: EmailNotificationType.BookingReminder,
+                            userId: booking.UserId,
+                            bookingId: booking.Id,
+                            scheduledFor: reminderTime
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // No fallar la creación de la reserva si el email falla
+                _logger.LogError(ex, "Error al enviar email de confirmación para reserva {BookingId}", booking.Id);
+            }
 
             return booking;
         }
@@ -232,6 +300,48 @@ public class BookingService : IBookingService
         await _bookingRepository.UpdateAsync(booking, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
+        // Enviar email de cancelación
+        try
+        {
+            await _context.Entry(booking)
+                .Reference(b => b.User)
+                .LoadAsync(cancellationToken);
+            await _context.Entry(booking)
+                .Reference(b => b.Tour)
+                .LoadAsync(cancellationToken);
+            if (booking.TourDateId.HasValue)
+            {
+                await _context.Entry(booking)
+                    .Reference(b => b.TourDate)
+                    .LoadAsync(cancellationToken);
+            }
+
+            var customerName = $"{booking.User.FirstName} {booking.User.LastName}";
+            var tourDateStr = booking.TourDate?.TourDateTime.ToString("dd/MM/yyyy HH:mm") ?? "N/A";
+            
+            await _emailNotificationService.QueueTemplatedEmailAsync(
+                toEmail: booking.User.Email,
+                subject: $"Cancelación de Reserva - {booking.Tour.Name}",
+                templateName: "booking-cancellation",
+                templateData: new
+                {
+                    CustomerName = customerName,
+                    TourName = booking.Tour.Name,
+                    TourDate = tourDateStr,
+                    BookingId = booking.Id.ToString(),
+                    CancellationDate = DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm"),
+                    Year = DateTime.UtcNow.Year
+                },
+                type: EmailNotificationType.BookingCancellation,
+                userId: booking.UserId,
+                bookingId: booking.Id
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al enviar email de cancelación para reserva {BookingId}", bookingId);
+        }
+
         return true;
     }
 
@@ -248,6 +358,49 @@ public class BookingService : IBookingService
         booking.ExpiresAt = null; // Ya no expira
         await _bookingRepository.UpdateAsync(booking, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Re-enviar email de confirmación cuando se confirma la reserva
+        try
+        {
+            await _context.Entry(booking)
+                .Reference(b => b.User)
+                .LoadAsync(cancellationToken);
+            await _context.Entry(booking)
+                .Reference(b => b.Tour)
+                .LoadAsync(cancellationToken);
+            if (booking.TourDateId.HasValue)
+            {
+                await _context.Entry(booking)
+                    .Reference(b => b.TourDate)
+                    .LoadAsync(cancellationToken);
+            }
+
+            var tourDateStr = booking.TourDate?.TourDateTime.ToString("dd/MM/yyyy HH:mm") ?? "Por confirmar";
+            var customerName = $"{booking.User.FirstName} {booking.User.LastName}";
+            
+            await _emailNotificationService.QueueTemplatedEmailAsync(
+                toEmail: booking.User.Email,
+                subject: $"Reserva Confirmada - {booking.Tour.Name}",
+                templateName: "booking-confirmation",
+                templateData: new
+                {
+                    CustomerName = customerName,
+                    TourName = booking.Tour.Name,
+                    TourDate = tourDateStr,
+                    NumberOfParticipants = booking.NumberOfParticipants,
+                    TotalAmount = booking.TotalAmount.ToString("C"),
+                    BookingId = booking.Id.ToString(),
+                    Year = DateTime.UtcNow.Year
+                },
+                type: EmailNotificationType.BookingConfirmation,
+                userId: booking.UserId,
+                bookingId: booking.Id
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al enviar email de confirmación para reserva {BookingId}", bookingId);
+        }
 
         return true;
     }

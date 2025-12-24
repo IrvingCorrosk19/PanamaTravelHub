@@ -652,84 +652,6 @@ public class AdminController : ControllerBase
             return StatusCode(500, new { message = "Error al subir la imagen: " + ex.Message });
         }
     }
-}
-
-// DTOs
-public class AdminTourDto
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string? Itinerary { get; set; }
-    public decimal Price { get; set; }
-    public int MaxCapacity { get; set; }
-    public int AvailableSpots { get; set; }
-    public int DurationHours { get; set; }
-    public string? Location { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public string? ImageUrl { get; set; }
-    public List<string>? Images { get; set; }
-}
-
-public class AdminBookingDto
-{
-    public Guid Id { get; set; }
-    public Guid TourId { get; set; }
-    public string TourName { get; set; } = string.Empty;
-    public Guid UserId { get; set; }
-    public string UserEmail { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
-    public int NumberOfParticipants { get; set; }
-    public decimal TotalAmount { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public DateTime? TourDate { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? ExpiresAt { get; set; }
-}
-
-public class AdminStatsDto
-{
-    public int TotalTours { get; set; }
-    public int ActiveTours { get; set; }
-    public int TotalBookings { get; set; }
-    public int PendingBookings { get; set; }
-    public int ConfirmedBookings { get; set; }
-    public int TotalUsers { get; set; }
-    public decimal TotalRevenue { get; set; }
-}
-
-public class HomePageContentDto
-{
-    public Guid Id { get; set; }
-    public string HeroTitle { get; set; } = string.Empty;
-    public string HeroSubtitle { get; set; } = string.Empty;
-    public string HeroSearchPlaceholder { get; set; } = string.Empty;
-    public string ToursSectionTitle { get; set; } = string.Empty;
-    public string ToursSectionSubtitle { get; set; } = string.Empty;
-    public string FooterBrandText { get; set; } = string.Empty;
-    public string FooterDescription { get; set; } = string.Empty;
-    public string FooterCopyright { get; set; } = string.Empty;
-    public string NavBrandText { get; set; } = string.Empty;
-    public string NavToursLink { get; set; } = string.Empty;
-    public string NavBookingsLink { get; set; } = string.Empty;
-    public string NavLoginLink { get; set; } = string.Empty;
-    public string NavLogoutButton { get; set; } = string.Empty;
-    public string HeroSearchButton { get; set; } = string.Empty;
-    public string LoadingToursText { get; set; } = string.Empty;
-    public string ErrorLoadingToursText { get; set; } = string.Empty;
-    public string NoToursFoundText { get; set; } = string.Empty;
-    public string PageTitle { get; set; } = string.Empty;
-    public string MetaDescription { get; set; } = string.Empty;
-    public DateTime? UpdatedAt { get; set; }
-}
-
-public class ImageUploadResponseDto
-{
-    public string Url { get; set; } = string.Empty;
-    public string FileName { get; set; } = string.Empty;
-    public long Size { get; set; }
-}
 
     /// <summary>
     /// Obtiene las fechas de un tour (Admin)
@@ -921,6 +843,302 @@ public class ImageUploadResponseDto
             throw;
         }
     }
+
+    /// <summary>
+    /// Obtiene todos los usuarios (Admin)
+    /// </summary>
+    [HttpGet("users")]
+    public async Task<ActionResult<IEnumerable<AdminUserDto>>> GetUsers(
+        [FromQuery] string? search = null,
+        [FromQuery] bool? isActive = null,
+        [FromQuery] string? role = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        try
+        {
+            var query = _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Include(u => u.Bookings)
+                .AsQueryable();
+
+            // Búsqueda por email, nombre o apellido
+            if (!string.IsNullOrEmpty(search))
+            {
+                search = search.ToLower();
+                query = query.Where(u => 
+                    u.Email.ToLower().Contains(search) ||
+                    u.FirstName.ToLower().Contains(search) ||
+                    u.LastName.ToLower().Contains(search));
+            }
+
+            // Filtro por estado activo
+            if (isActive.HasValue)
+            {
+                query = query.Where(u => u.IsActive == isActive.Value);
+            }
+
+            // Filtro por rol
+            if (!string.IsNullOrEmpty(role))
+            {
+                query = query.Where(u => u.UserRoles.Any(ur => ur.Role.Name.ToLower() == role.ToLower()));
+            }
+
+            // Paginación
+            var totalCount = await query.CountAsync();
+            var users = await query
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = users.Select(u => new AdminUserDto
+            {
+                Id = u.Id,
+                Email = u.Email,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Phone = u.Phone,
+                IsActive = u.IsActive,
+                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                FailedLoginAttempts = u.FailedLoginAttempts,
+                LockedUntil = u.LockedUntil,
+                LastLoginAt = u.LastLoginAt,
+                CreatedAt = u.CreatedAt,
+                TotalBookings = u.Bookings.Count
+            });
+
+            Response.Headers.Add("X-Total-Count", totalCount.ToString());
+            Response.Headers.Add("X-Page", page.ToString());
+            Response.Headers.Add("X-Page-Size", pageSize.ToString());
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener usuarios");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Obtiene un usuario por ID (Admin)
+    /// </summary>
+    [HttpGet("users/{id}")]
+    public async Task<ActionResult<AdminUserDetailDto>> GetUser(Guid id)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Include(u => u.Bookings)
+                    .ThenInclude(b => b.Tour)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "Usuario no encontrado" });
+            }
+
+            var result = new AdminUserDetailDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Phone = user.Phone,
+                IsActive = user.IsActive,
+                Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                FailedLoginAttempts = user.FailedLoginAttempts,
+                LockedUntil = user.LockedUntil,
+                LastLoginAt = user.LastLoginAt,
+                CreatedAt = user.CreatedAt,
+                Bookings = user.Bookings.Select(b => new AdminUserBookingDto
+                {
+                    Id = b.Id,
+                    TourName = b.Tour.Name,
+                    Status = b.Status.ToString(),
+                    NumberOfParticipants = b.NumberOfParticipants,
+                    TotalAmount = b.TotalAmount,
+                    TourDate = b.TourDate?.TourDateTime,
+                    CreatedAt = b.CreatedAt
+                }).OrderByDescending(b => b.CreatedAt).ToList()
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener usuario {UserId}", id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Actualiza un usuario (Admin)
+    /// </summary>
+    [HttpPut("users/{id}")]
+    public async Task<ActionResult<AdminUserDto>> UpdateUser(Guid id, [FromBody] UpdateUserRequestDto request)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "Usuario no encontrado" });
+            }
+
+            // Actualizar campos básicos
+            if (!string.IsNullOrEmpty(request.FirstName))
+            {
+                user.FirstName = request.FirstName;
+            }
+
+            if (!string.IsNullOrEmpty(request.LastName))
+            {
+                user.LastName = request.LastName;
+            }
+
+            if (request.Phone != null)
+            {
+                user.Phone = request.Phone;
+            }
+
+            if (request.IsActive.HasValue)
+            {
+                user.IsActive = request.IsActive.Value;
+                
+                // Si se activa, limpiar bloqueo
+                if (request.IsActive.Value)
+                {
+                    user.LockedUntil = null;
+                    user.FailedLoginAttempts = 0;
+                }
+            }
+
+            // Actualizar roles si se proporcionan
+            if (request.Roles != null && request.Roles.Any())
+            {
+                // Obtener IDs de roles por nombre
+                var roleNames = request.Roles.Select(r => r.ToLower()).ToList();
+                var roles = await _context.Roles
+                    .Where(r => roleNames.Contains(r.Name.ToLower()))
+                    .ToListAsync();
+
+                // Eliminar roles actuales
+                _context.UserRoles.RemoveRange(user.UserRoles);
+
+                // Agregar nuevos roles
+                foreach (var role in roles)
+                {
+                    user.UserRoles.Add(new UserRole
+                    {
+                        UserId = user.Id,
+                        RoleId = role.Id
+                    });
+                }
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            // Recargar para obtener roles actualizados
+            await _context.Entry(user)
+                .Collection(u => u.UserRoles)
+                .Query()
+                .Include(ur => ur.Role)
+                .LoadAsync();
+
+            await _context.Entry(user)
+                .Collection(u => u.Bookings)
+                .LoadAsync();
+
+            var result = new AdminUserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Phone = user.Phone,
+                IsActive = user.IsActive,
+                Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                FailedLoginAttempts = user.FailedLoginAttempts,
+                LockedUntil = user.LockedUntil,
+                LastLoginAt = user.LastLoginAt,
+                CreatedAt = user.CreatedAt,
+                TotalBookings = user.Bookings.Count
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar usuario {UserId}", id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Desbloquea un usuario (Admin)
+    /// </summary>
+    [HttpPost("users/{id}/unlock")]
+    public async Task<ActionResult> UnlockUser(Guid id)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound(new { message = "Usuario no encontrado" });
+            }
+
+            user.LockedUntil = null;
+            user.FailedLoginAttempts = 0;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Usuario desbloqueado exitosamente" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al desbloquear usuario {UserId}", id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Obtiene los roles disponibles
+    /// </summary>
+    [HttpGet("roles")]
+    public async Task<ActionResult<IEnumerable<RoleDto>>> GetRoles()
+    {
+        try
+        {
+            var roles = await _context.Roles
+                .OrderBy(r => r.Name)
+                .ToListAsync();
+
+            var result = roles.Select(r => new RoleDto
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description
+            });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener roles");
+            throw;
+        }
+    }
 }
 
 public class AdminTourDateDto
@@ -932,17 +1150,121 @@ public class AdminTourDateDto
     public DateTime CreatedAt { get; set; }
 }
 
-public class CreateTourDateRequestDto
+// DTOs
+public class AdminTourDto
 {
-    public DateTime TourDateTime { get; set; }
-    public int? AvailableSpots { get; set; }
-    public bool? IsActive { get; set; }
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string? Itinerary { get; set; }
+    public decimal Price { get; set; }
+    public int MaxCapacity { get; set; }
+    public int AvailableSpots { get; set; }
+    public int DurationHours { get; set; }
+    public string? Location { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string? ImageUrl { get; set; }
+    public List<string>? Images { get; set; }
 }
 
-public class UpdateTourDateRequestDto
+public class AdminBookingDto
 {
-    public DateTime? TourDateTime { get; set; }
-    public int? AvailableSpots { get; set; }
-    public bool? IsActive { get; set; }
+    public Guid Id { get; set; }
+    public Guid TourId { get; set; }
+    public string TourName { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
+    public string UserEmail { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public int NumberOfParticipants { get; set; }
+    public decimal TotalAmount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime? TourDate { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+}
+
+public class AdminStatsDto
+{
+    public int TotalTours { get; set; }
+    public int ActiveTours { get; set; }
+    public int TotalBookings { get; set; }
+    public int PendingBookings { get; set; }
+    public int ConfirmedBookings { get; set; }
+    public int TotalUsers { get; set; }
+    public decimal TotalRevenue { get; set; }
+}
+
+public class HomePageContentDto
+{
+    public Guid Id { get; set; }
+    public string HeroTitle { get; set; } = string.Empty;
+    public string HeroSubtitle { get; set; } = string.Empty;
+    public string HeroSearchPlaceholder { get; set; } = string.Empty;
+    public string ToursSectionTitle { get; set; } = string.Empty;
+    public string ToursSectionSubtitle { get; set; } = string.Empty;
+    public string FooterBrandText { get; set; } = string.Empty;
+    public string FooterDescription { get; set; } = string.Empty;
+    public string FooterCopyright { get; set; } = string.Empty;
+    public string NavBrandText { get; set; } = string.Empty;
+    public string NavToursLink { get; set; } = string.Empty;
+    public string NavBookingsLink { get; set; } = string.Empty;
+    public string NavLoginLink { get; set; } = string.Empty;
+    public string NavLogoutButton { get; set; } = string.Empty;
+    public string HeroSearchButton { get; set; } = string.Empty;
+    public string LoadingToursText { get; set; } = string.Empty;
+    public string ErrorLoadingToursText { get; set; } = string.Empty;
+    public string NoToursFoundText { get; set; } = string.Empty;
+    public string PageTitle { get; set; } = string.Empty;
+    public string MetaDescription { get; set; } = string.Empty;
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public class ImageUploadResponseDto
+{
+    public string Url { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public long Size { get; set; }
+}
+
+public class AdminUserDto
+{
+    public Guid Id { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public bool IsActive { get; set; }
+    public List<string> Roles { get; set; } = new();
+    public int FailedLoginAttempts { get; set; }
+    public DateTime? LockedUntil { get; set; }
+    public DateTime? LastLoginAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public int TotalBookings { get; set; }
+}
+
+public class AdminUserDetailDto : AdminUserDto
+{
+    public List<AdminUserBookingDto> Bookings { get; set; } = new();
+}
+
+public class AdminUserBookingDto
+{
+    public Guid Id { get; set; }
+    public string TourName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int NumberOfParticipants { get; set; }
+    public decimal TotalAmount { get; set; }
+    public DateTime? TourDate { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+// UpdateUserRequestDto está definido en PanamaTravelHub.Application.Validators
+
+public class RoleDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
 }
 

@@ -442,10 +442,7 @@ public class UserDto
     public List<string> Roles { get; set; } = new();
 }
 
-public class RefreshTokenRequestDto
-{
-    public string RefreshToken { get; set; } = string.Empty;
-}
+// RefreshTokenRequestDto está definido en PanamaTravelHub.Application.Validators
 
 public class LogoutRequestDto
 {

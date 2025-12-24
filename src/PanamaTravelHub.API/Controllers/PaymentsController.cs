@@ -193,15 +193,15 @@ public class PaymentsController : ControllerBase
                     await _emailNotificationService.QueueTemplatedEmailAsync(
                         customerEmail,
                         $"Confirmación de Pago - {payment.Booking.Tour.Name}",
-                        "PaymentConfirmation",
+                        "payment-confirmation",
                         new
                         {
                             CustomerName = customerName,
-                            Amount = payment.Amount.ToString("F2"),
+                            Amount = payment.Amount.ToString("C"),
                             PaymentMethod = _paymentProvider.Provider.ToString(),
                             TransactionId = payment.ProviderTransactionId ?? "N/A",
                             PaymentDate = DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm"),
-                            BookingId = payment.Booking.Id.ToString().Substring(0, 8).ToUpper(),
+                            BookingId = payment.Booking.Id.ToString(),
                             Year = DateTime.UtcNow.Year
                         },
                         Domain.Enums.EmailNotificationType.PaymentConfirmation,
@@ -213,16 +213,15 @@ public class PaymentsController : ControllerBase
                     await _emailNotificationService.QueueTemplatedEmailAsync(
                         customerEmail,
                         $"Reserva Confirmada - {payment.Booking.Tour.Name}",
-                        "BookingConfirmation",
+                        "booking-confirmation",
                         new
                         {
                             CustomerName = customerName,
                             TourName = payment.Booking.Tour.Name,
-                            TourDate = payment.Booking.TourDate?.TourDateTime.ToString("dd/MM/yyyy HH:mm") ?? "Por definir",
+                            TourDate = payment.Booking.TourDate?.TourDateTime.ToString("dd/MM/yyyy HH:mm") ?? "Por confirmar",
                             NumberOfParticipants = payment.Booking.NumberOfParticipants,
-                            TotalAmount = payment.Booking.TotalAmount.ToString("F2"),
-                            BookingId = payment.Booking.Id.ToString().Substring(0, 8).ToUpper(),
-                            BookingUrl = $"{Request.Scheme}://{Request.Host}/reservas.html",
+                            TotalAmount = payment.Booking.TotalAmount.ToString("C"),
+                            BookingId = payment.Booking.Id.ToString(),
                             Year = DateTime.UtcNow.Year
                         },
                         Domain.Enums.EmailNotificationType.BookingConfirmation,

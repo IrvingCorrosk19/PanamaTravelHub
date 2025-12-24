@@ -4,6 +4,7 @@ namespace PanamaTravelHub.Application.Validators;
 
 public class CreateBookingRequestDto
 {
+    public Guid? UserId { get; set; }
     public Guid TourId { get; set; }
     public Guid? TourDateId { get; set; }
     public int NumberOfParticipants { get; set; }

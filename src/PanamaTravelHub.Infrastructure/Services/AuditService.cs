@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Domain.Entities;
 using PanamaTravelHub.Infrastructure.Data;
