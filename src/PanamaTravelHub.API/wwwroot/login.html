@@ -324,8 +324,45 @@
           window.location.href = redirect;
         }
       } catch (error) {
-        errorDiv.textContent = error.message || 'Error al procesar la solicitud';
+        console.error('Error completo:', error);
+        
+        // Mostrar mensaje de error más descriptivo
+        let errorMessage = error.message || 'Error al procesar la solicitud';
+        
+        // Si el error tiene múltiples líneas (errores de validación), mostrarlos todos
+        if (errorMessage.includes('\n')) {
+          const errors = errorMessage.split('\n');
+          errorDiv.innerHTML = '<strong>Por favor, corrige los siguientes errores:</strong><ul style="margin: 8px 0 0 20px; padding-left: 20px;">' +
+            errors.map(err => `<li>${err}</li>`).join('') +
+            '</ul>';
+        } else {
+          errorDiv.textContent = errorMessage;
+        }
+        
         errorDiv.style.display = 'block';
+        
+        // Hacer scroll al mensaje de error
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        
+        // Resaltar campos con error
+        if (errorMessage.toLowerCase().includes('email')) {
+          document.getElementById('email').classList.add('input-error');
+          document.getElementById('email').focus();
+        }
+        if (errorMessage.toLowerCase().includes('contraseña') || errorMessage.toLowerCase().includes('password')) {
+          document.getElementById('password').classList.add('input-error');
+          if (!isLoginMode) {
+            document.getElementById('confirmPassword').classList.add('input-error');
+          }
+        }
+        if (errorMessage.toLowerCase().includes('nombre') || errorMessage.toLowerCase().includes('firstname')) {
+          document.getElementById('firstName').classList.add('input-error');
+          document.getElementById('firstName').focus();
+        }
+        if (errorMessage.toLowerCase().includes('apellido') || errorMessage.toLowerCase().includes('lastname')) {
+          document.getElementById('lastName').classList.add('input-error');
+          document.getElementById('lastName').focus();
+        }
       }
     }
   </script>

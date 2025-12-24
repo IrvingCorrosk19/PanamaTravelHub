@@ -76,18 +76,79 @@ class ApiClient {
           // Manejar errores de validación (ProblemDetails)
           if (error.errors && typeof error.errors === 'object') {
             // FluentValidation devuelve errores en formato { "PropertyName": ["Error1", "Error2"] }
-            const validationErrors = Object.values(error.errors)
-              .flat()
-              .filter(err => typeof err === 'string');
+            const validationErrors = [];
+            
+            // Mapear errores a mensajes más descriptivos
+            const fieldNames = {
+              'Email': 'Correo electrónico',
+              'Password': 'Contraseña',
+              'ConfirmPassword': 'Confirmación de contraseña',
+              'FirstName': 'Nombre',
+              'LastName': 'Apellido'
+            };
+            
+            Object.keys(error.errors).forEach(field => {
+              const fieldErrors = error.errors[field];
+              if (Array.isArray(fieldErrors)) {
+                fieldErrors.forEach(err => {
+                  if (typeof err === 'string') {
+                    const fieldName = fieldNames[field] || field;
+                    validationErrors.push(`${fieldName}: ${err}`);
+                  }
+                });
+              }
+            });
             
             if (validationErrors.length > 0) {
               console.error('❌ Errores de validación:', validationErrors);
-              throw new Error(validationErrors.join('. '));
+              throw new Error(validationErrors.join('\n'));
             }
           }
           
-          // Manejar otros errores
-          const errorMessage = error.detail || error.message || error.title || `Error ${response.status}`;
+          // Manejar errores específicos del backend
+          let errorMessage = error.detail || error.message || error.title;
+          
+          // Mensajes más descriptivos para errores comunes
+          if (errorMessage && errorMessage.includes('EMAIL_ALREADY_EXISTS')) {
+            errorMessage = 'Este correo electrónico ya está registrado. Por favor, inicia sesión o usa otro correo.';
+          } else if (errorMessage && errorMessage.includes('email ya está registrado')) {
+            errorMessage = 'Este correo electrónico ya está registrado. Por favor, inicia sesión o usa otro correo.';
+          } else if (errorMessage && errorMessage.includes('Invalid credentials')) {
+            errorMessage = 'Correo electrónico o contraseña incorrectos. Por favor, verifica tus datos.';
+          } else if (errorMessage && errorMessage.includes('Account locked')) {
+            errorMessage = 'Tu cuenta ha sido bloqueada temporalmente por múltiples intentos fallidos. Contacta al soporte.';
+          } else if (!errorMessage) {
+            // Mensajes según el código de estado
+            switch (response.status) {
+              case 400:
+                errorMessage = 'Los datos proporcionados no son válidos. Por favor, revisa el formulario.';
+                break;
+              case 401:
+                errorMessage = 'No autorizado. Por favor, verifica tus credenciales.';
+                break;
+              case 403:
+                errorMessage = 'No tienes permiso para realizar esta acción.';
+                break;
+              case 404:
+                errorMessage = 'El recurso solicitado no fue encontrado.';
+                break;
+              case 409:
+                errorMessage = 'Este correo electrónico ya está registrado. Por favor, inicia sesión.';
+                break;
+              case 422:
+                errorMessage = 'Los datos proporcionados no cumplen con los requisitos. Por favor, revisa el formulario.';
+                break;
+              case 500:
+                errorMessage = 'Error interno del servidor. Por favor, intenta nuevamente más tarde.';
+                break;
+              case 503:
+                errorMessage = 'El servicio no está disponible temporalmente. Por favor, intenta más tarde.';
+                break;
+              default:
+                errorMessage = `Error ${response.status}: ${response.statusText || 'Error desconocido'}`;
+            }
+          }
+          
           console.error('❌ Error message:', errorMessage);
           console.error('❌ Error traceId:', error.traceId);
           throw new Error(errorMessage);
