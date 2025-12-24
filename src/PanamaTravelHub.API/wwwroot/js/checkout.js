@@ -179,12 +179,28 @@ function selectDate(dateId) {
   updateOrderSummary();
 }
 
+// Imágenes de referencia para usar como fallback
+const DEFAULT_TOUR_IMAGES_CHECKOUT = [
+  'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',
+  'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400',
+  'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=400',
+  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400'
+];
+
+function getDefaultTourImageCheckout(tourId = '') {
+  if (!tourId) return DEFAULT_TOUR_IMAGES_CHECKOUT[0];
+  const hash = tourId.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return DEFAULT_TOUR_IMAGES_CHECKOUT[hash % DEFAULT_TOUR_IMAGES_CHECKOUT.length];
+}
+
 function updateTourSummary() {
   const summaryDiv = document.getElementById('tourSummary');
-  const imageUrl = currentTour.tourImages?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400';
+  const imageUrl = currentTour.tourImages?.[0]?.imageUrl || getDefaultTourImageCheckout(currentTour.id);
 
   summaryDiv.innerHTML = `
-    <img src="${imageUrl}" alt="${currentTour.name}" class="tour-summary-image" onerror="this.src='https://via.placeholder.com/400x300'" />
+    <img src="${imageUrl}" alt="${currentTour.name}" class="tour-summary-image" onerror="this.src='${getDefaultTourImageCheckout(currentTour.id)}'" />
     <div class="tour-summary-info">
       <div class="tour-summary-name">${currentTour.name}</div>
       <div class="tour-summary-details">

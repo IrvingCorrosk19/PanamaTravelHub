@@ -244,10 +244,35 @@ async function loadTours() {
   }
 }
 
+// Imágenes de referencia para usar como fallback
+const DEFAULT_TOUR_IMAGES = [
+  'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800',
+  'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+  'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800',
+  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800'
+];
+
+// Función para obtener una imagen de referencia (rotativa o basada en el ID del tour)
+function getDefaultTourImage(tourId = '') {
+  if (!tourId) {
+    return DEFAULT_TOUR_IMAGES[0];
+  }
+  // Usar el ID del tour para seleccionar una imagen de forma consistente
+  const hash = tourId.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return DEFAULT_TOUR_IMAGES[hash % DEFAULT_TOUR_IMAGES.length];
+}
+
 // Create Tour Card
 function createTourCard(tour) {
   // Validar y sanitizar datos del tour
-  const imageUrl = tour.tourImages?.[0]?.imageUrl || tour.imageUrl || 'https://via.placeholder.com/400x220';
+  // Prioridad: tourImages[0].imageUrl > imageUrl > imagen de referencia > placeholder
+  const imageUrl = tour.tourImages?.[0]?.imageUrl 
+    || tour.imageUrl 
+    || getDefaultTourImage(tour.id)
+    || 'https://via.placeholder.com/400x220?text=Tour+Image';
+  
   const availability = (tour.availableSpots ?? 0) > 0 ? 'Disponible' : 'Agotado';
   const availabilityClass = (tour.availableSpots ?? 0) > 0 ? 'success' : 'danger';
   
@@ -265,7 +290,7 @@ function createTourCard(tour) {
   return `
     <div class="tour-card" onclick="window.location.href='/tour-detail.html?id=${tourId}'" style="opacity: 0; transform: translateY(30px);">
       ${(tour.availableSpots ?? 0) > 0 ? '<div class="tour-card-badge">Disponible</div>' : '<div class="tour-card-badge" style="background: var(--danger);">Agotado</div>'}
-      <img src="${imageUrl}" alt="${tourName}" class="tour-card-image" loading="lazy" onerror="this.src='https://via.placeholder.com/400x220?text=Tour+Image'" />
+      <img src="${imageUrl}" alt="${tourName}" class="tour-card-image" loading="lazy" onerror="this.src='${getDefaultTourImage(tourId)}'" />
       <div class="tour-card-content">
         <h3 class="tour-card-title">${tourName}</h3>
         <p class="tour-card-description">${tourDescription}</p>

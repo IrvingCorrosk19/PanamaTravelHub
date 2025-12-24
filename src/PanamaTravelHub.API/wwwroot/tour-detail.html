@@ -223,11 +223,27 @@
         document.getElementById('bookingDuration').textContent = `${currentTour.durationHours} horas`;
         document.getElementById('bookingAvailability').textContent = currentTour.availableSpots > 0 ? `${currentTour.availableSpots} cupos` : 'Agotado';
         
-        const imageUrl = currentTour.tourImages?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200';
+        // Imágenes de referencia para fallback
+        const DEFAULT_TOUR_IMAGES = [
+          'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200',
+          'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200',
+          'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200',
+          'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=1200',
+          'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200',
+          'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200'
+        ];
+        
+        function getDefaultTourImage(tourId = '') {
+          if (!tourId) return DEFAULT_TOUR_IMAGES[0];
+          const hash = tourId.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          return DEFAULT_TOUR_IMAGES[hash % DEFAULT_TOUR_IMAGES.length];
+        }
+        
+        const imageUrl = currentTour.tourImages?.[0]?.imageUrl || getDefaultTourImage(currentTour.id);
         const img = document.getElementById('tourImage');
         img.src = imageUrl;
         img.onerror = function() {
-          this.src = 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200';
+          this.src = getDefaultTourImage(currentTour.id);
         };
 
         // Itinerario
