@@ -22,9 +22,15 @@ public static class DependencyInjection
         // Configurar DbContext con PostgreSQL
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         
+        // Asegurar que la cadena de conexión incluya encoding UTF-8
+        var connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            Encoding = "UTF8"
+        };
+        
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(
-                connectionString,
+                connectionStringBuilder.ConnectionString,
                 npgsqlOptions => npgsqlOptions
                     .MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)
                     .EnableRetryOnFailure(

@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using AspNetCoreRateLimit;
 using Npgsql;
 using PanamaTravelHub.API.Middleware;
@@ -48,6 +50,12 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<ValidationFilter>();
     options.Filters.Add<FluentValidationFilter>();
 })
+    .AddJsonOptions(options =>
+    {
+        // Configurar JSON para usar UTF-8 sin escapar caracteres Unicode
+        options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Mantener nombres originales
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         // Deshabilitar validación automática del modelo para usar FluentValidation
@@ -225,6 +233,21 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Correlation-Id"] = correlationId;
     context.TraceIdentifier = correlationId;
     await next();
+});
+
+// Middleware para asegurar charset=utf-8 en respuestas JSON
+app.Use(async (context, next) =>
+{
+    await next();
+    
+    // Asegurar charset=utf-8 en respuestas JSON
+    if (context.Response.ContentType?.StartsWith("application/json", StringComparison.OrdinalIgnoreCase) == true)
+    {
+        if (!context.Response.ContentType.Contains("charset="))
+        {
+            context.Response.ContentType += "; charset=utf-8";
+        }
+    }
 });
 
 // CORS debe ir antes de UseAuthorization
