@@ -3,6 +3,9 @@ services:
     name: panamatravelhub-api
     runtime: dotnet
     plan: starter
+    # Auto-deploy habilitado: Render desplegará automáticamente cuando haya push a la rama main
+    autoDeploy: true
+    branch: main
     buildCommand: dotnet publish src/PanamaTravelHub.API/PanamaTravelHub.API.csproj -c Release -o ./publish
     startCommand: cd ./publish && dotnet PanamaTravelHub.API.dll
     envVars:
