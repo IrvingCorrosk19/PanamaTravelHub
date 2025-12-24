@@ -82,7 +82,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasDatabaseName("idx_users_is_active");
 
         // Relaciones
-        // Nota: La relación User-UserRole se define en UserRoleConfiguration para evitar ambigüedad
+        // Nota: Las relaciones User-UserRole y User-RefreshToken se definen en sus respectivas configuraciones para evitar ambigüedad
 
         builder.HasMany(u => u.Bookings)
             .WithOne(b => b.User)

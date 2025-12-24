@@ -73,9 +73,9 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasIndex(rt => new { rt.UserId, rt.IsRevoked, rt.ExpiresAt })
             .HasDatabaseName("idx_refresh_tokens_user_active");
 
-        // Relaciones
+        // Relaciones - Configuración explícita para evitar ambigüedad
         builder.HasOne(rt => rt.User)
-            .WithMany()
+            .WithMany(u => u.RefreshTokens)
             .HasForeignKey(rt => rt.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
