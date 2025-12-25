@@ -40,9 +40,9 @@
       <button class="admin-tab" onclick="switchTab('bookings', event)">Reservas</button>
       <button class="admin-tab" onclick="switchTab('users', event)">Usuarios</button>
       <button class="admin-tab" onclick="switchTab('cms', event)">CMS</button>
-      <button class="admin-tab" onclick="switchTab('media', event)">Media</button>
-      <button class="admin-tab" onclick="switchTab('pages', event)">Páginas</button>
-      <button class="admin-tab" onclick="switchTab('stats', event)">Estadísticas</button>
+      @* <button class="admin-tab" onclick="switchTab('media', event)">Media</button> *@
+      @* <button class="admin-tab" onclick="switchTab('pages', event)">Páginas</button> *@
+      @* <button class="admin-tab" onclick="switchTab('stats', event)">Estadísticas</button> *@
       </div>
 
     <!-- Content -->
@@ -146,7 +146,7 @@
               </div>
             </div>
 
-      <!-- Media Tab -->
+      @* <!-- Media Tab -->
       <div id="media" class="admin-content">
         <div class="admin-header">
           <h2>Media</h2>
@@ -174,7 +174,7 @@
         <div class="admin-card">
           <p>Cargando estadísticas...</p>
         </div>
-      </div>
+      </div> *@
     </div>
   </main>
 
@@ -219,9 +219,9 @@
       if (tabName === 'bookings') loadBookings();
       if (tabName === 'users') loadUsers();
       if (tabName === 'cms') loadHomePageContent();
-      if (tabName === 'media') loadMediaFiles();
-      if (tabName === 'pages') loadPages();
-      if (tabName === 'stats') loadStats();
+      // if (tabName === 'media') loadMediaFiles();
+      // if (tabName === 'pages') loadPages();
+      // if (tabName === 'stats') loadStats();
     }
 
     // Load Users
@@ -1782,7 +1782,7 @@
 
       // Cargar datos
       loadTours();
-      loadStats();
+      // loadStats();
 
       // Logout button
       const logoutBtn = document.getElementById('logoutBtn');
