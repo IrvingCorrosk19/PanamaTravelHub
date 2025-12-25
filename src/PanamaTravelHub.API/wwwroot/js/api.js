@@ -413,6 +413,54 @@ class ApiClient {
     return this.request('/api/auth/me');
   }
 
+  // Verificar si un email está registrado
+  async checkEmail(email) {
+    logger.debug('Verificando disponibilidad de email', { email: email?.substring(0, 5) + '***' });
+    try {
+      const response = await this.request(`/api/auth/check-email?email=${encodeURIComponent(email)}`, {
+        method: 'GET'
+      });
+      // La API devuelve un booleano directamente
+      return response === true || response === 'true' || response === true;
+    } catch (error) {
+      logger.error('Error al verificar email', error);
+      // Si hay error, retornar false para no bloquear la UI
+      return false;
+    }
+  }
+
+  // Solicitar recuperación de contraseña
+  async forgotPassword(email) {
+    logger.info('Solicitando recuperación de contraseña', { email: email?.substring(0, 5) + '***' });
+    try {
+      const response = await this.request('/api/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      logger.success('Solicitud de recuperación enviada');
+      return response;
+    } catch (error) {
+      logger.error('Error al solicitar recuperación de contraseña', error);
+      throw error;
+    }
+  }
+
+  // Resetear contraseña con token
+  async resetPassword(token, newPassword, confirmPassword) {
+    logger.info('Reseteando contraseña');
+    try {
+      const response = await this.request('/api/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ token, newPassword, confirmPassword }),
+      });
+      logger.success('Contraseña reseteada exitosamente');
+      return response;
+    } catch (error) {
+      logger.error('Error al resetear contraseña', error);
+      throw error;
+    }
+  }
+
 
   // Bookings
   async getMyBookings() {

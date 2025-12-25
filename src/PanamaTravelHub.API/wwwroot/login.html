@@ -86,6 +86,10 @@
         <span id="toggleText">¿No tienes cuenta? </span>
         <a href="#" id="toggleLink" onclick="toggleMode(event)">Regístrate</a>
       </div>
+
+      <div class="form-toggle" style="margin-top: var(--space-md);">
+        <a href="/forgot-password.html">¿Olvidaste tu contraseña?</a>
+      </div>
     </div>
   </div>
 
@@ -159,7 +163,59 @@
       const firstName = document.getElementById('firstName');
       const lastName = document.getElementById('lastName');
 
-      // Validar email
+      // Validar email con debounce para verificar disponibilidad (solo en modo registro)
+      let emailCheckTimeout = null;
+      email.addEventListener('input', function() {
+        const emailValue = this.value.trim();
+        const emailError = document.getElementById('emailError');
+        
+        // Limpiar timeout anterior
+        if (emailCheckTimeout) {
+          clearTimeout(emailCheckTimeout);
+        }
+
+        // Validación básica de formato
+        if (!emailValue) {
+          emailError.textContent = '';
+          this.classList.remove('input-error');
+          updateSubmitButtonState();
+          return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+          emailError.textContent = 'El email no tiene un formato válido';
+          this.classList.add('input-error');
+          updateSubmitButtonState();
+          return;
+        }
+
+        emailError.textContent = '';
+        this.classList.remove('input-error');
+
+        // Si estamos en modo registro, verificar disponibilidad con debounce
+        if (!isLoginMode) {
+          emailCheckTimeout = setTimeout(async () => {
+            try {
+              const exists = await api.checkEmail(emailValue);
+              if (exists) {
+                emailError.textContent = 'Este correo ya está registrado';
+                this.classList.add('input-error');
+              } else {
+                emailError.textContent = '';
+                this.classList.remove('input-error');
+              }
+            } catch (error) {
+              // Error silencioso, no bloquear al usuario
+              console.error('Error al verificar email:', error);
+            }
+            updateSubmitButtonState();
+          }, 500); // 500ms de debounce
+        }
+
+        updateSubmitButtonState();
+      });
+
+      // Validar email al perder foco
       email.addEventListener('blur', function() {
         const emailValue = this.value.trim();
         const emailError = document.getElementById('emailError');
@@ -169,10 +225,8 @@
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
           emailError.textContent = 'El email no tiene un formato válido';
           this.classList.add('input-error');
-        } else {
-          emailError.textContent = '';
-          this.classList.remove('input-error');
         }
+        updateSubmitButtonState();
       });
 
       // Validar contraseña con indicador de fortaleza

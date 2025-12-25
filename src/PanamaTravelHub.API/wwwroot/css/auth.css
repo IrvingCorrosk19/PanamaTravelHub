@@ -379,3 +379,42 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+/* =========================
+   Mensaje de Éxito
+   ========================= */
+.success-message {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: 2px solid #10b981;
+  border-left: 4px solid #10b981;
+  border-radius: var(--radius);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+  color: #059669;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  display: none;
+  animation: slideDown 0.3s ease-out;
+}
+
+/* =========================
+   Indicador de Disponibilidad de Email
+   ========================= */
+.email-availability {
+  margin-top: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  display: none;
+}
+
+.email-availability.available {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.email-availability.unavailable {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}

@@ -19,4 +19,5 @@ public class User : BaseEntity
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 }

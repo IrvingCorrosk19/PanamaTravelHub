@@ -8,6 +8,7 @@ using PanamaTravelHub.Domain.Entities;
 using PanamaTravelHub.Infrastructure.Data;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 
 namespace PanamaTravelHub.API.Controllers;
 
@@ -125,6 +126,8 @@ public class AuthController : ControllerBase
     /// Login de usuario
     /// </summary>
     [HttpPost("login")]
+    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request)
     {
         try
@@ -140,8 +143,16 @@ public class AuthController : ControllerBase
             if (user == null)
             {
                 // No revelar que el usuario no existe (protección contra user enumeration)
-                await Task.Delay(500);
-                throw new UnauthorizedAccessException("Email o contraseña incorrectos");
+                // Delay aleatorio entre 300-700ms para evitar timing attacks
+                var randomDelay = new Random().Next(300, 700);
+                await Task.Delay(randomDelay);
+                _logger.LogWarning("Intento de login fallido: email no encontrado");
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Credenciales inválidas",
+                    Detail = "Email o contraseña incorrectos",
+                    Status = StatusCodes.Status401Unauthorized
+                });
             }
 
             // Verificar si la cuenta está bloqueada
@@ -181,7 +192,14 @@ public class AuthController : ControllerBase
 
                 await _context.SaveChangesAsync();
 
-                throw new UnauthorizedAccessException("Email o contraseña incorrectos");
+                // No revelar si fue email o password (seguridad)
+                _logger.LogWarning("Intento de login fallido: password incorrecto para {Email}", user.Email);
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Credenciales inválidas",
+                    Detail = "Email o contraseña incorrectos",
+                    Status = StatusCodes.Status401Unauthorized
+                });
             }
 
             // Si el hash es SHA256 antiguo, migrar a BCrypt
@@ -416,6 +434,209 @@ public class AuthController : ControllerBase
             LastName = user.LastName,
             Roles = roles
         });
+    }
+
+    /// <summary>
+    /// Verificar si un email ya está registrado
+    /// </summary>
+    [HttpGet("check-email")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<ActionResult<bool>> CheckEmail([FromQuery] string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Email requerido",
+                Detail = "Debes proporcionar un email",
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+
+        var emailToCheck = email.Trim().ToLower();
+        var exists = await _context.Users
+            .AnyAsync(u => u.Email.ToLower() == emailToCheck);
+
+        return Ok(exists);
+    }
+
+    /// <summary>
+    /// Solicitar recuperación de contraseña
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request)
+    {
+        _logger.LogInformation("=== INICIO Solicitud de recuperación de contraseña ===");
+        var emailPreview = !string.IsNullOrEmpty(request.Email) && request.Email.Length > 5 
+            ? request.Email.Substring(0, 5) + "***" 
+            : "***";
+        _logger.LogInformation("Email: {Email}", emailPreview);
+
+        // Buscar usuario por email
+        var emailToCheck = request.Email?.Trim().ToLower() ?? string.Empty;
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == emailToCheck);
+
+        // ⚠️ IMPORTANTE: No revelar si el email existe o no (seguridad)
+        // Siempre devolver el mismo mensaje para prevenir user enumeration
+        var message = "Si el correo electrónico existe en nuestro sistema, recibirás un enlace para recuperar tu contraseña en breve.";
+
+        if (user != null && user.IsActive)
+        {
+            // Invalidar tokens anteriores del usuario
+            var oldTokens = await _context.PasswordResetTokens
+                .Where(prt => prt.UserId == user.Id && !prt.IsUsed && prt.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync();
+
+            foreach (var token in oldTokens)
+            {
+                token.IsUsed = true;
+                token.UsedAt = DateTime.UtcNow;
+            }
+
+            // Generar token único y seguro (UUID)
+            var resetToken = Guid.NewGuid().ToString("N"); // Sin guiones para URL más limpia
+            
+            // Crear token de recuperación (expira en 15 minutos)
+            var passwordResetToken = new PasswordResetToken
+            {
+                UserId = user.Id,
+                Token = resetToken,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(15),
+                IsUsed = false,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = Request.Headers["User-Agent"].ToString()
+            };
+
+            await _context.PasswordResetTokens.AddAsync(passwordResetToken);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Token de recuperación generado para usuario: {Email}", user.Email);
+
+            // TODO: Enviar email con el link de recuperación
+            // Por ahora solo logueamos el token (en producción enviar email)
+            var resetLink = $"{Request.Scheme}://{Request.Host}/reset-password.html?token={resetToken}";
+            _logger.LogInformation("Link de recuperación generado: {ResetLink}", resetLink);
+            
+            // En un entorno real, aquí se enviaría el email
+            // await _emailService.SendPasswordResetEmailAsync(user.Email, resetLink);
+        }
+        else
+        {
+            // Delay para evitar timing attacks
+            var randomDelay = new Random().Next(200, 500);
+            await Task.Delay(randomDelay);
+        }
+
+        _logger.LogInformation("=== FIN Solicitud de recuperación de contraseña ===");
+
+        // Siempre devolver éxito (no revelar si email existe)
+        return Ok(new { message });
+    }
+
+    /// <summary>
+    /// Resetear contraseña con token
+    /// </summary>
+    [HttpPost("reset-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request)
+    {
+        _logger.LogInformation("=== INICIO Reset de contraseña ===");
+        var tokenPreview = !string.IsNullOrEmpty(request.Token) && request.Token.Length > 8 
+            ? request.Token.Substring(0, 8) + "***" 
+            : "***";
+        _logger.LogInformation("Token recibido: {Token}", tokenPreview);
+
+        // Buscar token válido
+        var passwordResetToken = await _context.PasswordResetTokens
+            .Include(prt => prt.User)
+            .FirstOrDefaultAsync(prt => prt.Token == request.Token);
+
+        if (passwordResetToken == null)
+        {
+            _logger.LogWarning("Token de recuperación no encontrado o inválido");
+            return NotFound(new ProblemDetails
+            {
+                Title = "Token inválido",
+                Detail = "El token de recuperación no es válido o ha expirado. Por favor solicita uno nuevo.",
+                Status = StatusCodes.Status404NotFound
+            });
+        }
+
+        // Validar que el token no haya sido usado
+        if (passwordResetToken.IsUsed)
+        {
+            _logger.LogWarning("Token de recuperación ya utilizado: {Token}", tokenPreview);
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Token ya utilizado",
+                Detail = "Este token de recuperación ya fue utilizado. Por favor solicita uno nuevo.",
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+
+        // Validar que el token no haya expirado
+        if (passwordResetToken.ExpiresAt <= DateTime.UtcNow)
+        {
+            _logger.LogWarning("Token de recuperación expirado: {Token}", tokenPreview);
+            passwordResetToken.IsUsed = true;
+            passwordResetToken.UsedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Token expirado",
+                Detail = "El token de recuperación ha expirado. Los tokens expiran después de 15 minutos. Por favor solicita uno nuevo.",
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+
+        // Validar que el usuario esté activo
+        if (!passwordResetToken.User.IsActive)
+        {
+            _logger.LogWarning("Intento de reset de contraseña para usuario inactivo: {Email}", passwordResetToken.User.Email);
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Cuenta desactivada",
+                Detail = "Tu cuenta está desactivada. Contacta al administrador.",
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+
+        // Hashear nueva contraseña
+        var newPasswordHash = _passwordHasher.HashPassword(request.NewPassword.Trim());
+
+        // Actualizar contraseña del usuario
+        passwordResetToken.User.PasswordHash = newPasswordHash;
+        passwordResetToken.User.UpdatedAt = DateTime.UtcNow;
+
+        // Marcar token como usado
+        passwordResetToken.IsUsed = true;
+        passwordResetToken.UsedAt = DateTime.UtcNow;
+        passwordResetToken.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        passwordResetToken.UserAgent = Request.Headers["User-Agent"].ToString();
+
+        // Invalidar todos los refresh tokens del usuario (por seguridad)
+        var userRefreshTokens = await _context.RefreshTokens
+            .Where(rt => rt.UserId == passwordResetToken.User.Id && !rt.IsRevoked)
+            .ToListAsync();
+
+        foreach (var token in userRefreshTokens)
+        {
+            token.IsRevoked = true;
+            token.RevokedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Contraseña actualizada exitosamente para usuario: {Email}", passwordResetToken.User.Email);
+        _logger.LogInformation("=== FIN Reset de contraseña (exitoso) ===");
+
+        return Ok(new { message = "Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tu nueva contraseña." });
     }
 
     /// <summary>
