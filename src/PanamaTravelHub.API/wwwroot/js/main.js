@@ -321,11 +321,15 @@ function createTourCard(tour) {
   const tourId = tour.id || tour.Id || '';
   const tourName = tour.name || tour.Name || '';
   const tourDescription = tour.description || tour.Description || '';
-  // Precio: intentar todas las variantes posibles
-  const tourPrice = tour.price !== undefined ? tour.price : 
-                    (tour.Price !== undefined ? tour.Price : 
-                    (tour.price !== null ? tour.price : 
-                    (tour.Price !== null ? tour.Price : undefined)));
+  
+  // Precio: intentar todas las variantes posibles (con prioridad en mayúscula)
+  let tourPrice = undefined;
+  if (tour.Price !== undefined && tour.Price !== null) {
+    tourPrice = tour.Price;
+  } else if (tour.price !== undefined && tour.price !== null) {
+    tourPrice = tour.price;
+  }
+  
   const tourLocation = tour.location || tour.Location || '';
   const tourImages = tour.tourImages || tour.TourImages || [];
   const availableSpots = tour.availableSpots !== undefined ? tour.availableSpots : 
@@ -352,7 +356,8 @@ function createTourCard(tour) {
   const availability = (availableSpots ?? 0) > 0 ? 'Disponible' : 'Agotado';
   const availabilityClass = (availableSpots ?? 0) > 0 ? 'success' : 'danger';
   
-  // Validar precio - puede venir como número, string, o undefined
+  // Validar y procesar precio de forma robusta
+  // El precio puede venir como número, string, o undefined desde el backend
   let price = 0;
   
   // Log para debugging
@@ -362,48 +367,48 @@ function createTourCard(tour) {
     tourPriceValue: tourPrice,
     hasPrice: tourPrice != null,
     hasPriceProperty: 'price' in tour,
-    hasPricePropertyUpper: 'Price' in tour
+    hasPricePropertyUpper: 'Price' in tour,
+    rawTour: tour
   });
   
-  if (tourPrice != null && tourPrice !== undefined) {
-    if (typeof tourPrice === 'number') {
-      price = isNaN(tourPrice) ? 0 : Math.max(0, tourPrice); // Asegurar que no sea negativo
-    } else if (typeof tourPrice === 'string') {
-      const parsed = parseFloat(tourPrice);
-      price = isNaN(parsed) ? 0 : Math.max(0, parsed);
-    } else {
-      // Si es otro tipo, intentar convertirlo
-      const converted = Number(tourPrice);
-      price = isNaN(converted) ? 0 : Math.max(0, converted);
+  // Función helper para convertir a número
+  const toNumber = (value) => {
+    if (value == null || value === undefined) return null;
+    if (typeof value === 'number') return isNaN(value) ? null : value;
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value.trim());
+      return isNaN(parsed) ? null : parsed;
     }
+    const converted = Number(value);
+    return isNaN(converted) ? null : converted;
+  };
+  
+  // Intentar obtener el precio en orden de prioridad
+  let rawPrice = tourPrice;
+  if (rawPrice == null || rawPrice === undefined) {
+    rawPrice = tour.Price ?? tour.price ?? null;
+  }
+  
+  // Convertir a número
+  const numericPrice = toNumber(rawPrice);
+  
+  if (numericPrice != null && numericPrice >= 0) {
+    price = numericPrice;
   } else {
-    // Si no hay precio, intentar obtenerlo directamente del objeto tour
-    console.warn('⚠️ [createTourCard] tourPrice es null/undefined, intentando obtener precio directamente');
-    const directPrice = tour.price || tour.Price;
-    if (directPrice != null && directPrice !== undefined) {
-      if (typeof directPrice === 'number') {
-        price = isNaN(directPrice) ? 0 : Math.max(0, directPrice);
-      } else {
-        const parsed = parseFloat(directPrice);
-        price = isNaN(parsed) ? 0 : Math.max(0, parsed);
-      }
-    }
+    console.warn('⚠️ [createTourCard] No se pudo determinar el precio válido, usando 0. Raw:', rawPrice, 'Numeric:', numericPrice);
+    price = 0;
   }
   
   // Asegurar que price es un número válido antes de usar toFixed
-  if (typeof price !== 'number' || isNaN(price)) {
-    console.warn('⚠️ [createTourCard] price no es un número válido, usando 0. price:', price, 'type:', typeof price);
+  // Validación final y redundante por seguridad
+  if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
+    console.error('❌ [createTourCard] ERROR CRÍTICO: price es inválido antes de toFixed:', price, 'type:', typeof price);
     price = 0;
   }
   
-  // Validación final antes de toFixed
-  if (price == null || price === undefined || typeof price !== 'number' || isNaN(price)) {
-    console.error('❌ [createTourCard] ERROR: price es inválido antes de toFixed:', price);
-    price = 0;
-  }
-  
-  const formattedPrice = price.toFixed(2);
-  console.log('✅ [createTourCard] Precio formateado:', formattedPrice);
+  // Ahora sí, formatear el precio de forma segura
+  const formattedPrice = (price || 0).toFixed(2);
+  console.log('✅ [createTourCard] Precio formateado:', formattedPrice, 'original:', price);
   
   // Validar otros campos con valores normalizados
   const finalTourName = tourName || 'Tour sin nombre';

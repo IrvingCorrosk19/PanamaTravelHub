@@ -21,28 +21,58 @@ using Microsoft.AspNetCore.HttpOverrides;
 // Esto es necesario porque PostgreSQL requiere DateTime en UTC
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", false);
 
-// Configurar Serilog
-Log.Logger = new LoggerConfiguration()
+var builder = WebApplication.CreateBuilder(args);
+
+// Configurar Serilog ANTES de crear el host
+// En Render, los logs deben ir a stdout/stderr para aparecer en la consola
+var isProduction = builder.Environment.IsProduction();
+var logsDirectory = Path.Combine(builder.Environment.ContentRootPath, "logs");
+
+// Crear directorio de logs solo en desarrollo
+if (!isProduction && !Directory.Exists(logsDirectory))
+{
+    Directory.CreateDirectory(logsDirectory);
+}
+
+var loggerConfiguration = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration) // Leer configuración desde appsettings.json
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Information)
+    // Permitir logs de nuestros controladores y servicios
+    .MinimumLevel.Override("PanamaTravelHub", LogEventLevel.Debug)
     .Enrich.FromLogContext()
     .Enrich.WithEnvironmentName()
     .Enrich.WithMachineName()
-    .Enrich.WithThreadId()
-    .WriteTo.Console(
-        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-    .WriteTo.File(
-        path: "logs/panamatravelhub-.log",
+    .Enrich.WithThreadId();
+
+// SIEMPRE escribir a consola (stdout) - Render captura esto
+loggerConfiguration = loggerConfiguration.WriteTo.Console(
+    outputTemplate: isProduction 
+        ? "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"
+        : "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj} {Properties:j}{NewLine}{Exception}",
+    formatProvider: System.Globalization.CultureInfo.InvariantCulture
+);
+
+// Solo escribir a archivo en desarrollo (no en Render)
+if (!isProduction && Directory.Exists(logsDirectory))
+{
+    loggerConfiguration = loggerConfiguration.WriteTo.File(
+        path: Path.Combine(logsDirectory, "panamatravelhub-.log"),
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 30,
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-    .CreateLogger();
+        shared: true,
+        flushToDiskInterval: TimeSpan.FromSeconds(1),
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext}] {Message:lj} {Properties:j}{NewLine}{Exception}"
+    );
+}
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = loggerConfiguration.CreateLogger();
 
-// Usar Serilog como logger
-builder.Host.UseSerilog();
+// Usar Serilog como logger - pasar el logger configurado explícitamente
+builder.Host.UseSerilog(Log.Logger);
 
 // Add services to the container
 builder.Services.AddControllers(options =>
@@ -258,6 +288,9 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Request Logging Middleware (debe ir después de Correlation ID pero antes de otros middlewares)
+app.UseMiddleware<RequestLoggingMiddleware>();
+
 // Middleware para asegurar charset=utf-8 en respuestas JSON
 app.Use(async (context, next) =>
 {
@@ -322,6 +355,16 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
 // Fallback para SPA
 app.MapFallbackToFile("index.html");
 
+// Log de inicio de aplicación
+Log.Information("=== Iniciando PanamaTravelHub API ===");
+Log.Information("Environment: {Environment}", app.Environment.EnvironmentName);
+Log.Information("Content Root: {ContentRoot}", app.Environment.ContentRootPath);
+if (!isProduction)
+{
+    Log.Information("Logs Directory: {LogsDirectory}", logsDirectory);
+}
+Log.Information("Serilog configurado correctamente. Los logs se escriben a stdout/stderr para Render.");
+
 // Aplicar migraciones automáticamente
 // En desarrollo y producción, se aplican migraciones automáticamente
 using (var scope = app.Services.CreateScope())
@@ -344,4 +387,20 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.Run();
+Log.Information("=== Aplicación iniciada correctamente ===");
+Log.Information("Escuchando requests en los endpoints configurados...");
+
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "=== Error fatal al iniciar la aplicación ===");
+    throw;
+}
+finally
+{
+    Log.Information("=== Cerrando aplicación ===");
+    Log.CloseAndFlush();
+}
