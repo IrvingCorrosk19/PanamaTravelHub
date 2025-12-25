@@ -266,30 +266,7 @@ if (app.Environment.IsDevelopment())
 
 // Habilitar archivos estáticos para el frontend
 app.UseDefaultFiles();
-
-// Configurar cache headers para archivos estáticos
-// En desarrollo: no cachear para ver cambios inmediatos
-// En producción: cachear con versionado
-var staticFileOptions = new StaticFileOptions
-{
-    OnPrepareResponse = context =>
-    {
-        if (app.Environment.IsDevelopment())
-        {
-            // En desarrollo: deshabilitar caché completamente
-            context.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-            context.Context.Response.Headers.Append("Pragma", "no-cache");
-            context.Context.Response.Headers.Append("Expires", "0");
-        }
-        else
-        {
-            // En producción: cachear con validación
-            context.Context.Response.Headers.Append("Cache-Control", "public, max-age=3600, must-revalidate");
-        }
-    }
-};
-
-app.UseStaticFiles(staticFileOptions);
+app.UseStaticFiles();
 
 // En Render, el proxy ya maneja HTTPS, así que solo redirigir en desarrollo
 if (app.Environment.IsDevelopment())

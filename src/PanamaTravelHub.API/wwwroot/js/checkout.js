@@ -1,5 +1,21 @@
 // Checkout JavaScript para ToursPanama
 
+// ✅ Función helper para formatear precios de forma segura
+function formatPrice(value, fallbackText = 'Consultar precio') {
+  const rawPrice = value ?? null;
+  let price = Number(rawPrice ?? 0);
+  
+  // Validación: asegurar que price es un número válido y finito
+  if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
+    console.warn('⚠️ [formatPrice] Precio inválido, usando 0:', { value, rawPrice, price });
+    price = 0;
+  }
+  
+  // Formatear precio
+  const formattedPrice = price.toFixed(2);
+  return price > 0 ? `$${formattedPrice}` : fallbackText;
+}
+
 let currentTour = null;
 let numberOfParticipants = 1;
 let selectedPaymentMethod = 'stripe';
@@ -215,7 +231,10 @@ function updateTourSummary() {
 function updateOrderSummary() {
   document.getElementById('summaryTourName').textContent = currentTour.name;
   document.getElementById('summaryParticipants').textContent = numberOfParticipants;
-  document.getElementById('summaryUnitPrice').textContent = `$${currentTour.price.toFixed(2)}`;
+  
+  // ✅ Usar función segura para formatear precio
+  const unitPrice = currentTour.Price ?? currentTour.price ?? 0;
+  document.getElementById('summaryUnitPrice').textContent = formatPrice(unitPrice);
   
   // Mostrar fecha seleccionada si existe
   const selectedDate = availableDates.find(d => d.id === selectedTourDateId);
@@ -234,8 +253,10 @@ function updateOrderSummary() {
     }
   }
   
-  const total = currentTour.price * numberOfParticipants;
-  document.getElementById('summaryTotal').textContent = `$${total.toFixed(2)}`;
+  // ✅ Calcular y formatear total de forma segura
+  const price = Number(currentTour.Price ?? currentTour.price ?? 0);
+  const total = price * numberOfParticipants;
+  document.getElementById('summaryTotal').textContent = formatPrice(total);
 }
 
 function updateParticipants() {

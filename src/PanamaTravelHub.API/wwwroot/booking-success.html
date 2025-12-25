@@ -56,6 +56,22 @@
   </div>
 
   <script>
+    // ✅ Función helper para formatear precios de forma segura
+    function formatPrice(value, fallbackText = '$0.00') {
+      const rawPrice = value ?? null;
+      let price = Number(rawPrice ?? 0);
+      
+      // Validación: asegurar que price es un número válido y finito
+      if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
+        console.warn('⚠️ [formatPrice] Precio inválido, usando 0:', { value, rawPrice, price });
+        price = 0;
+      }
+      
+      // Formatear precio
+      const formattedPrice = price.toFixed(2);
+      return price > 0 ? `$${formattedPrice}` : fallbackText;
+    }
+
     // Obtener datos de la URL
     const urlParams = new URLSearchParams(window.location.search);
     const bookingId = urlParams.get('bookingId');
@@ -65,7 +81,8 @@
       document.getElementById('bookingId').textContent = bookingId;
     }
     if (amount) {
-      document.getElementById('bookingAmount').textContent = `$${parseFloat(amount).toFixed(2)}`;
+      // ✅ Usar función segura para formatear precio
+      document.getElementById('bookingAmount').textContent = formatPrice(parseFloat(amount));
     }
   </script>
 </body>

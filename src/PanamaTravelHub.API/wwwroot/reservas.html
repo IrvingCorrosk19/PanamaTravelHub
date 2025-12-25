@@ -76,6 +76,22 @@
   <script src="/js/logger.js"></script>
   <script src="/js/api.js"></script>
   <script>
+    // ✅ Función helper para formatear precios de forma segura
+    function formatPrice(value, fallbackText = '$0.00') {
+      const rawPrice = value ?? null;
+      let price = Number(rawPrice ?? 0);
+      
+      // Validación: asegurar que price es un número válido y finito
+      if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
+        console.warn('⚠️ [formatPrice] Precio inválido, usando 0:', { value, rawPrice, price });
+        price = 0;
+      }
+      
+      // Formatear precio
+      const formattedPrice = price.toFixed(2);
+      return price > 0 ? `$${formattedPrice}` : fallbackText;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // Primero verificar autenticación
       const isAuthenticated = checkAuth();
@@ -186,7 +202,7 @@
             </div>
             <div class="detail-item">
               <div class="detail-label">Total</div>
-              <div class="detail-value">$${reservation.totalAmount.toFixed(2)}</div>
+              <div class="detail-value">${formatPrice(reservation.totalAmount)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Fecha del Tour</div>
