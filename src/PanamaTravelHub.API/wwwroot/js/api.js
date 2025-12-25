@@ -37,10 +37,14 @@ class ApiClient {
       const config = {
         ...options,
         headers: {
-          'Content-Type': 'application/json',
           ...options.headers,
         },
       };
+
+      // Solo agregar Content-Type si no es FormData
+      if (!(options.body instanceof FormData)) {
+        config.headers['Content-Type'] = 'application/json';
+      }
 
       // Actualizar token antes de cada request
       this.accessToken = localStorage.getItem('accessToken');
@@ -604,6 +608,123 @@ class ApiClient {
   // Homepage Content (público)
   async getHomePageContent() {
     return this.request('/api/tours/homepage-content');
+  }
+
+  // Admin CMS
+  async getAdminHomePageContent() {
+    return this.request('/api/admin/homepage-content');
+  }
+
+  async updateAdminHomePageContent(contentData) {
+    return this.request('/api/admin/homepage-content', {
+      method: 'PUT',
+      body: JSON.stringify(contentData),
+    });
+  }
+
+  // Admin Media
+  async getAdminMedia(category = null, isImage = null, page = 1, pageSize = 50) {
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    if (isImage !== null) params.append('isImage', isImage);
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    return this.request(`/api/admin/media?${params.toString()}`);
+  }
+
+  async uploadMediaFile(file, altText = null, description = null, category = null) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (altText) formData.append('altText', altText);
+    if (description) formData.append('description', description);
+    if (category) formData.append('category', category);
+    
+    return this.request('/api/admin/media', {
+      method: 'POST',
+      body: formData,
+      // No incluir Content-Type, el navegador lo hace automáticamente para FormData
+      headers: {}
+    });
+  }
+
+  async deleteMediaFile(mediaId) {
+    return this.request(`/api/admin/media/${mediaId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Admin Pages
+  async getAdminPages(isPublished = null, page = 1, pageSize = 50) {
+    const params = new URLSearchParams();
+    if (isPublished !== null) params.append('isPublished', isPublished);
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    return this.request(`/api/admin/pages?${params.toString()}`);
+  }
+
+  async getAdminPage(pageId) {
+    return this.request(`/api/admin/pages/${pageId}`);
+  }
+
+  async createPage(pageData) {
+    return this.request('/api/admin/pages', {
+      method: 'POST',
+      body: JSON.stringify(pageData),
+    });
+  }
+
+  async updatePage(pageId, pageData) {
+    return this.request(`/api/admin/pages/${pageId}`, {
+      method: 'PUT',
+      body: JSON.stringify(pageData),
+    });
+  }
+
+  async deletePage(pageId) {
+    return this.request(`/api/admin/pages/${pageId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Admin Tour Images
+  async uploadTourImage(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return this.request('/api/admin/upload-image', {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    });
+  }
+
+  async getAdminTour(tourId) {
+    return this.request(`/api/admin/tours/${tourId}`);
+  }
+
+  // Admin Tour Dates
+  async getAdminTourDates(tourId) {
+    return this.request(`/api/admin/tours/${tourId}/dates`);
+  }
+
+  async createTourDate(tourId, dateData) {
+    return this.request(`/api/admin/tours/${tourId}/dates`, {
+      method: 'POST',
+      body: JSON.stringify(dateData),
+    });
+  }
+
+  async updateTourDate(dateId, dateData) {
+    return this.request(`/api/admin/tours/dates/${dateId}`, {
+      method: 'PUT',
+      body: JSON.stringify(dateData),
+    });
+  }
+
+  async deleteTourDate(dateId) {
+    return this.request(`/api/admin/tours/dates/${dateId}`, {
+      method: 'DELETE',
+    });
   }
 }
 

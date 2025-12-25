@@ -14,53 +14,60 @@ async function loadHomePageContent() {
   try {
     const content = await api.getHomePageContent();
     
+    // El backend devuelve PascalCase, pero también intentamos camelCase para compatibilidad
+    const getValue = (obj, pascalKey, camelKey) => {
+      return obj[pascalKey] ?? obj[camelKey] ?? null;
+    };
+    
     // Actualizar navegación
     const navBrandText = document.getElementById('navBrandText');
-    if (navBrandText) navBrandText.textContent = content.navBrandText || 'ToursPanama';
+    if (navBrandText) navBrandText.textContent = getValue(content, 'NavBrandText', 'navBrandText') || 'ToursPanama';
     
     const navToursLink = document.getElementById('navToursLink');
-    if (navToursLink) navToursLink.textContent = content.navToursLink || 'Tours';
+    if (navToursLink) navToursLink.textContent = getValue(content, 'NavToursLink', 'navToursLink') || 'Tours';
     
     const navBookingsLink = document.getElementById('navBookingsLink');
-    if (navBookingsLink) navBookingsLink.textContent = content.navBookingsLink || 'Mis Reservas';
+    if (navBookingsLink) navBookingsLink.textContent = getValue(content, 'NavBookingsLink', 'navBookingsLink') || 'Mis Reservas';
     
     const loginLink = document.getElementById('loginLink');
-    if (loginLink) loginLink.textContent = content.navLoginLink || 'Iniciar Sesión';
+    if (loginLink) loginLink.textContent = getValue(content, 'NavLoginLink', 'navLoginLink') || 'Iniciar Sesión';
     
     const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) logoutBtn.textContent = content.navLogoutButton || 'Cerrar Sesión';
+    if (logoutBtn) logoutBtn.textContent = getValue(content, 'NavLogoutButton', 'navLogoutButton') || 'Cerrar Sesión';
     
     // Actualizar hero section
     const heroTitle = document.getElementById('heroTitle');
-    if (heroTitle) heroTitle.textContent = content.heroTitle || 'Descubre Panamá';
+    if (heroTitle) heroTitle.textContent = getValue(content, 'HeroTitle', 'heroTitle') || 'Descubre Panamá';
     
     const heroSubtitle = document.getElementById('heroSubtitle');
-    if (heroSubtitle) heroSubtitle.textContent = content.heroSubtitle || 'Explora los destinos más increíbles con nuestros tours exclusivos';
+    if (heroSubtitle) heroSubtitle.textContent = getValue(content, 'HeroSubtitle', 'heroSubtitle') || 'Explora los destinos más increíbles con nuestros tours exclusivos';
     
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.placeholder = content.heroSearchPlaceholder || 'Buscar tours...';
+    if (searchInput) searchInput.placeholder = getValue(content, 'HeroSearchPlaceholder', 'heroSearchPlaceholder') || 'Buscar tours...';
     
     const searchButton = document.getElementById('searchButton');
-    if (searchButton) searchButton.textContent = content.heroSearchButton || 'Buscar';
+    if (searchButton) searchButton.textContent = getValue(content, 'HeroSearchButton', 'heroSearchButton') || 'Buscar';
     
     // Actualizar título y meta description
     const pageTitle = document.getElementById('pageTitle');
-    if (pageTitle) pageTitle.textContent = content.pageTitle || 'ToursPanama — Descubre los Mejores Tours en Panamá';
+    if (pageTitle) pageTitle.textContent = getValue(content, 'PageTitle', 'pageTitle') || 'ToursPanama — Descubre los Mejores Tours en Panamá';
     
     const metaDescription = document.getElementById('metaDescription');
-    if (metaDescription) metaDescription.setAttribute('content', content.metaDescription || 'Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.');
+    if (metaDescription) metaDescription.setAttribute('content', getValue(content, 'MetaDescription', 'metaDescription') || 'Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.');
     
     // Actualizar favicon
+    const faviconUrl = getValue(content, 'FaviconUrl', 'faviconUrl');
     const faviconLink = document.getElementById('faviconLink');
-    if (faviconLink && content.faviconUrl) {
-      faviconLink.href = content.faviconUrl;
+    if (faviconLink && faviconUrl) {
+      faviconLink.href = faviconUrl;
     }
     
     // Actualizar logo en navbar
+    const logoUrl = getValue(content, 'LogoUrl', 'logoUrl');
     const navLogo = document.getElementById('navLogo');
     if (navLogo) {
-      if (content.logoUrl) {
-        navLogo.src = content.logoUrl;
+      if (logoUrl) {
+        navLogo.src = logoUrl;
         navLogo.style.display = 'block';
       } else {
         navLogo.style.display = 'none';
@@ -70,8 +77,8 @@ async function loadHomePageContent() {
     // Actualizar logo en footer
     const footerLogo = document.getElementById('footerLogo');
     if (footerLogo) {
-      if (content.logoUrl) {
-        footerLogo.src = content.logoUrl;
+      if (logoUrl) {
+        footerLogo.src = logoUrl;
         footerLogo.style.display = 'block';
       } else {
         footerLogo.style.display = 'none';
@@ -79,53 +86,57 @@ async function loadHomePageContent() {
     }
     
     // Actualizar meta tags Open Graph y Twitter
+    const pageTitleValue = getValue(content, 'PageTitle', 'pageTitle') || 'ToursPanama — Descubre los Mejores Tours en Panamá';
+    const metaDescriptionValue = getValue(content, 'MetaDescription', 'metaDescription') || 'Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.';
+    const logoUrlSocial = getValue(content, 'LogoUrlSocial', 'logoUrlSocial');
+    
     const ogTitle = document.getElementById('ogTitle');
-    if (ogTitle) ogTitle.setAttribute('content', content.pageTitle || 'ToursPanama — Descubre los Mejores Tours en Panamá');
+    if (ogTitle) ogTitle.setAttribute('content', pageTitleValue);
     
     const ogDescription = document.getElementById('ogDescription');
-    if (ogDescription) ogDescription.setAttribute('content', content.metaDescription || 'Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.');
+    if (ogDescription) ogDescription.setAttribute('content', metaDescriptionValue);
     
     const ogImage = document.getElementById('ogImage');
-    if (ogImage && content.logoUrlSocial) {
-      ogImage.setAttribute('content', content.logoUrlSocial);
+    if (ogImage && logoUrlSocial) {
+      ogImage.setAttribute('content', logoUrlSocial);
     }
     
     const twitterTitle = document.getElementById('twitterTitle');
-    if (twitterTitle) twitterTitle.setAttribute('content', content.pageTitle || 'ToursPanama — Descubre los Mejores Tours en Panamá');
+    if (twitterTitle) twitterTitle.setAttribute('content', pageTitleValue);
     
     const twitterDescription = document.getElementById('twitterDescription');
-    if (twitterDescription) twitterDescription.setAttribute('content', content.metaDescription || 'Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.');
+    if (twitterDescription) twitterDescription.setAttribute('content', metaDescriptionValue);
     
     const twitterImage = document.getElementById('twitterImage');
-    if (twitterImage && content.logoUrlSocial) {
-      twitterImage.setAttribute('content', content.logoUrlSocial);
+    if (twitterImage && logoUrlSocial) {
+      twitterImage.setAttribute('content', logoUrlSocial);
     }
     
     // Actualizar sección de tours
     const toursSectionTitle = document.getElementById('toursSectionTitle');
-    if (toursSectionTitle) toursSectionTitle.textContent = content.toursSectionTitle || 'Tours Disponibles';
+    if (toursSectionTitle) toursSectionTitle.textContent = getValue(content, 'ToursSectionTitle', 'toursSectionTitle') || 'Tours Disponibles';
     
     const toursSectionSubtitle = document.getElementById('toursSectionSubtitle');
-    if (toursSectionSubtitle) toursSectionSubtitle.textContent = content.toursSectionSubtitle || 'Selecciona tu próxima aventura';
+    if (toursSectionSubtitle) toursSectionSubtitle.textContent = getValue(content, 'ToursSectionSubtitle', 'toursSectionSubtitle') || 'Selecciona tu próxima aventura';
     
     const loadingToursText = document.getElementById('loadingToursText');
-    if (loadingToursText) loadingToursText.textContent = content.loadingToursText || 'Cargando tours...';
+    if (loadingToursText) loadingToursText.textContent = getValue(content, 'LoadingToursText', 'loadingToursText') || 'Cargando tours...';
     
     const errorLoadingToursText = document.getElementById('errorLoadingToursText');
-    if (errorLoadingToursText) errorLoadingToursText.textContent = content.errorLoadingToursText || 'Error al cargar los tours. Por favor, intenta de nuevo.';
+    if (errorLoadingToursText) errorLoadingToursText.textContent = getValue(content, 'ErrorLoadingToursText', 'errorLoadingToursText') || 'Error al cargar los tours. Por favor, intenta de nuevo.';
     
     const noToursFoundText = document.getElementById('noToursFoundText');
-    if (noToursFoundText) noToursFoundText.textContent = content.noToursFoundText || 'No se encontraron tours disponibles.';
+    if (noToursFoundText) noToursFoundText.textContent = getValue(content, 'NoToursFoundText', 'noToursFoundText') || 'No se encontraron tours disponibles.';
     
     // Actualizar footer
     const footerBrandText = document.getElementById('footerBrandText');
-    if (footerBrandText) footerBrandText.textContent = content.footerBrandText || 'ToursPanama';
+    if (footerBrandText) footerBrandText.textContent = getValue(content, 'FooterBrandText', 'footerBrandText') || 'ToursPanama';
     
     const footerDescription = document.getElementById('footerDescription');
-    if (footerDescription) footerDescription.textContent = content.footerDescription || 'Tu plataforma de confianza para descubrir Panamá';
+    if (footerDescription) footerDescription.textContent = getValue(content, 'FooterDescription', 'footerDescription') || 'Tu plataforma de confianza para descubrir Panamá';
     
     const footerCopyright = document.getElementById('footerCopyright');
-    if (footerCopyright) footerCopyright.textContent = content.footerCopyright || '© 2024 ToursPanama. Todos los derechos reservados.';
+    if (footerCopyright) footerCopyright.textContent = getValue(content, 'FooterCopyright', 'footerCopyright') || '© 2024 ToursPanama. Todos los derechos reservados.';
   } catch (error) {
     console.error('Error loading homepage content:', error);
     // Si falla, usar valores por defecto (ya están en el HTML)

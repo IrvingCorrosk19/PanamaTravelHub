@@ -490,72 +490,31 @@ public class AdminController : ControllerBase
                 _context.HomePageContent.Add(content);
             }
 
-            // Actualizar campos
-            if (!string.IsNullOrWhiteSpace(request.HeroTitle))
-                content.HeroTitle = request.HeroTitle;
-            
-            if (!string.IsNullOrWhiteSpace(request.HeroSubtitle))
-                content.HeroSubtitle = request.HeroSubtitle;
-            
-            if (!string.IsNullOrWhiteSpace(request.HeroSearchPlaceholder))
-                content.HeroSearchPlaceholder = request.HeroSearchPlaceholder;
-            
-            if (!string.IsNullOrWhiteSpace(request.ToursSectionTitle))
-                content.ToursSectionTitle = request.ToursSectionTitle;
-            
-            if (!string.IsNullOrWhiteSpace(request.ToursSectionSubtitle))
-                content.ToursSectionSubtitle = request.ToursSectionSubtitle;
-            
-            if (!string.IsNullOrWhiteSpace(request.FooterBrandText))
-                content.FooterBrandText = request.FooterBrandText;
-            
-            if (!string.IsNullOrWhiteSpace(request.FooterDescription))
-                content.FooterDescription = request.FooterDescription;
-            
-            if (!string.IsNullOrWhiteSpace(request.FooterCopyright))
-                content.FooterCopyright = request.FooterCopyright;
-            
-            if (!string.IsNullOrWhiteSpace(request.NavBrandText))
-                content.NavBrandText = request.NavBrandText;
-            
-            if (!string.IsNullOrWhiteSpace(request.NavToursLink))
-                content.NavToursLink = request.NavToursLink;
-            
-            if (!string.IsNullOrWhiteSpace(request.NavBookingsLink))
-                content.NavBookingsLink = request.NavBookingsLink;
-            
-            if (!string.IsNullOrWhiteSpace(request.NavLoginLink))
-                content.NavLoginLink = request.NavLoginLink;
-            
-            if (!string.IsNullOrWhiteSpace(request.NavLogoutButton))
-                content.NavLogoutButton = request.NavLogoutButton;
-            
-            if (!string.IsNullOrWhiteSpace(request.HeroSearchButton))
-                content.HeroSearchButton = request.HeroSearchButton;
-            
-            if (!string.IsNullOrWhiteSpace(request.LoadingToursText))
-                content.LoadingToursText = request.LoadingToursText;
-            
-            if (!string.IsNullOrWhiteSpace(request.ErrorLoadingToursText))
-                content.ErrorLoadingToursText = request.ErrorLoadingToursText;
-            
-            if (!string.IsNullOrWhiteSpace(request.NoToursFoundText))
-                content.NoToursFoundText = request.NoToursFoundText;
-            
-            if (!string.IsNullOrWhiteSpace(request.PageTitle))
-                content.PageTitle = request.PageTitle;
-            
-            if (!string.IsNullOrWhiteSpace(request.MetaDescription))
-                content.MetaDescription = request.MetaDescription;
+            // Actualizar todos los campos directamente (permite null y string vacío para limpiar)
+            content.HeroTitle = request.HeroTitle ?? string.Empty;
+            content.HeroSubtitle = request.HeroSubtitle ?? string.Empty;
+            content.HeroSearchPlaceholder = request.HeroSearchPlaceholder ?? string.Empty;
+            content.HeroSearchButton = request.HeroSearchButton ?? string.Empty;
+            content.ToursSectionTitle = request.ToursSectionTitle ?? string.Empty;
+            content.ToursSectionSubtitle = request.ToursSectionSubtitle ?? string.Empty;
+            content.LoadingToursText = request.LoadingToursText ?? string.Empty;
+            content.ErrorLoadingToursText = request.ErrorLoadingToursText ?? string.Empty;
+            content.NoToursFoundText = request.NoToursFoundText ?? string.Empty;
+            content.FooterBrandText = request.FooterBrandText ?? string.Empty;
+            content.FooterDescription = request.FooterDescription ?? string.Empty;
+            content.FooterCopyright = request.FooterCopyright ?? string.Empty;
+            content.NavBrandText = request.NavBrandText ?? string.Empty;
+            content.NavToursLink = request.NavToursLink ?? string.Empty;
+            content.NavBookingsLink = request.NavBookingsLink ?? string.Empty;
+            content.NavLoginLink = request.NavLoginLink ?? string.Empty;
+            content.NavLogoutButton = request.NavLogoutButton ?? string.Empty;
+            content.PageTitle = request.PageTitle ?? string.Empty;
+            content.MetaDescription = request.MetaDescription ?? string.Empty;
 
-            if (request.LogoUrl != null)
-                content.LogoUrl = request.LogoUrl;
-
-            if (request.FaviconUrl != null)
-                content.FaviconUrl = request.FaviconUrl;
-
-            if (request.LogoUrlSocial != null)
-                content.LogoUrlSocial = request.LogoUrlSocial;
+            // Campos de imágenes (pueden ser null para limpiar)
+            content.LogoUrl = string.IsNullOrEmpty(request.LogoUrl) ? null : request.LogoUrl;
+            content.FaviconUrl = string.IsNullOrEmpty(request.FaviconUrl) ? null : request.FaviconUrl;
+            content.LogoUrlSocial = string.IsNullOrEmpty(request.LogoUrlSocial) ? null : request.LogoUrlSocial;
 
             content.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
