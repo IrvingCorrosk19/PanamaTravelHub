@@ -106,13 +106,15 @@ public class AdminController : ControllerBase
             // Agregar imágenes
             if (request.Images != null && request.Images.Any())
             {
-                foreach (var imageUrl in request.Images)
+                for (int i = 0; i < request.Images.Count; i++)
                 {
+                    var imageUrl = request.Images[i];
                     var tourImage = new TourImage
                     {
                         TourId = tour.Id,
                         ImageUrl = imageUrl,
-                        IsPrimary = request.Images.IndexOf(imageUrl) == 0
+                        DisplayOrder = i,
+                        IsPrimary = i == 0 // Primera imagen es principal
                     };
                     _context.TourImages.Add(tourImage);
                 }
@@ -137,7 +139,8 @@ public class AdminController : ControllerBase
                 Location = tour.Location,
                 IsActive = tour.IsActive,
                 CreatedAt = tour.CreatedAt,
-                ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
+                ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
+                Images = tour.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList()
             };
 
             return CreatedAtAction(nameof(GetTour), new { id = tour.Id }, result);
@@ -179,7 +182,7 @@ public class AdminController : ControllerBase
                 IsActive = tour.IsActive,
                 CreatedAt = tour.CreatedAt,
                 ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
-                Images = tour.TourImages.Select(i => i.ImageUrl).ToList()
+                Images = tour.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList()
             };
 
             return Ok(result);
@@ -256,13 +259,15 @@ public class AdminController : ControllerBase
                 // Agregar nuevas imágenes
                 if (request.Images.Any())
                 {
-                    foreach (var imageUrl in request.Images)
+                    for (int i = 0; i < request.Images.Count; i++)
                     {
+                        var imageUrl = request.Images[i];
                         var tourImage = new TourImage
                         {
                             TourId = tour.Id,
                             ImageUrl = imageUrl,
-                            IsPrimary = request.Images.IndexOf(imageUrl) == 0 // Primera imagen es principal
+                            DisplayOrder = i,
+                            IsPrimary = i == 0 // Primera imagen es principal
                         };
                         _context.TourImages.Add(tourImage);
                     }
@@ -291,7 +296,7 @@ public class AdminController : ControllerBase
                 IsActive = tour.IsActive,
                 CreatedAt = tour.CreatedAt,
                 ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
-                Images = tour.TourImages.Select(i => i.ImageUrl).ToList()
+                Images = tour.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList()
             };
 
             return Ok(result);
