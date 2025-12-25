@@ -224,6 +224,16 @@ async function loadTours() {
 
     console.log('🔍 [loadTours] Validando tours...');
     console.log('📊 [loadTours] Total tours recibidos:', tours?.length || 0);
+    
+    // Debug: ver estructura completa de los tours
+    if (tours && tours.length > 0) {
+      console.table(tours.map(t => ({
+        id: t.id || t.Id,
+        name: t.name || t.Name,
+        price: t.price ?? t.Price ?? 'UNDEFINED',
+        priceType: typeof (t.price ?? t.Price)
+      })));
+    }
 
     if (!tours || tours.length === 0) {
       console.warn('⚠️ [loadTours] No hay tours para mostrar');
@@ -321,30 +331,12 @@ function createTourCard(tour) {
   const tourId = tour.id || tour.Id || '';
   const tourName = tour.name || tour.Name || '';
   const tourDescription = tour.description || tour.Description || '';
-  
-  // Precio: intentar todas las variantes posibles (con prioridad en mayúscula)
-  let tourPrice = undefined;
-  if (tour.Price !== undefined && tour.Price !== null) {
-    tourPrice = tour.Price;
-  } else if (tour.price !== undefined && tour.price !== null) {
-    tourPrice = tour.price;
-  }
-  
   const tourLocation = tour.location || tour.Location || '';
   const tourImages = tour.tourImages || tour.TourImages || [];
   const availableSpots = tour.availableSpots !== undefined ? tour.availableSpots : 
                          (tour.AvailableSpots !== undefined ? tour.AvailableSpots : 0);
   const maxCapacity = tour.maxCapacity !== undefined ? tour.maxCapacity : 
                       (tour.MaxCapacity !== undefined ? tour.MaxCapacity : 0);
-
-  console.log('🎴 [createTourCard] Creando card para tour:', { 
-    id: tourId, 
-    name: tourName, 
-    price: tourPrice,
-    priceType: typeof tourPrice,
-    rawTour: tour,
-    images: tourImages.length 
-  });
 
   // Validar y sanitizar datos del tour
   // Prioridad: tourImages[0].imageUrl > imageUrl > imagen de referencia > placeholder
@@ -356,59 +348,29 @@ function createTourCard(tour) {
   const availability = (availableSpots ?? 0) > 0 ? 'Disponible' : 'Agotado';
   const availabilityClass = (availableSpots ?? 0) > 0 ? 'success' : 'danger';
   
-  // Validar y procesar precio de forma robusta
-  // El precio puede venir como número, string, o undefined desde el backend
-  let price = 0;
+  // ✅ SOLUCIÓN ROBUSTA: Normalizar precio de forma segura
+  // El backend debe retornar siempre un precio válido, pero validamos por seguridad
+  const rawPrice = tour.Price ?? tour.price ?? null;
   
-  // Log para debugging
-  console.log('💰 [createTourCard] Validando precio:', {
-    tourPrice,
-    tourPriceType: typeof tourPrice,
-    tourPriceValue: tourPrice,
-    hasPrice: tourPrice != null,
-    hasPriceProperty: 'price' in tour,
-    hasPricePropertyUpper: 'Price' in tour,
-    rawTour: tour
-  });
+  // Convertir a número con fallback a 0 (evita crash con toFixed)
+  const price = Number(rawPrice ?? 0);
   
-  // Función helper para convertir a número
-  const toNumber = (value) => {
-    if (value == null || value === undefined) return null;
-    if (typeof value === 'number') return isNaN(value) ? null : value;
-    if (typeof value === 'string') {
-      const parsed = parseFloat(value.trim());
-      return isNaN(parsed) ? null : parsed;
-    }
-    const converted = Number(value);
-    return isNaN(converted) ? null : converted;
-  };
-  
-  // Intentar obtener el precio en orden de prioridad
-  let rawPrice = tourPrice;
-  if (rawPrice == null || rawPrice === undefined) {
-    rawPrice = tour.Price ?? tour.price ?? null;
+  // Validación estricta solo en desarrollo (para detectar problemas)
+  if (typeof rawPrice !== 'number' && rawPrice !== null && rawPrice !== undefined) {
+    console.warn('⚠️ [createTourCard] Tour con precio no numérico:', { 
+      tourId, 
+      tourName, 
+      rawPrice, 
+      priceType: typeof rawPrice,
+      finalPrice: price 
+    });
   }
   
-  // Convertir a número
-  const numericPrice = toNumber(rawPrice);
+  // Formatear precio (price siempre es un número válido aquí)
+  const formattedPrice = price.toFixed(2);
   
-  if (numericPrice != null && numericPrice >= 0) {
-    price = numericPrice;
-  } else {
-    console.warn('⚠️ [createTourCard] No se pudo determinar el precio válido, usando 0. Raw:', rawPrice, 'Numeric:', numericPrice);
-    price = 0;
-  }
-  
-  // Asegurar que price es un número válido antes de usar toFixed
-  // Validación final y redundante por seguridad
-  if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
-    console.error('❌ [createTourCard] ERROR CRÍTICO: price es inválido antes de toFixed:', price, 'type:', typeof price);
-    price = 0;
-  }
-  
-  // Ahora sí, formatear el precio de forma segura
-  const formattedPrice = (price || 0).toFixed(2);
-  console.log('✅ [createTourCard] Precio formateado:', formattedPrice, 'original:', price);
+  // Fallback visual elegante si el precio es 0 (puede indicar "consultar precio")
+  const priceText = price > 0 ? `$${formattedPrice}` : 'Consultar precio';
   
   // Validar otros campos con valores normalizados
   const finalTourName = tourName || 'Tour sin nombre';
@@ -425,7 +387,7 @@ function createTourCard(tour) {
         <p class="tour-card-description">${finalTourDescription}</p>
         <div class="tour-card-footer">
           <div>
-            <div class="tour-card-price">$${formattedPrice}</div>
+            <div class="tour-card-price">${priceText}</div>
             <div class="tour-card-info">
               <span>⏱ ${durationHours}h</span>
               <span>📍 ${finalLocation}</span>

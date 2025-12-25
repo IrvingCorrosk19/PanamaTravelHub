@@ -181,17 +181,17 @@ public class ToursController : ControllerBase
             var result = tours.Select(t => new TourDto
             {
                 Id = t.Id,
-                Name = t.Name,
-                Description = t.Description,
-                Price = t.Price,
+                Name = t.Name ?? string.Empty,
+                Description = t.Description ?? string.Empty,
+                Price = t.Price >= 0 ? t.Price : 0, // Garantizar precio válido (nunca null ni negativo)
                 DurationHours = t.DurationHours,
-                Location = t.Location,
+                Location = t.Location ?? string.Empty,
                 AvailableSpots = t.AvailableSpots,
                 MaxCapacity = t.MaxCapacity,
                 IsActive = t.IsActive,
                 TourImages = t.TourImages.Select(i => new TourImageDto
                 {
-                    ImageUrl = i.ImageUrl,
+                    ImageUrl = i.ImageUrl ?? string.Empty,
                     IsPrimary = i.IsPrimary
                 }).ToList()
             }).ToList();
@@ -400,7 +400,7 @@ public class TourDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? Itinerary { get; set; }
-    public decimal Price { get; set; }
+    public decimal Price { get; set; } = 0; // Valor por defecto para garantizar que nunca sea null
     public int DurationHours { get; set; }
     public string? Location { get; set; }
     public int AvailableSpots { get; set; }
