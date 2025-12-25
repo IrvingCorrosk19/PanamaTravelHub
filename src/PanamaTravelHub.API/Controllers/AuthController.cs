@@ -39,29 +39,45 @@ public class AuthController : ControllerBase
     /// Registro de nuevo usuario
     /// </summary>
     [HttpPost("register")]
+    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto request)
     {
-        _logger.LogInformation("Registro de usuario: {Email}", request.Email);
+        _logger.LogInformation("=== INICIO Registro de usuario ===");
+        var emailPreview = !string.IsNullOrEmpty(request.Email) && request.Email.Length > 5 
+            ? request.Email.Substring(0, 5) + "***" 
+            : "***";
+        _logger.LogInformation("Email: {Email}", emailPreview);
 
-        // Verificar si el usuario ya existe
+        // Verificar si el usuario ya existe (validación temprana)
+        var emailToCheck = request.Email?.ToLower().Trim() ?? string.Empty;
         var existingUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower().Trim());
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == emailToCheck);
 
         if (existingUser != null)
         {
-            throw new BusinessException("Este email ya está registrado", "EMAIL_ALREADY_EXISTS");
+            _logger.LogWarning("Intento de registro con email ya existente: {Email}", emailPreview);
+            // Devolver 409 Conflict para email duplicado
+            return Conflict(new ProblemDetails
+            {
+                Title = "Email ya registrado",
+                Detail = "Este correo electrónico ya está registrado. Por favor usa otro correo o inicia sesión.",
+                Status = StatusCodes.Status409Conflict,
+                Extensions = { ["errorCode"] = "EMAIL_ALREADY_EXISTS" }
+            });
         }
 
         // Hashear password con BCrypt
-        var passwordHash = _passwordHasher.HashPassword(request.Password.Trim());
+        var passwordHash = _passwordHasher.HashPassword(request.Password?.Trim() ?? string.Empty);
 
         // Crear usuario
         var user = new User
         {
-            Email = request.Email.Trim().ToLower(),
+            Email = request.Email?.Trim().ToLower() ?? string.Empty,
             PasswordHash = passwordHash,
-            FirstName = request.FirstName.Trim(),
-            LastName = request.LastName.Trim(),
+            FirstName = request.FirstName?.Trim() ?? string.Empty,
+            LastName = request.LastName?.Trim() ?? string.Empty,
             IsActive = true
         };
 
@@ -82,13 +98,15 @@ public class AuthController : ControllerBase
         }
 
         _logger.LogInformation("Usuario registrado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
+        _logger.LogInformation("=== FIN Registro de usuario (exitoso) ===");
 
         // Generar tokens
         var roles = new List<string> { "Customer" };
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email, roles);
         var refreshToken = await CreateRefreshTokenAsync(user.Id);
 
-        return Ok(new AuthResponseDto
+        // Devolver 201 Created (según especificaciones)
+        return CreatedAtAction(nameof(GetCurrentUser), new { id = user.Id }, new AuthResponseDto
         {
             AccessToken = accessToken,
             RefreshToken = refreshToken.Token,

@@ -181,12 +181,19 @@ class ApiClient {
           
           logger.error('Error procesado', null, {
             errorMessage,
+            status: response.status,
             traceId: errorData.traceId,
             instance: errorData.instance,
             type: errorData.type
           });
           
-          throw new Error(errorMessage);
+          // Crear error con información del status code y detalles
+          const error = new Error(errorMessage);
+          error.status = response.status;
+          error.statusCode = response.status;
+          error.errors = errorData.errors;
+          error.response = errorData;
+          throw error;
         }
 
         const data = await response.json();
@@ -324,6 +331,8 @@ class ApiClient {
   }
 
   async register(userData) {
+    logger.info('Iniciando registro', { email: userData.email?.substring(0, 5) + '***' });
+    
     // Asegurar que confirmPassword esté incluido
     const registerData = {
       email: userData.email?.trim(),
@@ -333,34 +342,42 @@ class ApiClient {
       lastName: userData.lastName?.trim()
     };
 
-    const response = await this.request('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(registerData),
-    });
-    
-    // Guardar accessToken y refreshToken
-    if (response.accessToken && response.refreshToken) {
-      this.accessToken = response.accessToken;
-      this.refreshToken = response.refreshToken;
-      localStorage.setItem('accessToken', response.accessToken);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      localStorage.setItem('authToken', response.accessToken); // Compatibilidad
-      logger.debug('Tokens guardados en localStorage');
+    try {
+      const response = await this.request('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(registerData),
+      });
+      
+      logger.success('Registro exitoso', { userId: response.user?.id });
+      
+      // Guardar accessToken y refreshToken
+      if (response.accessToken && response.refreshToken) {
+        this.accessToken = response.accessToken;
+        this.refreshToken = response.refreshToken;
+        localStorage.setItem('accessToken', response.accessToken);
+        localStorage.setItem('refreshToken', response.refreshToken);
+        localStorage.setItem('authToken', response.accessToken); // Compatibilidad
+        logger.debug('Tokens guardados en localStorage');
+      }
+      
+      // Guardar userId para usar en reservas
+      if (response.user && response.user.id) {
+        localStorage.setItem('userId', response.user.id);
+        logger.debug('UserId guardado', { userId: response.user.id });
+      }
+      
+      // Guardar roles del usuario
+      if (response.user && response.user.roles) {
+        localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
+        logger.debug('Roles guardados', { roles: response.user.roles });
+      }
+      
+      return response;
+    } catch (error) {
+      // Preservar status code del error para manejo específico en login.html
+      logger.error('Error en registro', error);
+      throw error;
     }
-    
-    // Guardar userId para usar en reservas
-    if (response.user && response.user.id) {
-      localStorage.setItem('userId', response.user.id);
-      logger.debug('UserId guardado', { userId: response.user.id });
-    }
-    
-    // Guardar roles del usuario
-    if (response.user && response.user.roles) {
-      localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
-      logger.debug('Roles guardados', { roles: response.user.roles });
-    }
-    
-    return response;
   }
 
   // Logout con revocación de refresh token

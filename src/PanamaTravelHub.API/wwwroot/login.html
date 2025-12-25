@@ -41,14 +41,28 @@
 
         <div class="form-group">
           <label class="form-label" for="password">Contraseña</label>
-          <input type="password" id="password" class="form-input" required autocomplete="current-password" placeholder="••••••••" minlength="6" />
+          <input type="password" id="password" class="form-input" required autocomplete="current-password" placeholder="••••••••" minlength="8" />
           <span class="field-error" id="passwordError"></span>
+          <!-- Indicador de fortaleza de contraseña (solo en modo registro) -->
+          <div id="passwordStrength" style="display:none; margin-top: 8px;">
+            <div class="password-strength-bar">
+              <div id="passwordStrengthFill" class="password-strength-fill"></div>
+            </div>
+            <div id="passwordStrengthText" class="password-strength-text"></div>
+            <ul id="passwordRequirements" class="password-requirements">
+              <li id="req-length">Al menos 8 caracteres</li>
+              <li id="req-uppercase">1 mayúscula</li>
+              <li id="req-lowercase">1 minúscula</li>
+              <li id="req-number">1 número</li>
+            </ul>
+          </div>
         </div>
 
         <div class="form-group" id="confirmPasswordGroup" style="display:none;">
           <label class="form-label" for="confirmPassword">Confirmar Contraseña</label>
-          <input type="password" id="confirmPassword" class="form-input" autocomplete="new-password" placeholder="••••••••" minlength="6" />
+          <input type="password" id="confirmPassword" class="form-input" autocomplete="new-password" placeholder="••••••••" minlength="8" />
           <span class="field-error" id="confirmPasswordError"></span>
+          <div id="passwordMatchIndicator" class="password-match-indicator" style="display:none;"></div>
         </div>
 
         <div class="form-group" id="nameGroup" style="display:none;">
@@ -97,6 +111,9 @@
       const firstName = document.getElementById('firstName');
       const lastName = document.getElementById('lastName');
 
+      const passwordStrength = document.getElementById('passwordStrength');
+      const passwordMatchIndicator = document.getElementById('passwordMatchIndicator');
+
       if (isLoginMode) {
         title.textContent = 'Iniciar Sesión';
         subtitle.textContent = 'Accede a tu cuenta para reservar tours';
@@ -109,6 +126,9 @@
         confirmPassword.removeAttribute('required');
         firstName.removeAttribute('required');
         lastName.removeAttribute('required');
+        // Ocultar indicadores de registro
+        if (passwordStrength) passwordStrength.style.display = 'none';
+        if (passwordMatchIndicator) passwordMatchIndicator.style.display = 'none';
       } else {
         title.textContent = 'Crear Cuenta';
         subtitle.textContent = 'Únete a ToursPanama y descubre Panamá';
@@ -121,7 +141,14 @@
         confirmPassword.setAttribute('required', 'required');
         firstName.setAttribute('required', 'required');
         lastName.setAttribute('required', 'required');
+        // Mostrar indicador de fortaleza si hay texto en password
+        if (passwordStrength && password.value.length > 0) {
+          passwordStrength.style.display = 'block';
+        }
       }
+      
+      // Actualizar estado del botón
+      updateSubmitButtonState();
     }
 
     // Validación en tiempo real
@@ -148,36 +175,145 @@
         }
       });
 
-      // Validar contraseña
+      // Validar contraseña con indicador de fortaleza
       password.addEventListener('input', function() {
         const passwordValue = this.value;
         const passwordError = document.getElementById('passwordError');
-        if (passwordValue.length > 0 && passwordValue.length < 6) {
-          passwordError.textContent = 'La contraseña debe tener al menos 6 caracteres';
+        const passwordStrength = document.getElementById('passwordStrength');
+        const passwordStrengthFill = document.getElementById('passwordStrengthFill');
+        const passwordStrengthText = document.getElementById('passwordStrengthText');
+        const requirements = {
+          length: document.getElementById('req-length'),
+          uppercase: document.getElementById('req-uppercase'),
+          lowercase: document.getElementById('req-lowercase'),
+          number: document.getElementById('req-number')
+        };
+
+        // Mostrar/ocultar indicador solo en modo registro
+        if (!isLoginMode && passwordStrength) {
+          passwordStrength.style.display = passwordValue.length > 0 ? 'block' : 'none';
+        }
+
+        // Validar longitud mínima (8 caracteres)
+        const hasLength = passwordValue.length >= 8;
+        const hasUppercase = /[A-Z]/.test(passwordValue);
+        const hasLowercase = /[a-z]/.test(passwordValue);
+        const hasNumber = /\d/.test(passwordValue);
+
+        // Actualizar indicadores visuales
+        if (!isLoginMode && requirements.length) {
+          if (hasLength) {
+            requirements.length.classList.add('valid');
+            requirements.length.classList.remove('invalid');
+          } else {
+            requirements.length.classList.remove('valid');
+            requirements.length.classList.add('invalid');
+          }
+
+          if (hasUppercase) {
+            requirements.uppercase.classList.add('valid');
+            requirements.uppercase.classList.remove('invalid');
+          } else {
+            requirements.uppercase.classList.remove('valid');
+            requirements.uppercase.classList.add('invalid');
+          }
+
+          if (hasLowercase) {
+            requirements.lowercase.classList.add('valid');
+            requirements.lowercase.classList.remove('invalid');
+          } else {
+            requirements.lowercase.classList.remove('valid');
+            requirements.lowercase.classList.add('invalid');
+          }
+
+          if (hasNumber) {
+            requirements.number.classList.add('valid');
+            requirements.number.classList.remove('invalid');
+          } else {
+            requirements.number.classList.remove('valid');
+            requirements.number.classList.add('invalid');
+          }
+
+          // Calcular fortaleza
+          const validCount = [hasLength, hasUppercase, hasLowercase, hasNumber].filter(Boolean).length;
+          
+          if (validCount === 4) {
+            passwordStrengthFill.className = 'password-strength-fill strong';
+            passwordStrengthText.className = 'password-strength-text strong';
+            passwordStrengthText.textContent = 'Contraseña fuerte';
+          } else if (validCount >= 2) {
+            passwordStrengthFill.className = 'password-strength-fill medium';
+            passwordStrengthText.className = 'password-strength-text medium';
+            passwordStrengthText.textContent = 'Contraseña media';
+          } else if (validCount >= 1) {
+            passwordStrengthFill.className = 'password-strength-fill weak';
+            passwordStrengthText.className = 'password-strength-text weak';
+            passwordStrengthText.textContent = 'Contraseña débil';
+          } else {
+            passwordStrengthFill.className = 'password-strength-fill';
+            passwordStrengthText.className = 'password-strength-text';
+            passwordStrengthText.textContent = '';
+          }
+        }
+
+        // Validación de errores
+        if (passwordValue.length > 0 && passwordValue.length < 8) {
+          passwordError.textContent = 'La contraseña debe tener al menos 8 caracteres';
           this.classList.add('input-error');
-        } else if (passwordValue.length >= 6 && !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordValue)) {
+        } else if (passwordValue.length >= 8 && !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordValue)) {
           passwordError.textContent = 'Debe contener al menos una mayúscula, una minúscula y un número';
           this.classList.add('input-error');
         } else {
           passwordError.textContent = '';
           this.classList.remove('input-error');
         }
+
+        // Validar match con confirmación si existe
+        if (!isLoginMode && confirmPassword && confirmPassword.value) {
+          validatePasswordMatch();
+        }
+
+        updateSubmitButtonState();
       });
 
-      // Validar confirmación de contraseña
+      // Validar confirmación de contraseña en tiempo real
       if (confirmPassword) {
-        confirmPassword.addEventListener('blur', function() {
-          const confirmPasswordValue = this.value;
-          const passwordValue = password.value;
-          const confirmPasswordError = document.getElementById('confirmPasswordError');
+        confirmPassword.addEventListener('input', function() {
+          validatePasswordMatch();
+          updateSubmitButtonState();
+        });
+      }
+
+      // Función para validar match de contraseñas
+      function validatePasswordMatch() {
+        const confirmPasswordValue = confirmPassword.value;
+        const passwordValue = password.value;
+        const confirmPasswordError = document.getElementById('confirmPasswordError');
+        const passwordMatchIndicator = document.getElementById('passwordMatchIndicator');
+
+        if (!isLoginMode && passwordValue && confirmPasswordValue) {
           if (confirmPasswordValue !== passwordValue) {
             confirmPasswordError.textContent = 'Las contraseñas no coinciden';
-            this.classList.add('input-error');
+            confirmPassword.classList.add('input-error');
+            if (passwordMatchIndicator) {
+              passwordMatchIndicator.className = 'password-match-indicator no-match';
+              passwordMatchIndicator.textContent = '✗ Las contraseñas no coinciden';
+              passwordMatchIndicator.style.display = 'block';
+            }
           } else {
             confirmPasswordError.textContent = '';
-            this.classList.remove('input-error');
+            confirmPassword.classList.remove('input-error');
+            if (passwordMatchIndicator) {
+              passwordMatchIndicator.className = 'password-match-indicator match';
+              passwordMatchIndicator.textContent = '✓ Las contraseñas coinciden';
+              passwordMatchIndicator.style.display = 'block';
+            }
           }
-        });
+        } else {
+          if (passwordMatchIndicator) {
+            passwordMatchIndicator.style.display = 'none';
+          }
+        }
       }
 
       // Validar nombres
@@ -216,8 +352,77 @@
       }
     }
 
+    // Función para actualizar estado del botón de envío
+    function updateSubmitButtonState() {
+      const submitButton = document.querySelector('button[type="submit"]');
+      if (!submitButton) return;
+
+      if (isLoginMode) {
+        // En modo login, solo validar email y password básico
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const emailError = document.getElementById('emailError').textContent;
+        const passwordError = document.getElementById('passwordError').textContent;
+        
+        const isValid = email && password && !emailError && !passwordError;
+        submitButton.disabled = !isValid;
+      } else {
+        // En modo registro, validar todos los campos
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const firstName = document.getElementById('firstName').value.trim();
+        const lastName = document.getElementById('lastName').value.trim();
+        
+        const emailError = document.getElementById('emailError').textContent;
+        const passwordError = document.getElementById('passwordError').textContent;
+        const confirmPasswordError = document.getElementById('confirmPasswordError').textContent;
+        const firstNameError = document.getElementById('firstNameError').textContent;
+        const lastNameError = document.getElementById('lastNameError').textContent;
+
+        // Validar que todos los campos estén llenos y sin errores
+        const hasAllFields = email && password && confirmPassword && firstName && lastName;
+        const hasNoErrors = !emailError && !passwordError && !confirmPasswordError && !firstNameError && !lastNameError;
+        const passwordsMatch = password === confirmPassword;
+        const passwordMeetsRequirements = password.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password);
+
+        submitButton.disabled = !(hasAllFields && hasNoErrors && passwordsMatch && passwordMeetsRequirements);
+      }
+    }
+
     // Inicializar validaciones al cargar
-    document.addEventListener('DOMContentLoaded', setupValidation);
+    document.addEventListener('DOMContentLoaded', () => {
+      setupValidation();
+      
+      // Actualizar estado del botón cuando cambia el modo
+      const originalToggleMode = toggleMode;
+      toggleMode = function(e) {
+        originalToggleMode(e);
+        // Ocultar indicador de fortaleza en modo login
+        const passwordStrength = document.getElementById('passwordStrength');
+        if (passwordStrength) {
+          passwordStrength.style.display = 'none';
+        }
+        const passwordMatchIndicator = document.getElementById('passwordMatchIndicator');
+        if (passwordMatchIndicator) {
+          passwordMatchIndicator.style.display = 'none';
+        }
+        updateSubmitButtonState();
+      };
+
+      // Actualizar estado del botón en cada cambio
+      document.getElementById('email').addEventListener('input', updateSubmitButtonState);
+      document.getElementById('password').addEventListener('input', updateSubmitButtonState);
+      if (document.getElementById('confirmPassword')) {
+        document.getElementById('confirmPassword').addEventListener('input', updateSubmitButtonState);
+      }
+      if (document.getElementById('firstName')) {
+        document.getElementById('firstName').addEventListener('input', updateSubmitButtonState);
+      }
+      if (document.getElementById('lastName')) {
+        document.getElementById('lastName').addEventListener('input', updateSubmitButtonState);
+      }
+    });
 
     async function handleSubmit(e) {
       e.preventDefault();
@@ -294,8 +499,8 @@
             return;
           }
 
-          if (passwordTrimmed.length < 6) {
-            document.getElementById('passwordError').textContent = 'La contraseña debe tener al menos 6 caracteres';
+          if (passwordTrimmed.length < 8) {
+            document.getElementById('passwordError').textContent = 'La contraseña debe tener al menos 8 caracteres';
             document.getElementById('password').classList.add('input-error');
             return;
           }
@@ -346,14 +551,53 @@
         }
         console.error('Error completo:', error);
         
-        // Mostrar mensaje de error más descriptivo
+        // Manejar error 409 (Email ya registrado) específicamente
         let errorMessage = error.message || 'Error al procesar la solicitud';
         
-        // Si el error tiene múltiples líneas (errores de validación), mostrarlos todos
-        if (errorMessage.includes('\n')) {
-          const errors = errorMessage.split('\n');
+        // Verificar si es un error HTTP 409
+        if (error.status === 409 || error.statusCode === 409 || 
+            errorMessage.toLowerCase().includes('ya está registrado') ||
+            errorMessage.toLowerCase().includes('already exists') ||
+            errorMessage.toLowerCase().includes('email_already_exists')) {
+          errorMessage = 'Este correo electrónico ya está registrado. Por favor usa otro correo o inicia sesión.';
+          document.getElementById('email').classList.add('input-error');
+          document.getElementById('email').focus();
+          document.getElementById('emailError').textContent = 'Este correo ya está registrado';
+        }
+        // Manejar errores de validación del backend
+        else if (error.errors || (error.response && error.response.errors)) {
+          const errors = error.errors || error.response.errors;
+          const errorList = Object.entries(errors)
+            .map(([field, messages]) => {
+              const fieldName = field === 'Email' ? 'email' : 
+                              field === 'Password' ? 'password' :
+                              field === 'ConfirmPassword' ? 'confirmPassword' :
+                              field === 'FirstName' ? 'firstName' :
+                              field === 'LastName' ? 'lastName' : field;
+              
+              // Resaltar campo con error
+              const fieldElement = document.getElementById(fieldName);
+              if (fieldElement) {
+                fieldElement.classList.add('input-error');
+                const errorElement = document.getElementById(fieldName + 'Error');
+                if (errorElement && Array.isArray(messages) && messages.length > 0) {
+                  errorElement.textContent = messages[0];
+                }
+              }
+              
+              return Array.isArray(messages) ? messages.map(msg => msg).join(', ') : messages;
+            })
+            .flat();
+          
           errorDiv.innerHTML = '<strong>Por favor, corrige los siguientes errores:</strong><ul style="margin: 8px 0 0 20px; padding-left: 20px;">' +
-            errors.map(err => `<li>${err}</li>`).join('') +
+            errorList.map(err => `<li>${err}</li>`).join('') +
+            '</ul>';
+        }
+        // Si el error tiene múltiples líneas (errores de validación), mostrarlos todos
+        else if (errorMessage.includes('\n')) {
+          const errorLines = errorMessage.split('\n').filter(line => line.trim());
+          errorDiv.innerHTML = '<strong>Por favor, corrige los siguientes errores:</strong><ul style="margin: 8px 0 0 20px; padding-left: 20px;">' +
+            errorLines.map(err => `<li>${err}</li>`).join('') +
             '</ul>';
         } else {
           errorDiv.textContent = errorMessage;
@@ -364,25 +608,30 @@
         // Hacer scroll al mensaje de error
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         
-        // Resaltar campos con error
-        if (errorMessage.toLowerCase().includes('email')) {
+        // Resaltar campos con error (fallback)
+        if (errorMessage.toLowerCase().includes('email') && !document.getElementById('email').classList.contains('input-error')) {
           document.getElementById('email').classList.add('input-error');
           document.getElementById('email').focus();
         }
-        if (errorMessage.toLowerCase().includes('contraseña') || errorMessage.toLowerCase().includes('password')) {
+        if ((errorMessage.toLowerCase().includes('contraseña') || errorMessage.toLowerCase().includes('password')) && 
+            !document.getElementById('password').classList.contains('input-error')) {
           document.getElementById('password').classList.add('input-error');
-          if (!isLoginMode) {
+          if (!isLoginMode && document.getElementById('confirmPassword')) {
             document.getElementById('confirmPassword').classList.add('input-error');
           }
         }
-        if (errorMessage.toLowerCase().includes('nombre') || errorMessage.toLowerCase().includes('firstname')) {
+        if ((errorMessage.toLowerCase().includes('nombre') || errorMessage.toLowerCase().includes('firstname')) && 
+            document.getElementById('firstName') && !document.getElementById('firstName').classList.contains('input-error')) {
           document.getElementById('firstName').classList.add('input-error');
           document.getElementById('firstName').focus();
         }
-        if (errorMessage.toLowerCase().includes('apellido') || errorMessage.toLowerCase().includes('lastname')) {
+        if ((errorMessage.toLowerCase().includes('apellido') || errorMessage.toLowerCase().includes('lastname')) && 
+            document.getElementById('lastName') && !document.getElementById('lastName').classList.contains('input-error')) {
           document.getElementById('lastName').classList.add('input-error');
           document.getElementById('lastName').focus();
         }
+        
+        updateSubmitButtonState();
       }
     }
   </script>
