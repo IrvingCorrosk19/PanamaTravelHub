@@ -392,112 +392,250 @@
       const modal = document.createElement('div');
       modal.className = 'modal active';
       modal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content tour-form-modal" style="max-width: 1100px;">
           <div class="modal-header">
-            <h3>Nuevo Tour</h3>
-            <button class="modal-close" onclick="closeTourModal()">×</button>
+            <div class="modal-header-content">
+              <h2>Nuevo Tour</h2>
+              <p class="modal-subtitle">Crea y administra la información del tour</p>
+            </div>
+            <button class="modal-close" onclick="closeTourModal()" aria-label="Cerrar">×</button>
           </div>
-          <form id="tourForm" onsubmit="saveTour(event)">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Nombre *</label>
-                <input type="text" id="tourName" class="form-input" required />
-        </div>
-              <div class="form-group">
-                <label>Precio *</label>
-                <input type="number" id="tourPrice" class="form-input" step="0.01" min="0" required />
-        </div>
-              <div class="form-group">
-                <label>Capacidad Máxima *</label>
-                <input type="number" id="tourMaxCapacity" class="form-input" min="1" required />
-              </div>
-              <div class="form-group">
-                <label>Duración (horas) *</label>
-                <input type="number" id="tourDurationHours" class="form-input" min="1" required />
-              </div>
-              <div class="form-group">
-                <label>Ubicación</label>
-                <input type="text" id="tourLocation" class="form-input" />
-              </div>
-              <div class="form-group full-width">
-                <label>Descripción *</label>
-                <textarea id="tourDescription" class="form-input" rows="5" required></textarea>
-              </div>
-              <div class="form-group full-width">
-                <label>Itinerario</label>
-                <textarea id="tourItinerary" class="form-input" rows="5"></textarea>
-              </div>
-              <div class="form-group full-width">
-                <label>Imágenes del Tour (máximo 5)</label>
-                <div id="tourImagesContainer" style="margin-bottom: var(--spacing-md);">
-                  <div class="tour-images-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--spacing-md);">
-                    <!-- Las imágenes se agregarán aquí dinámicamente -->
+          <form id="tourForm" class="tour-form" onsubmit="saveTour(event)">
+            <div class="modal-body">
+              <!-- Sección: Información General -->
+              <div class="form-section">
+                <div class="form-section-header">
+                  <h3>📋 Información General</h3>
+                </div>
+                <div class="form-grid form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="label-text">Nombre del Tour</span>
+                      <span class="label-required">*</span>
+                    </label>
+                    <input type="text" id="tourName" class="form-input" placeholder="Ej: Tour al Canal de Panamá" required />
+                    <div class="field-error" id="tourNameError" style="display: none;"></div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="label-text">Precio</span>
+                      <span class="label-required">*</span>
+                    </label>
+                    <div class="input-with-icon">
+                      <span class="input-icon">$</span>
+                      <input type="number" id="tourPrice" class="form-input" step="0.01" min="0" placeholder="0.00" required />
+                    </div>
+                    <div class="field-error" id="tourPriceError" style="display: none;"></div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="label-text">Duración</span>
+                      <span class="label-required">*</span>
+                      <span class="label-optional">(horas)</span>
+                    </label>
+                    <input type="number" id="tourDurationHours" class="form-input" min="1" placeholder="Ej: 4" required />
+                    <div class="field-error" id="tourDurationHoursError" style="display: none;"></div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="label-text">Capacidad Máxima</span>
+                      <span class="label-required">*</span>
+                    </label>
+                    <input type="number" id="tourMaxCapacity" class="form-input" min="1" placeholder="Ej: 20" required />
+                    <div class="field-error" id="tourMaxCapacityError" style="display: none;"></div>
                   </div>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <input type="file" id="tourImageFileInput" accept="image/*" multiple style="display: none;" onchange="handleTourImageFiles(event)" />
-                  <button type="button" class="btn-sm btn-primary" onclick="document.getElementById('tourImageFileInput').click()">📤 Subir Imágenes</button>
-                  <button type="button" class="btn-sm btn-secondary" onclick="showTourImageSelectionModal()">📁 Seleccionar de Media</button>
-                  <span id="tourImageCount" style="color: var(--text-muted); font-size: 0.875rem;">0/5 imágenes</span>
+              </div>
+
+              <!-- Sección: Imagen del Tour -->
+              <div class="form-section">
+                <div class="form-section-header">
+                  <h3>🖼️ Imagen del Tour</h3>
+                  <p class="form-section-description">La primera imagen será la imagen principal del tour</p>
                 </div>
-                <small style="color: var(--text-muted); margin-top: 4px; display: block;">Puedes subir múltiples imágenes a la vez. La primera imagen será la imagen principal.</small>
+                <div id="tourImagesContainer">
+                  <div class="tour-images-grid" id="tourImagesGrid">
+                    <!-- Las imágenes se agregarán aquí dinámicamente -->
+                  </div>
+                  <div class="drop-zone" id="tourImageDropZone" onclick="document.getElementById('tourImageFileInput').click()">
+                    <div class="drop-zone-content">
+                      <svg class="drop-zone-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                      </svg>
+                      <p class="drop-zone-text">Arrastra y suelta imágenes aquí</p>
+                      <p class="drop-zone-hint">o haz clic para seleccionar archivos</p>
+                      <p class="drop-zone-info">Formatos: JPG, PNG, WEBP | Tamaño recomendado: 1200x800px | Máximo 5 imágenes</p>
+                    </div>
+                  </div>
+                  <input type="file" id="tourImageFileInput" accept="image/jpeg,image/png,image/webp" multiple style="display: none;" onchange="handleTourImageFiles(event)" />
+                  <div class="image-upload-actions">
+                    <button type="button" class="btn-secondary btn-sm" onclick="showTourImageSelectionModal()">📁 Seleccionar de Media</button>
+                    <span class="image-count-badge" id="tourImageCount">0/5 imágenes</span>
+                  </div>
+                  <div class="field-error" id="tourImagesError" style="display: none;"></div>
+                </div>
                 <textarea id="tourImages" class="form-input" style="display: none;" rows="1"></textarea>
               </div>
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" id="tourIsActive" checked /> Activo
-                </label>
+
+              <!-- Sección: Ubicación -->
+              <div class="form-section">
+                <div class="form-section-header">
+                  <h3>📍 Ubicación</h3>
+                </div>
+                <div class="form-grid form-grid-2">
+                  <div class="form-group full-width">
+                    <label class="form-label">
+                      <span class="label-text">Ubicación</span>
+                      <span class="label-optional">(Opcional)</span>
+                    </label>
+                    <input type="text" id="tourLocation" class="form-input" placeholder="Ej: Ciudad de Panamá" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sección: Descripción -->
+              <div class="form-section">
+                <div class="form-section-header">
+                  <h3>📝 Descripción</h3>
+                </div>
+                <div class="form-group full-width">
+                  <label class="form-label">
+                    <span class="label-text">Descripción del Tour</span>
+                    <span class="label-required">*</span>
+                  </label>
+                  <textarea id="tourDescription" class="form-input form-textarea" rows="6" minlength="50" placeholder="Describe los detalles del tour, qué incluye, qué verás, etc..." required></textarea>
+                  <div class="form-hint">
+                    <span id="tourDescriptionCharCount">0</span> caracteres (mínimo 50)
+                  </div>
+                  <div class="field-error" id="tourDescriptionError" style="display: none;"></div>
+                </div>
+                <div class="form-group full-width">
+                  <label class="form-label">
+                    <span class="label-text">Itinerario</span>
+                    <span class="label-optional">(Opcional)</span>
+                  </label>
+                  <textarea id="tourItinerary" class="form-input form-textarea" rows="5" placeholder="Detalla el itinerario del tour, horarios, actividades, etc..."></textarea>
+                </div>
+              </div>
+
+              <!-- Sección: Estado -->
+              <div class="form-section">
+                <div class="form-group">
+                  <label class="form-label">
+                    <input type="checkbox" id="tourIsActive" checked style="margin-right: 8px;" />
+                    <span class="label-text">Tour Activo</span>
+                  </label>
+                  <p class="form-hint">Los tours inactivos no se mostrarán en el sitio público</p>
+                </div>
               </div>
             </div>
-            <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
-              <button type="submit" class="btn-primary">Guardar</button>
-              <button type="button" class="btn-secondary" onclick="closeTourModal()">Cancelar</button>
+
+            <div class="form-actions">
+              <button type="button" class="btn-cancel" onclick="closeTourModal()">Cancelar</button>
+              <button type="submit" class="btn-save" id="tourFormSubmitBtn">
+                Guardar Tour
+              </button>
             </div>
           </form>
         </div>
       `;
       document.body.appendChild(modal);
       document.getElementById('tourForm').dataset.mode = 'create';
+      
+      // Inicializar drag & drop
+      initializeTourImageDropZone();
+      
+      // Inicializar contador de caracteres
+      const descriptionTextarea = document.getElementById('tourDescription');
+      const charCount = document.getElementById('tourDescriptionCharCount');
+      if (descriptionTextarea && charCount) {
+        descriptionTextarea.addEventListener('input', function() {
+          charCount.textContent = this.value.length;
+        });
+      }
+      
       // Inicializar display de imágenes
       setTimeout(() => updateTourImagesDisplay(), 100);
     }
     
     function updateTourImagesDisplay() {
-      const container = document.querySelector('#tourImagesContainer .tour-images-grid');
-      if (!container) return;
+      const grid = document.getElementById('tourImagesGrid');
+      if (!grid) return;
       
-      container.innerHTML = tourImages.map((imgUrl, index) => `
-        <div class="tour-image-item" data-image-url="${imgUrl}" style="position: relative;">
-          <img src="${imgUrl}" alt="Tour image ${index + 1}" style="width: 100%; height: 150px; object-fit: cover; border-radius: var(--radius); border: ${index === 0 ? '3px solid var(--primary)' : '1px solid var(--stroke)'};" />
-          ${index === 0 ? '<span style="position: absolute; top: 4px; left: 4px; background: var(--primary); color: white; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.75rem;">Principal</span>' : ''}
-          <button type="button" class="image-remove-btn" onclick="removeTourImage('${imgUrl}')" title="Eliminar">×</button>
-          ${index !== 0 ? `<button type="button" class="btn-sm" style="position: absolute; bottom: 4px; left: 4px; background: var(--primary); color: white; border: none; padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.75rem; cursor: pointer;" onclick="setPrimaryTourImage('${imgUrl}')">Establecer como principal</button>` : ''}
+      if (tourImages.length === 0) {
+        grid.innerHTML = '';
+        // Mostrar drop zone si está oculta
+        const dropZone = document.getElementById('tourImageDropZone');
+        if (dropZone) dropZone.style.display = 'block';
+        return;
+      }
+      
+      // Ocultar drop zone si hay imágenes
+      const dropZone = document.getElementById('tourImageDropZone');
+      if (dropZone) dropZone.style.display = tourImages.length >= 5 ? 'none' : 'block';
+      
+      grid.innerHTML = tourImages.map((imgUrl, index) => `
+        <div class="image-preview-item ${index === 0 ? 'primary' : ''}" data-image-url="${imgUrl}">
+          <img src="${imgUrl}" alt="Tour image ${index + 1}" />
+          ${index === 0 ? '<span class="primary-badge">Principal</span>' : ''}
+          <button type="button" class="preview-remove-btn" onclick="removeTourImage('${imgUrl}')" title="Eliminar" aria-label="Eliminar imagen">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          ${index !== 0 ? `
+            <button type="button" class="preview-set-primary-btn" onclick="setPrimaryTourImage('${imgUrl}')" title="Establecer como principal">
+              Establecer como principal
+            </button>
+          ` : ''}
         </div>
       `).join('');
       
       // Actualizar textarea oculto
-      document.getElementById('tourImages').value = tourImages.join('\n');
+      const hiddenTextarea = document.getElementById('tourImages');
+      if (hiddenTextarea) {
+        hiddenTextarea.value = tourImages.join('\n');
+      }
       
       // Actualizar contador
       const countElement = document.getElementById('tourImageCount');
       if (countElement) {
         countElement.textContent = `${tourImages.length}/5 imágenes`;
+        if (tourImages.length >= 5) {
+          countElement.classList.add('max-reached');
+        } else {
+          countElement.classList.remove('max-reached');
+        }
       }
     }
     
     async function handleTourImageFiles(event) {
-      const files = Array.from(event.target.files);
+      const files = event.dataTransfer ? Array.from(event.dataTransfer.files) : Array.from(event.target.files);
       if (files.length === 0) return;
       
-      if (tourImages.length + files.length > 5) {
-        alert('❌ Solo puedes tener máximo 5 imágenes. Ya tienes ' + tourImages.length + ' imágenes.');
-        event.target.value = '';
+      // Filtrar solo imágenes
+      const imageFiles = files.filter(file => file.type.startsWith('image/'));
+      if (imageFiles.length === 0) {
+        showImageError('Por favor selecciona solo archivos de imagen (JPG, PNG, WEBP)');
         return;
       }
       
+      if (tourImages.length + imageFiles.length > 5) {
+        showImageError(`Solo puedes tener máximo 5 imágenes. Ya tienes ${tourImages.length} imágenes.`);
+        if (event.target) event.target.value = '';
+        return;
+      }
+      
+      // Deshabilitar botón de submit mientras se suben
+      const submitBtn = document.getElementById('tourFormSubmitBtn');
+      if (submitBtn) submitBtn.disabled = true;
+      
       try {
         // Subir todas las imágenes
-        const uploadPromises = files.map(file => api.uploadTourImage(file));
+        const uploadPromises = imageFiles.map(file => api.uploadTourImage(file));
         const results = await Promise.all(uploadPromises);
         
         // Agregar URLs a la lista
@@ -508,14 +646,69 @@
         });
         
         updateTourImagesDisplay();
-        alert(`✅ ${results.length} imagen(es) subida(s) exitosamente`);
+        clearImageError();
       } catch (error) {
         console.error('Error uploading images:', error);
-        alert('❌ Error al subir las imágenes: ' + (error.message || 'Error desconocido'));
+        showImageError('Error al subir las imágenes: ' + (error.message || 'Error desconocido'));
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+        // Limpiar input
+        if (event.target) event.target.value = '';
+      }
+    }
+    
+    function showImageError(message) {
+      const errorEl = document.getElementById('tourImagesError');
+      if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.style.display = 'flex';
+      }
+    }
+    
+    function clearImageError() {
+      const errorEl = document.getElementById('tourImagesError');
+      if (errorEl) {
+        errorEl.style.display = 'none';
+      }
+    }
+    
+    function initializeTourImageDropZone() {
+      const dropZone = document.getElementById('tourImageDropZone');
+      const fileInput = document.getElementById('tourImageFileInput');
+      
+      if (!dropZone || !fileInput) return;
+      
+      // Prevenir comportamiento por defecto
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
       }
       
-      // Limpiar input
-      event.target.value = '';
+      // Highlight cuando arrastra sobre
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+          dropZone.classList.add('drag-over');
+        }, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+          dropZone.classList.remove('drag-over');
+        }, false);
+      });
+      
+      // Handle drop
+      dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        handleTourImageFiles({ dataTransfer: dt });
+      }, false);
     }
     
     function removeTourImage(imageUrl) {
@@ -593,73 +786,153 @@
         const modal = document.createElement('div');
         modal.className = 'modal active';
         modal.innerHTML = `
-          <div class="modal-content" style="max-width: 800px;">
+          <div class="modal-content tour-form-modal" style="max-width: 1100px;">
             <div class="modal-header">
-              <h3>Editar Tour</h3>
-              <button class="modal-close" onclick="closeTourModal()">×</button>
+              <div class="modal-header-content">
+                <h2>Editar Tour</h2>
+                <p class="modal-subtitle">Actualiza la información del tour</p>
               </div>
-            <form id="tourForm" onsubmit="saveTour(event)">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Nombre *</label>
-                  <input type="text" id="tourName" class="form-input" value="${tour.name}" required />
+              <button class="modal-close" onclick="closeTourModal()" aria-label="Cerrar">×</button>
             </div>
-                <div class="form-group">
-                  <label>Precio *</label>
-                  <input type="number" id="tourPrice" class="form-input" step="0.01" min="0" value="${tour.price}" required />
-                </div>
-                <div class="form-group">
-                  <label>Capacidad Máxima *</label>
-                  <input type="number" id="tourMaxCapacity" class="form-input" min="1" value="${tour.maxCapacity}" required />
-                </div>
-                <div class="form-group">
-                  <label>Duración (horas) *</label>
-                  <input type="number" id="tourDurationHours" class="form-input" min="1" value="${tour.durationHours}" required />
-                </div>
-                <div class="form-group">
-                  <label>Ubicación</label>
-                  <input type="text" id="tourLocation" class="form-input" value="${tour.location || ''}" />
-                </div>
-                <div class="form-group full-width">
-                  <label>Descripción *</label>
-                  <textarea id="tourDescription" class="form-input" rows="5" required>${tour.description || ''}</textarea>
-                </div>
-                <div class="form-group full-width">
-                  <label>Itinerario</label>
-                  <textarea id="tourItinerary" class="form-input" rows="5">${tour.itinerary || ''}</textarea>
-                </div>
-                <div class="form-group full-width">
-                  <label>Imágenes del Tour (máximo 5)</label>
-                  <div id="tourImagesContainer" style="margin-bottom: var(--spacing-md);">
-                    <div class="tour-images-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--spacing-md);">
-                      ${(tour.images || []).map((imgUrl, index) => `
-                        <div class="tour-image-item" data-image-url="${imgUrl}" style="position: relative;">
-                          <img src="${imgUrl}" alt="Tour image ${index + 1}" style="width: 100%; height: 150px; object-fit: cover; border-radius: var(--radius); border: ${index === 0 ? '3px solid var(--primary)' : '1px solid var(--stroke)'};" />
-                          ${index === 0 ? '<span style="position: absolute; top: 4px; left: 4px; background: var(--primary); color: white; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.75rem;">Principal</span>' : ''}
-                          <button type="button" class="image-remove-btn" onclick="removeTourImage('${imgUrl}')" title="Eliminar">×</button>
-                          ${index !== 0 ? `<button type="button" class="btn-sm" style="position: absolute; bottom: 4px; left: 4px; background: var(--primary); color: white; border: none; padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.75rem; cursor: pointer;" onclick="setPrimaryTourImage('${imgUrl}')">Establecer como principal</button>` : ''}
-                        </div>
-                      `).join('')}
+            <form id="tourForm" class="tour-form" onsubmit="saveTour(event)">
+              <div class="modal-body">
+                <!-- Sección: Información General -->
+                <div class="form-section">
+                  <div class="form-section-header">
+                    <h3>📋 Información General</h3>
+                  </div>
+                  <div class="form-grid form-grid-2">
+                    <div class="form-group">
+                      <label class="form-label">
+                        <span class="label-text">Nombre del Tour</span>
+                        <span class="label-required">*</span>
+                      </label>
+                      <input type="text" id="tourName" class="form-input" value="${tour.name || ''}" placeholder="Ej: Tour al Canal de Panamá" required />
+                      <div class="field-error" id="tourNameError" style="display: none;"></div>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">
+                        <span class="label-text">Precio</span>
+                        <span class="label-required">*</span>
+                      </label>
+                      <div class="input-with-icon">
+                        <span class="input-icon">$</span>
+                        <input type="number" id="tourPrice" class="form-input" step="0.01" min="0" value="${tour.price || ''}" placeholder="0.00" required />
+                      </div>
+                      <div class="field-error" id="tourPriceError" style="display: none;"></div>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">
+                        <span class="label-text">Duración</span>
+                        <span class="label-required">*</span>
+                        <span class="label-optional">(horas)</span>
+                      </label>
+                      <input type="number" id="tourDurationHours" class="form-input" min="1" value="${tour.durationHours || ''}" placeholder="Ej: 4" required />
+                      <div class="field-error" id="tourDurationHoursError" style="display: none;"></div>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">
+                        <span class="label-text">Capacidad Máxima</span>
+                        <span class="label-required">*</span>
+                      </label>
+                      <input type="number" id="tourMaxCapacity" class="form-input" min="1" value="${tour.maxCapacity || ''}" placeholder="Ej: 20" required />
+                      <div class="field-error" id="tourMaxCapacityError" style="display: none;"></div>
                     </div>
                   </div>
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="file" id="tourImageFileInput" accept="image/*" multiple style="display: none;" onchange="handleTourImageFiles(event)" />
-                    <button type="button" class="btn-sm btn-primary" onclick="document.getElementById('tourImageFileInput').click()">📤 Subir Imágenes</button>
-                    <button type="button" class="btn-sm btn-secondary" onclick="showTourImageSelectionModal()">📁 Seleccionar de Media</button>
-                    <span id="tourImageCount" style="color: var(--text-muted); font-size: 0.875rem;">${(tour.images || []).length}/5 imágenes</span>
+                </div>
+
+                <!-- Sección: Imagen del Tour -->
+                <div class="form-section">
+                  <div class="form-section-header">
+                    <h3>🖼️ Imagen del Tour</h3>
+                    <p class="form-section-description">La primera imagen será la imagen principal del tour</p>
                   </div>
-                  <small style="color: var(--text-muted); margin-top: 4px; display: block;">Puedes subir múltiples imágenes a la vez. La primera imagen será la imagen principal.</small>
+                  <div id="tourImagesContainer">
+                    <div class="tour-images-grid" id="tourImagesGrid">
+                      <!-- Las imágenes se agregarán aquí dinámicamente -->
+                    </div>
+                    ${tourImages.length < 5 ? `
+                    <div class="drop-zone" id="tourImageDropZone" onclick="document.getElementById('tourImageFileInput').click()">
+                      <div class="drop-zone-content">
+                        <svg class="drop-zone-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="17 8 12 3 7 8"></polyline>
+                          <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p class="drop-zone-text">Arrastra y suelta imágenes aquí</p>
+                        <p class="drop-zone-hint">o haz clic para seleccionar archivos</p>
+                        <p class="drop-zone-info">Formatos: JPG, PNG, WEBP | Tamaño recomendado: 1200x800px | Máximo 5 imágenes</p>
+                      </div>
+                    </div>
+                    ` : ''}
+                    <input type="file" id="tourImageFileInput" accept="image/jpeg,image/png,image/webp" multiple style="display: none;" onchange="handleTourImageFiles(event)" />
+                    <div class="image-upload-actions">
+                      <button type="button" class="btn-secondary btn-sm" onclick="showTourImageSelectionModal()">📁 Seleccionar de Media</button>
+                      <span class="image-count-badge" id="tourImageCount">${tourImages.length}/5 imágenes</span>
+                    </div>
+                    <div class="field-error" id="tourImagesError" style="display: none;"></div>
+                  </div>
                   <textarea id="tourImages" class="form-input" style="display: none;" rows="1">${(tour.images || []).join('\n')}</textarea>
                 </div>
-                <div class="form-group">
-                  <label>
-                    <input type="checkbox" id="tourIsActive" ${tour.isActive ? 'checked' : ''} /> Activo
-                  </label>
+
+                <!-- Sección: Ubicación -->
+                <div class="form-section">
+                  <div class="form-section-header">
+                    <h3>📍 Ubicación</h3>
+                  </div>
+                  <div class="form-grid form-grid-2">
+                    <div class="form-group full-width">
+                      <label class="form-label">
+                        <span class="label-text">Ubicación</span>
+                        <span class="label-optional">(Opcional)</span>
+                      </label>
+                      <input type="text" id="tourLocation" class="form-input" value="${tour.location || ''}" placeholder="Ej: Ciudad de Panamá" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sección: Descripción -->
+                <div class="form-section">
+                  <div class="form-section-header">
+                    <h3>📝 Descripción</h3>
+                  </div>
+                  <div class="form-group full-width">
+                    <label class="form-label">
+                      <span class="label-text">Descripción del Tour</span>
+                      <span class="label-required">*</span>
+                    </label>
+                    <textarea id="tourDescription" class="form-input form-textarea" rows="6" minlength="50" placeholder="Describe los detalles del tour, qué incluye, qué verás, etc..." required>${tour.description || ''}</textarea>
+                    <div class="form-hint">
+                      <span id="tourDescriptionCharCount">${(tour.description || '').length}</span> caracteres (mínimo 50)
+                    </div>
+                    <div class="field-error" id="tourDescriptionError" style="display: none;"></div>
+                  </div>
+                  <div class="form-group full-width">
+                    <label class="form-label">
+                      <span class="label-text">Itinerario</span>
+                      <span class="label-optional">(Opcional)</span>
+                    </label>
+                    <textarea id="tourItinerary" class="form-input form-textarea" rows="5" placeholder="Detalla el itinerario del tour, horarios, actividades, etc...">${tour.itinerary || ''}</textarea>
+                  </div>
+                </div>
+
+                <!-- Sección: Estado -->
+                <div class="form-section">
+                  <div class="form-group">
+                    <label class="form-label">
+                      <input type="checkbox" id="tourIsActive" ${tour.isActive ? 'checked' : ''} style="margin-right: 8px;" />
+                      <span class="label-text">Tour Activo</span>
+                    </label>
+                    <p class="form-hint">Los tours inactivos no se mostrarán en el sitio público</p>
+                  </div>
                 </div>
               </div>
-              <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
-                <button type="submit" class="btn-primary">Guardar</button>
-                <button type="button" class="btn-secondary" onclick="closeTourModal()">Cancelar</button>
+
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="closeTourModal()">Cancelar</button>
+                <button type="submit" class="btn-save" id="tourFormSubmitBtn">
+                  Guardar Cambios
+                </button>
               </div>
             </form>
           </div>
@@ -667,6 +940,19 @@
         document.body.appendChild(modal);
         document.getElementById('tourForm').dataset.mode = 'edit';
         document.getElementById('tourForm').dataset.tourId = id;
+        
+        // Inicializar drag & drop
+        initializeTourImageDropZone();
+        
+        // Inicializar contador de caracteres
+        const descriptionTextarea = document.getElementById('tourDescription');
+        const charCount = document.getElementById('tourDescriptionCharCount');
+        if (descriptionTextarea && charCount) {
+          descriptionTextarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+          });
+        }
+        
         // Inicializar display de imágenes
         setTimeout(() => updateTourImagesDisplay(), 100);
       } catch (error) {
@@ -684,25 +970,42 @@
 
     async function saveTour(event) {
       event.preventDefault();
+      
+      // Limpiar errores previos
+      clearAllErrors();
+      
+      // Validar formulario
+      if (!validateTourForm()) {
+        return;
+      }
+      
       try {
         const form = event.target;
         const mode = form.dataset.mode;
+        const submitBtn = document.getElementById('tourFormSubmitBtn');
+        
+        // Deshabilitar botón mientras se guarda
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.classList.add('btn-loading');
+          submitBtn.textContent = 'Guardando...';
+        }
         
         // Obtener imágenes del array tourImages o del textarea como fallback
         const images = tourImages.length > 0 ? tourImages : 
           (document.getElementById('tourImages').value.split('\n').map(url => url.trim()).filter(url => url));
 
-      const tourData = {
-          name: document.getElementById('tourName').value,
-          description: document.getElementById('tourDescription').value,
-          itinerary: document.getElementById('tourItinerary').value || null,
-        price: parseFloat(document.getElementById('tourPrice').value),
-        maxCapacity: parseInt(document.getElementById('tourMaxCapacity').value),
-        durationHours: parseInt(document.getElementById('tourDurationHours').value),
-          location: document.getElementById('tourLocation').value || null,
+        const tourData = {
+          name: document.getElementById('tourName').value.trim(),
+          description: document.getElementById('tourDescription').value.trim(),
+          itinerary: document.getElementById('tourItinerary').value.trim() || null,
+          price: parseFloat(document.getElementById('tourPrice').value),
+          maxCapacity: parseInt(document.getElementById('tourMaxCapacity').value),
+          durationHours: parseInt(document.getElementById('tourDurationHours').value),
+          location: document.getElementById('tourLocation').value.trim() || null,
           isActive: document.getElementById('tourIsActive').checked,
-        images: images.length > 0 ? images : null
-      };
+          images: images.length > 0 ? images : null
+        };
 
         if (mode === 'edit') {
           const tourId = form.dataset.tourId;
@@ -717,7 +1020,92 @@
       } catch (error) {
         console.error('Error saving tour:', error);
         alert('❌ Error al guardar el tour: ' + (error.message || 'Error desconocido'));
+      } finally {
+        const submitBtn = document.getElementById('tourFormSubmitBtn');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('btn-loading');
+          submitBtn.textContent = mode === 'edit' ? 'Guardar Cambios' : 'Guardar Tour';
+        }
       }
+    }
+    
+    function validateTourForm() {
+      let isValid = true;
+      
+      // Validar nombre
+      const name = document.getElementById('tourName').value.trim();
+      if (!name || name.length < 3) {
+        showFieldError('tourNameError', 'El nombre del tour debe tener al menos 3 caracteres');
+        isValid = false;
+      }
+      
+      // Validar precio
+      const price = parseFloat(document.getElementById('tourPrice').value);
+      if (isNaN(price) || price <= 0) {
+        showFieldError('tourPriceError', 'El precio debe ser mayor a 0');
+        isValid = false;
+      }
+      
+      // Validar duración
+      const duration = parseInt(document.getElementById('tourDurationHours').value);
+      if (isNaN(duration) || duration <= 0) {
+        showFieldError('tourDurationHoursError', 'La duración debe ser mayor a 0 horas');
+        isValid = false;
+      }
+      
+      // Validar capacidad
+      const capacity = parseInt(document.getElementById('tourMaxCapacity').value);
+      if (isNaN(capacity) || capacity <= 0) {
+        showFieldError('tourMaxCapacityError', 'La capacidad debe ser mayor a 0');
+        isValid = false;
+      }
+      
+      // Validar descripción
+      const description = document.getElementById('tourDescription').value.trim();
+      if (!description || description.length < 50) {
+        showFieldError('tourDescriptionError', 'La descripción debe tener al menos 50 caracteres');
+        isValid = false;
+      }
+      
+      // Validar imágenes (obligatorio al menos 1)
+      if (tourImages.length === 0) {
+        showImageError('Debes agregar al menos una imagen al tour');
+        isValid = false;
+      }
+      
+      return isValid;
+    }
+    
+    function showFieldError(fieldId, message) {
+      const errorEl = document.getElementById(fieldId);
+      if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.style.display = 'flex';
+      }
+      // Agregar clase de error al input
+      const fieldName = fieldId.replace('Error', '');
+      const input = document.getElementById(fieldName);
+      if (input) {
+        input.classList.add('input-error');
+      }
+    }
+    
+    function clearAllErrors() {
+      const errorFields = ['tourNameError', 'tourPriceError', 'tourDurationHoursError', 'tourMaxCapacityError', 'tourDescriptionError', 'tourImagesError'];
+      errorFields.forEach(fieldId => {
+        const errorEl = document.getElementById(fieldId);
+        if (errorEl) errorEl.style.display = 'none';
+      });
+      
+      // Remover clases de error de los inputs
+      const inputs = ['tourName', 'tourPrice', 'tourDurationHours', 'tourMaxCapacity', 'tourDescription'];
+      inputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) input.classList.remove('input-error');
+      });
+      
+      clearImageError();
     }
 
     async function deleteTour(id) {
