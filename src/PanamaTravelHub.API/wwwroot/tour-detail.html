@@ -213,15 +213,85 @@
         }
 
         // Actualizar UI
-        document.getElementById('tourTitle').textContent = currentTour.name;
-        document.getElementById('breadcrumbTourName').textContent = currentTour.name;
-        document.getElementById('tourLocation').textContent = currentTour.location;
-        document.getElementById('tourDuration').textContent = `${currentTour.durationHours} horas`;
-        document.getElementById('tourCapacity').textContent = `${currentTour.availableSpots} de ${currentTour.maxCapacity} disponibles`;
-        document.getElementById('tourDescription').textContent = currentTour.description;
-        document.getElementById('tourPrice').textContent = `$${currentTour.price.toFixed(2)}`;
-        document.getElementById('bookingDuration').textContent = `${currentTour.durationHours} horas`;
-        document.getElementById('bookingAvailability').textContent = currentTour.availableSpots > 0 ? `${currentTour.availableSpots} cupos` : 'Agotado';
+        console.log('🎴 [loadTour] === PROCESANDO TOUR ===', { currentTour });
+        
+        // Normalizar propiedades (el backend puede retornar con mayúsculas)
+        const tourName = currentTour.name || currentTour.Name || 'Tour sin nombre';
+        const tourLocation = currentTour.location || currentTour.Location || 'Ubicación no especificada';
+        const tourDescription = currentTour.description || currentTour.Description || 'Sin descripción disponible';
+        const durationHours = currentTour.durationHours || currentTour.DurationHours || 0;
+        const availableSpots = currentTour.availableSpots !== undefined ? currentTour.availableSpots : 
+                               (currentTour.AvailableSpots !== undefined ? currentTour.AvailableSpots : 0);
+        const maxCapacity = currentTour.maxCapacity !== undefined ? currentTour.maxCapacity : 
+                            (currentTour.MaxCapacity !== undefined ? currentTour.MaxCapacity : 0);
+        
+        // ✅ SOLUCIÓN ROBUSTA: Normalizar precio de forma segura
+        console.log('💰 [loadTour] === PROCESANDO PRECIO ===');
+        const rawPrice = currentTour.Price ?? currentTour.price ?? null;
+        console.log('1️⃣ [loadTour] Raw price obtenido:', {
+          'currentTour.Price': currentTour.Price,
+          'currentTour.price': currentTour.price,
+          rawPrice,
+          rawPriceType: typeof rawPrice,
+          hasPrice: 'price' in currentTour,
+          hasPriceUpper: 'Price' in currentTour
+        });
+        
+        // Convertir a número con fallback a 0 (evita crash con toFixed)
+        let price = Number(rawPrice ?? 0);
+        console.log('2️⃣ [loadTour] Price después de Number():', {
+          price,
+          priceType: typeof price,
+          isNaN: isNaN(price),
+          isFinite: isFinite(price)
+        });
+        
+        // Validación estricta: asegurar que price es un número válido y finito
+        if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
+          console.warn('⚠️ [loadTour] Precio inválido detectado, usando 0:', { 
+            tourId,
+            tourName, 
+            rawPrice, 
+            rawPriceType: typeof rawPrice,
+            priceBeforeFix: price,
+            priceType: typeof price
+          });
+          price = 0;
+        } else {
+          console.log('✅ [loadTour] Validación pasada: price es número válido');
+        }
+        
+        // 🛡️ VALIDACIÓN FINAL: Asegurar que price es número válido antes de toFixed
+        if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
+          console.error('❌ [loadTour] ERROR CRÍTICO: price inválido antes de toFixed, usando 0', {
+            tourId,
+            tourName,
+            price,
+            priceType: typeof price
+          });
+          price = 0;
+        }
+        
+        // Formatear precio (price siempre es un número válido aquí)
+        console.log('3️⃣ [loadTour] Llamando a toFixed(2) con price:', price);
+        const formattedPrice = price.toFixed(2);
+        console.log('✅ [loadTour] formattedPrice obtenido:', formattedPrice);
+        
+        // Fallback visual elegante si el precio es 0
+        const priceText = price > 0 ? `$${formattedPrice}` : 'Consultar precio';
+        console.log('4️⃣ [loadTour] priceText final:', priceText);
+        
+        document.getElementById('tourTitle').textContent = tourName;
+        document.getElementById('breadcrumbTourName').textContent = tourName;
+        document.getElementById('tourLocation').textContent = tourLocation;
+        document.getElementById('tourDuration').textContent = `${durationHours} horas`;
+        document.getElementById('tourCapacity').textContent = `${availableSpots} de ${maxCapacity} disponibles`;
+        document.getElementById('tourDescription').textContent = tourDescription;
+        document.getElementById('tourPrice').textContent = priceText;
+        document.getElementById('bookingDuration').textContent = `${durationHours} horas`;
+        document.getElementById('bookingAvailability').textContent = availableSpots > 0 ? `${availableSpots} cupos` : 'Agotado';
+        
+        console.log('✅ [loadTour] === UI ACTUALIZADA EXITOSAMENTE ===');
         
         // Imágenes de referencia para fallback
         const DEFAULT_TOUR_IMAGES = [
