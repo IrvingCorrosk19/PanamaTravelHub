@@ -353,9 +353,22 @@ function createTourCard(tour) {
   const rawPrice = tour.Price ?? tour.price ?? null;
   
   // Convertir a número con fallback a 0 (evita crash con toFixed)
-  const price = Number(rawPrice ?? 0);
+  let price = Number(rawPrice ?? 0);
   
-  // Validación estricta solo en desarrollo (para detectar problemas)
+  // Validación estricta: asegurar que price es un número válido y finito
+  if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
+    console.warn('⚠️ [createTourCard] Precio inválido detectado, usando 0:', { 
+      tourId, 
+      tourName, 
+      rawPrice, 
+      rawPriceType: typeof rawPrice,
+      priceBeforeFix: price,
+      priceType: typeof price
+    });
+    price = 0;
+  }
+  
+  // Validación estricta solo en desarrollo (para detectar problemas en rawPrice)
   if (typeof rawPrice !== 'number' && rawPrice !== null && rawPrice !== undefined) {
     console.warn('⚠️ [createTourCard] Tour con precio no numérico:', { 
       tourId, 
@@ -364,6 +377,18 @@ function createTourCard(tour) {
       priceType: typeof rawPrice,
       finalPrice: price 
     });
+  }
+  
+  // 🛡️ VALIDACIÓN FINAL: Asegurar que price es número válido antes de toFixed
+  // Esto nunca debería ejecutarse si todo está bien, pero es protección extra
+  if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
+    console.error('❌ [createTourCard] ERROR CRÍTICO: price inválido antes de toFixed, usando 0', {
+      tourId,
+      tourName,
+      price,
+      priceType: typeof price
+    });
+    price = 0;
   }
   
   // Formatear precio (price siempre es un número válido aquí)
