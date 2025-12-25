@@ -32,7 +32,7 @@ public class AuditService : IAuditService
         object? afterState = null,
         string? ipAddress = null,
         string? userAgent = null,
-        string? correlationId = null)
+        Guid? correlationId = null)
     {
         try
         {

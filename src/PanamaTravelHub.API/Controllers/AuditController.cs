@@ -166,7 +166,7 @@ public class AuditLogDto
     public string? AfterState { get; set; }
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
-    public string? CorrelationId { get; set; }
+    public Guid? CorrelationId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

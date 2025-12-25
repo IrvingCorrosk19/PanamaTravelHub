@@ -10,7 +10,7 @@ public class AuditLog : BaseEntity
     public string? AfterState { get; set; } // JSONB
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
-    public string? CorrelationId { get; set; }
+    public Guid? CorrelationId { get; set; }
 
     // Navigation properties
     public User? User { get; set; }

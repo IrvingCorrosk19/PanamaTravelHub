@@ -62,9 +62,14 @@ public class AuditMiddleware
             userIdGuid = parsedUserId;
         }
 
-        // Obtener correlation ID (si existe)
-        var correlationId = context.Request.Headers["X-Correlation-Id"].FirstOrDefault() 
-                          ?? context.TraceIdentifier;
+        // Obtener correlation ID (si existe) y parsear a Guid
+        var correlationIdString = context.Request.Headers["X-Correlation-Id"].FirstOrDefault() 
+                                  ?? context.TraceIdentifier;
+        Guid? correlationId = null;
+        if (Guid.TryParse(correlationIdString, out var parsedCorrelationId))
+        {
+            correlationId = parsedCorrelationId;
+        }
 
         // Obtener información de la solicitud
         var ipAddress = context.Connection.RemoteIpAddress?.ToString() 
