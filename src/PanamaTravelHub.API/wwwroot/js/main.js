@@ -50,6 +50,57 @@ async function loadHomePageContent() {
     const metaDescription = document.getElementById('metaDescription');
     if (metaDescription) metaDescription.setAttribute('content', content.metaDescription || 'Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.');
     
+    // Actualizar favicon
+    const faviconLink = document.getElementById('faviconLink');
+    if (faviconLink && content.faviconUrl) {
+      faviconLink.href = content.faviconUrl;
+    }
+    
+    // Actualizar logo en navbar
+    const navLogo = document.getElementById('navLogo');
+    if (navLogo) {
+      if (content.logoUrl) {
+        navLogo.src = content.logoUrl;
+        navLogo.style.display = 'block';
+      } else {
+        navLogo.style.display = 'none';
+      }
+    }
+    
+    // Actualizar logo en footer
+    const footerLogo = document.getElementById('footerLogo');
+    if (footerLogo) {
+      if (content.logoUrl) {
+        footerLogo.src = content.logoUrl;
+        footerLogo.style.display = 'block';
+      } else {
+        footerLogo.style.display = 'none';
+      }
+    }
+    
+    // Actualizar meta tags Open Graph y Twitter
+    const ogTitle = document.getElementById('ogTitle');
+    if (ogTitle) ogTitle.setAttribute('content', content.pageTitle || 'ToursPanama — Descubre los Mejores Tours en Panamá');
+    
+    const ogDescription = document.getElementById('ogDescription');
+    if (ogDescription) ogDescription.setAttribute('content', content.metaDescription || 'Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.');
+    
+    const ogImage = document.getElementById('ogImage');
+    if (ogImage && content.logoUrlSocial) {
+      ogImage.setAttribute('content', content.logoUrlSocial);
+    }
+    
+    const twitterTitle = document.getElementById('twitterTitle');
+    if (twitterTitle) twitterTitle.setAttribute('content', content.pageTitle || 'ToursPanama — Descubre los Mejores Tours en Panamá');
+    
+    const twitterDescription = document.getElementById('twitterDescription');
+    if (twitterDescription) twitterDescription.setAttribute('content', content.metaDescription || 'Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.');
+    
+    const twitterImage = document.getElementById('twitterImage');
+    if (twitterImage && content.logoUrlSocial) {
+      twitterImage.setAttribute('content', content.logoUrlSocial);
+    }
+    
     // Actualizar sección de tours
     const toursSectionTitle = document.getElementById('toursSectionTitle');
     if (toursSectionTitle) toursSectionTitle.textContent = content.toursSectionTitle || 'Tours Disponibles';

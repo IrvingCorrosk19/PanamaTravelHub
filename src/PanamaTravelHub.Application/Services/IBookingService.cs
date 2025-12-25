@@ -10,6 +10,7 @@ public interface IBookingService
         Guid? tourDateId,
         int numberOfParticipants,
         List<BookingParticipantInfo> participants,
+        Guid? countryId = null,
         CancellationToken cancellationToken = default);
 
     Task<bool> ReserveSpotsAsync(

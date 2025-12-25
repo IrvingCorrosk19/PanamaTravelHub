@@ -48,6 +48,9 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(b => b.Notes)
             .HasColumnName("notes");
 
+        builder.Property(b => b.CountryId)
+            .HasColumnName("country_id");
+
         builder.Property(b => b.CreatedAt)
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -72,7 +75,15 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasIndex(b => new { b.UserId, b.Status })
             .HasDatabaseName("idx_bookings_user_status");
 
+        builder.HasIndex(b => b.CountryId)
+            .HasDatabaseName("idx_bookings_country_id");
+
         // Relaciones
+        builder.HasOne(b => b.Country)
+            .WithMany(c => c.Bookings)
+            .HasForeignKey(b => b.CountryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasMany(b => b.Participants)
             .WithOne(bp => bp.Booking)
             .HasForeignKey(bp => bp.BookingId)

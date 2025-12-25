@@ -313,7 +313,10 @@ public class ToursController : ControllerBase
                     ErrorLoadingToursText = "Error al cargar los tours. Por favor, intenta de nuevo.",
                     NoToursFoundText = "No se encontraron tours disponibles.",
                     PageTitle = "ToursPanama — Descubre los Mejores Tours en Panamá",
-                    MetaDescription = "Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas."
+                    MetaDescription = "Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.",
+                    LogoUrl = null,
+                    FaviconUrl = null,
+                    LogoUrlSocial = null
                 });
             }
 
@@ -337,7 +340,10 @@ public class ToursController : ControllerBase
                 ErrorLoadingToursText = content.ErrorLoadingToursText,
                 NoToursFoundText = content.NoToursFoundText,
                 PageTitle = content.PageTitle,
-                MetaDescription = content.MetaDescription
+                MetaDescription = content.MetaDescription,
+                LogoUrl = content.LogoUrl,
+                FaviconUrl = content.FaviconUrl,
+                LogoUrlSocial = content.LogoUrlSocial
             };
 
             return Ok(result);
@@ -380,6 +386,35 @@ public class ToursController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener fechas del tour {TourId}", tourId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Obtiene la lista de países disponibles para seleccionar en reservas
+    /// </summary>
+    [HttpGet("countries")]
+    public async Task<ActionResult<IEnumerable<CountryDto>>> GetCountries()
+    {
+        try
+        {
+            var countries = await _context.Countries
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.DisplayOrder)
+                .ThenBy(c => c.Name)
+                .Select(c => new CountryDto
+                {
+                    Id = c.Id,
+                    Code = c.Code,
+                    Name = c.Name
+                })
+                .ToListAsync();
+
+            return Ok(countries);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener países");
             throw;
         }
     }
@@ -436,4 +471,14 @@ public class HomePageContentPublicDto
     public string NoToursFoundText { get; set; } = string.Empty;
     public string PageTitle { get; set; } = string.Empty;
     public string MetaDescription { get; set; } = string.Empty;
+    public string? LogoUrl { get; set; }
+    public string? FaviconUrl { get; set; }
+    public string? LogoUrlSocial { get; set; }
+}
+
+public class CountryDto
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
 }

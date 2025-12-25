@@ -8,6 +8,7 @@ public class CreateBookingRequestDto
     public Guid TourId { get; set; }
     public Guid? TourDateId { get; set; }
     public int NumberOfParticipants { get; set; }
+    public Guid? CountryId { get; set; } // País desde el cual se realiza la reserva
     public List<ParticipantRequestDto> Participants { get; set; } = new();
 }
 

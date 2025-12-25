@@ -37,6 +37,7 @@ public class BookingService : IBookingService
         Guid? tourDateId,
         int numberOfParticipants,
         List<BookingParticipantInfo> participants,
+        Guid? countryId = null,
         CancellationToken cancellationToken = default)
     {
                // Obtener tour
@@ -88,6 +89,17 @@ public class BookingService : IBookingService
             // Calcular total
             var totalAmount = tour.Price * numberOfParticipants;
 
+            // Validar que el país existe si se proporciona
+            if (countryId.HasValue)
+            {
+                var country = await _context.Countries
+                    .FirstOrDefaultAsync(c => c.Id == countryId.Value && c.IsActive, cancellationToken);
+                if (country == null)
+                {
+                    throw new NotFoundException("País", countryId.Value);
+                }
+            }
+
             // Crear reserva
             var booking = new Booking
             {
@@ -97,6 +109,7 @@ public class BookingService : IBookingService
                 NumberOfParticipants = numberOfParticipants,
                 TotalAmount = totalAmount,
                 Status = BookingStatus.Pending,
+                CountryId = countryId,
                 ExpiresAt = DateTime.SpecifyKind(DateTime.UtcNow.AddHours(24), DateTimeKind.Utc) // Expira en 24 horas
             };
 

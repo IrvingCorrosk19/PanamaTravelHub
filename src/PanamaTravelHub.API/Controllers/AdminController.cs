@@ -454,6 +454,9 @@ public class AdminController : ControllerBase
                 NavLogoutButton = content.NavLogoutButton,
                 PageTitle = content.PageTitle,
                 MetaDescription = content.MetaDescription,
+                LogoUrl = content.LogoUrl,
+                FaviconUrl = content.FaviconUrl,
+                LogoUrlSocial = content.LogoUrlSocial,
                 UpdatedAt = content.UpdatedAt
             };
 
@@ -545,6 +548,15 @@ public class AdminController : ControllerBase
             if (!string.IsNullOrWhiteSpace(request.MetaDescription))
                 content.MetaDescription = request.MetaDescription;
 
+            if (request.LogoUrl != null)
+                content.LogoUrl = request.LogoUrl;
+
+            if (request.FaviconUrl != null)
+                content.FaviconUrl = request.FaviconUrl;
+
+            if (request.LogoUrlSocial != null)
+                content.LogoUrlSocial = request.LogoUrlSocial;
+
             content.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -570,6 +582,9 @@ public class AdminController : ControllerBase
                 NoToursFoundText = content.NoToursFoundText,
                 PageTitle = content.PageTitle,
                 MetaDescription = content.MetaDescription,
+                LogoUrl = content.LogoUrl,
+                FaviconUrl = content.FaviconUrl,
+                LogoUrlSocial = content.LogoUrlSocial,
                 UpdatedAt = content.UpdatedAt
             };
 
@@ -1677,6 +1692,9 @@ public class HomePageContentDto
     public string NoToursFoundText { get; set; } = string.Empty;
     public string PageTitle { get; set; } = string.Empty;
     public string MetaDescription { get; set; } = string.Empty;
+    public string? LogoUrl { get; set; }
+    public string? FaviconUrl { get; set; }
+    public string? LogoUrlSocial { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
 

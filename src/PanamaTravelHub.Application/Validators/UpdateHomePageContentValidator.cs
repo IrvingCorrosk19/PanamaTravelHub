@@ -102,6 +102,21 @@ public class UpdateHomePageContentValidator : AbstractValidator<UpdateHomePageCo
             .MaximumLength(300)
             .WithMessage("La meta descripción no puede exceder 300 caracteres")
             .When(x => !string.IsNullOrEmpty(x.MetaDescription));
+
+        RuleFor(x => x.LogoUrl)
+            .MaximumLength(500)
+            .WithMessage("La URL del logo no puede exceder 500 caracteres")
+            .When(x => !string.IsNullOrEmpty(x.LogoUrl));
+
+        RuleFor(x => x.FaviconUrl)
+            .MaximumLength(500)
+            .WithMessage("La URL del favicon no puede exceder 500 caracteres")
+            .When(x => !string.IsNullOrEmpty(x.FaviconUrl));
+
+        RuleFor(x => x.LogoUrlSocial)
+            .MaximumLength(500)
+            .WithMessage("La URL del logo para redes sociales no puede exceder 500 caracteres")
+            .When(x => !string.IsNullOrEmpty(x.LogoUrlSocial));
     }
 }
 

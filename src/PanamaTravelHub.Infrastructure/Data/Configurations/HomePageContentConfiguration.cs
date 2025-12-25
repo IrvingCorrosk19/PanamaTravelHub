@@ -114,6 +114,19 @@ public class HomePageContentConfiguration : IEntityTypeConfiguration<HomePageCon
             .HasMaxLength(500)
             .IsRequired();
 
+        // Logo & Branding
+        builder.Property(h => h.LogoUrl)
+            .HasColumnName("logo_url")
+            .HasMaxLength(500);
+
+        builder.Property(h => h.FaviconUrl)
+            .HasColumnName("favicon_url")
+            .HasMaxLength(500);
+
+        builder.Property(h => h.LogoUrlSocial)
+            .HasColumnName("logo_url_social")
+            .HasMaxLength(500);
+
         builder.Property(h => h.CreatedAt)
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP")

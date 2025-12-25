@@ -21,5 +21,8 @@ public class UpdateHomePageContentDto
     public string? NoToursFoundText { get; set; }
     public string? PageTitle { get; set; }
     public string? MetaDescription { get; set; }
+    public string? LogoUrl { get; set; }
+    public string? FaviconUrl { get; set; }
+    public string? LogoUrlSocial { get; set; }
 }
 

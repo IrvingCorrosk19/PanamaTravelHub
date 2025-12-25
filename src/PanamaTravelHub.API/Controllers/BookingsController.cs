@@ -189,7 +189,8 @@ public class BookingsController : ControllerBase
             request.TourId,
             request.TourDateId,
             request.NumberOfParticipants,
-            participants);
+            participants,
+            request.CountryId);
 
         var result = new BookingResponseDto
         {

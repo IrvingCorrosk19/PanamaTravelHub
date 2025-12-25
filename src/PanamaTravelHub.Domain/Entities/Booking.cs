@@ -12,11 +12,13 @@ public class Booking : BaseEntity
     public decimal TotalAmount { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public string? Notes { get; set; }
+    public Guid? CountryId { get; set; } // País desde el cual se realiza la reserva
 
     // Navigation properties
     public User User { get; set; } = null!;
     public Tour Tour { get; set; } = null!;
     public TourDate? TourDate { get; set; }
+    public Country? Country { get; set; }
     public ICollection<BookingParticipant> Participants { get; set; } = new List<BookingParticipant>();
     public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }

@@ -546,6 +546,10 @@ class ApiClient {
   }
 
   // Tour Dates
+  async getCountries() {
+    return this.request('/api/tours/countries', { method: 'GET' });
+  }
+
   async getTourDates(tourId) {
     return this.request(`/api/tours/${tourId}/dates`);
   }

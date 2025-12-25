@@ -28,6 +28,7 @@ let stripePublishableKey = null;
 document.addEventListener('DOMContentLoaded', async () => {
   await loadStripeConfig();
   loadTourFromUrl();
+  loadCountries();
   updateParticipants();
   setupPaymentInputs();
 });
@@ -87,6 +88,28 @@ async function loadTour(tourId) {
     console.error('Error loading tour:', error);
     alert('Error al cargar el tour');
     window.location.href = '/';
+  }
+}
+
+async function loadCountries() {
+  try {
+    const countries = await api.getCountries();
+    const countrySelect = document.getElementById('countrySelect');
+    
+    if (!countrySelect) return;
+    
+    // Limpiar opciones existentes excepto la primera
+    countrySelect.innerHTML = '<option value="">Selecciona un país...</option>';
+    
+    // Agregar países al select
+    countries.forEach(country => {
+      const option = document.createElement('option');
+      option.value = country.id;
+      option.textContent = country.name;
+      countrySelect.appendChild(option);
+    });
+  } catch (error) {
+    console.warn('No se pudieron cargar los países:', error);
   }
 }
 
@@ -720,10 +743,14 @@ async function processPayment() {
 
     // Crear la reserva primero
     statusText.textContent = 'Creando reserva...';
+    const countrySelect = document.getElementById('countrySelect');
+    const countryId = countrySelect?.value || null;
+    
     const bookingData = {
       tourId: currentTour.id,
       tourDateId: selectedTourDateId,
       numberOfParticipants: numberOfParticipants,
+      countryId: countryId || undefined,
       participants: participants
     };
 

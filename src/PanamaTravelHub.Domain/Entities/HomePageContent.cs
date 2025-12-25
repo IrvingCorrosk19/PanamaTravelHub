@@ -30,5 +30,10 @@ public class HomePageContent : BaseEntity
     // SEO
     public string PageTitle { get; set; } = "ToursPanama — Descubre los Mejores Tours en Panamá";
     public string MetaDescription { get; set; } = "Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.";
+    
+    // Logo & Branding
+    public string? LogoUrl { get; set; } // URL del logo principal (para navbar, etc.)
+    public string? FaviconUrl { get; set; } // URL del favicon (32x32, ico)
+    public string? LogoUrlSocial { get; set; } // URL del logo para redes sociales (1200x630, Open Graph)
 }
 
