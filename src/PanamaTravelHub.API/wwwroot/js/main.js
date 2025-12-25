@@ -322,10 +322,15 @@ function getDefaultTourImage(tourId = '') {
 
 // Create Tour Card
 function createTourCard(tour) {
+  console.log('🎴 [createTourCard] === INICIO ===', { tour });
+  
   // Validar que tour existe
   if (!tour) {
+    console.error('❌ [createTourCard] Tour es null o undefined');
     throw new Error('Tour es null o undefined');
   }
+
+  console.log('✅ [createTourCard] Tour válido, normalizando propiedades...');
 
   // Normalizar propiedades (el backend puede retornar Id/Name con mayúscula)
   const tourId = tour.id || tour.Id || '';
@@ -337,6 +342,15 @@ function createTourCard(tour) {
                          (tour.AvailableSpots !== undefined ? tour.AvailableSpots : 0);
   const maxCapacity = tour.maxCapacity !== undefined ? tour.maxCapacity : 
                       (tour.MaxCapacity !== undefined ? tour.MaxCapacity : 0);
+  
+  console.log('📋 [createTourCard] Propiedades normalizadas:', {
+    tourId,
+    tourName,
+    tourLocation,
+    availableSpots,
+    maxCapacity,
+    tourImagesCount: tourImages.length
+  });
 
   // Validar y sanitizar datos del tour
   // Prioridad: tourImages[0].imageUrl > imageUrl > imagen de referencia > placeholder
@@ -348,16 +362,34 @@ function createTourCard(tour) {
   const availability = (availableSpots ?? 0) > 0 ? 'Disponible' : 'Agotado';
   const availabilityClass = (availableSpots ?? 0) > 0 ? 'success' : 'danger';
   
+  console.log('💰 [createTourCard] === PROCESANDO PRECIO ===');
+  
   // ✅ SOLUCIÓN ROBUSTA: Normalizar precio de forma segura
   // El backend debe retornar siempre un precio válido, pero validamos por seguridad
   const rawPrice = tour.Price ?? tour.price ?? null;
   
+  console.log('1️⃣ [createTourCard] Raw price obtenido:', {
+    'tour.Price': tour.Price,
+    'tour.price': tour.price,
+    rawPrice,
+    rawPriceType: typeof rawPrice,
+    hasPrice: 'price' in tour,
+    hasPriceUpper: 'Price' in tour
+  });
+  
   // Convertir a número con fallback a 0 (evita crash con toFixed)
   let price = Number(rawPrice ?? 0);
   
+  console.log('2️⃣ [createTourCard] Price después de Number():', {
+    price,
+    priceType: typeof price,
+    isNaN: isNaN(price),
+    isFinite: isFinite(price)
+  });
+  
   // Validación estricta: asegurar que price es un número válido y finito
   if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
-    console.warn('⚠️ [createTourCard] Precio inválido detectado, usando 0:', { 
+    console.warn('⚠️ [createTourCard] Precio inválido detectado en validación 1, usando 0:', { 
       tourId, 
       tourName, 
       rawPrice, 
@@ -366,11 +398,13 @@ function createTourCard(tour) {
       priceType: typeof price
     });
     price = 0;
+  } else {
+    console.log('✅ [createTourCard] Validación 1 pasada: price es número válido');
   }
   
   // Validación estricta solo en desarrollo (para detectar problemas en rawPrice)
   if (typeof rawPrice !== 'number' && rawPrice !== null && rawPrice !== undefined) {
-    console.warn('⚠️ [createTourCard] Tour con precio no numérico:', { 
+    console.warn('⚠️ [createTourCard] Tour con precio no numérico (tipo inesperado):', { 
       tourId, 
       tourName, 
       rawPrice, 
@@ -389,13 +423,18 @@ function createTourCard(tour) {
       priceType: typeof price
     });
     price = 0;
+  } else {
+    console.log('✅ [createTourCard] Validación final pasada: price listo para toFixed()');
   }
   
   // Formatear precio (price siempre es un número válido aquí)
+  console.log('3️⃣ [createTourCard] Llamando a toFixed(2) con price:', price);
   const formattedPrice = price.toFixed(2);
+  console.log('✅ [createTourCard] formattedPrice obtenido:', formattedPrice);
   
   // Fallback visual elegante si el precio es 0 (puede indicar "consultar precio")
   const priceText = price > 0 ? `$${formattedPrice}` : 'Consultar precio';
+  console.log('4️⃣ [createTourCard] priceText final:', priceText);
   
   // Validar otros campos con valores normalizados
   const finalTourName = tourName || 'Tour sin nombre';
@@ -403,7 +442,14 @@ function createTourCard(tour) {
   const durationHours = tour.durationHours || tour.DurationHours || 0;
   const finalLocation = tourLocation || 'Ubicación no especificada';
 
-  return `
+  console.log('🎨 [createTourCard] Generando HTML para card:', {
+    finalTourName,
+    durationHours,
+    finalLocation,
+    priceText
+  });
+
+  const cardHtml = `
     <div class="tour-card" onclick="window.location.href='/tour-detail.html?id=${tourId}'" style="opacity: 0; transform: translateY(30px);">
       ${(availableSpots ?? 0) > 0 ? '<div class="tour-card-badge">Disponible</div>' : '<div class="tour-card-badge" style="background: var(--danger);">Agotado</div>'}
       <img src="${imageUrl}" alt="${finalTourName}" class="tour-card-image" loading="lazy" onerror="this.src='${getDefaultTourImage(tourId)}'" />
@@ -422,6 +468,9 @@ function createTourCard(tour) {
       </div>
     </div>
   `;
+  
+  console.log('✅ [createTourCard] === FIN - Card generada exitosamente ===');
+  return cardHtml;
 }
 
 // Search Tours
