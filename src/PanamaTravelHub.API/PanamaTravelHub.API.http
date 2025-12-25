@@ -4,3 +4,4 @@ GET {{PanamaTravelHub.API_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+g

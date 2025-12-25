@@ -35,7 +35,8 @@ public class SmsNotificationService : ISmsNotificationService
         _twilioAccountSid = _configuration["Twilio:AccountSid"];
         _twilioAuthToken = _configuration["Twilio:AuthToken"];
         _twilioFromNumber = _configuration["Twilio:FromNumber"];
-        _twilioEnabled = _configuration.GetValue<bool>("Twilio:Enabled", false);
+        var enabledStr = _configuration["Twilio:Enabled"];
+        _twilioEnabled = !string.IsNullOrWhiteSpace(enabledStr) && bool.TryParse(enabledStr, out var enabled) && enabled;
 
         // Validar configuración
         if (_twilioEnabled)
@@ -250,7 +251,8 @@ public class SmsNotificationService : ISmsNotificationService
         try
         {
             // Modo simulado para desarrollo (cuando Twilio no está configurado)
-            var useSimulator = _configuration.GetValue<bool>("Twilio:UseSimulator", true);
+            var useSimulatorStr = _configuration["Twilio:UseSimulator"];
+            var useSimulator = string.IsNullOrWhiteSpace(useSimulatorStr) || (bool.TryParse(useSimulatorStr, out var sim) && sim);
             
             if (useSimulator || !_twilioEnabled)
             {
