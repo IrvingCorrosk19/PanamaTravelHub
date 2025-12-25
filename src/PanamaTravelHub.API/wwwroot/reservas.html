@@ -102,7 +102,7 @@
     });
 
     function checkAuth() {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
       const loginLink = document.getElementById('loginLink');
       const logoutBtn = document.getElementById('logoutBtn');
       const authRequired = document.getElementById('authRequired');
@@ -115,14 +115,26 @@
         if (loginLink) loginLink.style.display = 'block';
         if (logoutBtn) logoutBtn.style.display = 'none';
         return false;
-      } else {
-        // Autenticado: mostrar contenido
-        authRequired.style.display = 'none';
-        authenticatedContent.style.display = 'block';
-        if (loginLink) loginLink.style.display = 'none';
-        if (logoutBtn) logoutBtn.style.display = 'block';
-        return true;
       }
+
+      // Verificar si el usuario es admin - si es admin, redirigir al panel de administración
+      const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+      const isAdmin = Array.isArray(userRoles) && (
+        userRoles.some(role => role && role.toLowerCase() === 'admin')
+      );
+
+      if (isAdmin) {
+        console.log('⚠️ [reservas] Usuario admin intentando acceder a reservas, redirigiendo a admin.html');
+        window.location.href = '/admin.html';
+        return false;
+      }
+
+      // Autenticado y NO es admin: mostrar contenido
+      authRequired.style.display = 'none';
+      authenticatedContent.style.display = 'block';
+      if (loginLink) loginLink.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'block';
+      return true;
     }
 
     async function loadReservations() {

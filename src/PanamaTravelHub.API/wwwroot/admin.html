@@ -924,7 +924,8 @@
     let currentTourId = null;
 
     function checkAdminAuth() {
-      const token = localStorage.getItem('authToken');
+      // Verificar token (compatibilidad con ambos nombres)
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
       const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
       const authRequired = document.getElementById('authRequired');
       const adminContent = document.getElementById('adminContent');
@@ -935,8 +936,12 @@
         return false;
       }
 
-      // Verificar si el usuario tiene rol Admin
-      const isAdmin = userRoles.includes('Admin') || userRoles.includes('admin');
+      // Verificar si el usuario tiene rol Admin (case-insensitive)
+      const isAdmin = Array.isArray(userRoles) && (
+        userRoles.some(role => role && role.toLowerCase() === 'admin')
+      );
+      
+      console.log('🔐 [admin] Verificando acceso:', { userRoles, isAdmin });
       
       if (!isAdmin) {
         authRequired.style.display = 'block';
