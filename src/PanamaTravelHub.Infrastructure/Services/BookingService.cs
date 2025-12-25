@@ -16,19 +16,22 @@ public class BookingService : IBookingService
     private readonly IRepository<Booking> _bookingRepository;
     private readonly ILogger<BookingService> _logger;
     private readonly IEmailNotificationService _emailNotificationService;
+    private readonly ISmsNotificationService _smsNotificationService;
 
     public BookingService(
         ApplicationDbContext context,
         IRepository<Tour> tourRepository,
         IRepository<Booking> bookingRepository,
         ILogger<BookingService> logger,
-        IEmailNotificationService emailNotificationService)
+        IEmailNotificationService emailNotificationService,
+        ISmsNotificationService smsNotificationService)
     {
         _context = context;
         _tourRepository = tourRepository;
         _bookingRepository = bookingRepository;
         _logger = logger;
         _emailNotificationService = emailNotificationService;
+        _smsNotificationService = smsNotificationService;
     }
 
     public async Task<Booking> CreateBookingAsync(
@@ -208,6 +211,49 @@ public class BookingService : IBookingService
                 _logger.LogError(ex, "Error al enviar email de confirmación para reserva {BookingId}", booking.Id);
             }
 
+            // Enviar SMS de confirmación de reserva
+            try
+            {
+                // Intentar obtener teléfono del usuario primero
+                var phoneNumber = booking.User.Phone;
+                
+                // Si el usuario no tiene teléfono, intentar obtener de los participantes
+                if (string.IsNullOrWhiteSpace(phoneNumber))
+                {
+                    var firstParticipantWithPhone = booking.Participants
+                        .FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Phone));
+                    phoneNumber = firstParticipantWithPhone?.Phone;
+                }
+
+                if (!string.IsNullOrWhiteSpace(phoneNumber))
+                {
+                    var tourDateStr = booking.TourDate?.TourDateTime.ToString("dd/MM/yyyy HH:mm") ?? "Por confirmar";
+                    await _smsNotificationService.SendTemplatedSmsAsync(
+                        phoneNumber: phoneNumber,
+                        templateName: "booking-confirmation",
+                        templateData: new
+                        {
+                            BookingId = booking.Id.ToString(),
+                            TourName = booking.Tour.Name,
+                            TourDate = tourDateStr
+                        },
+                        type: SmsNotificationType.BookingConfirmation,
+                        userId: booking.UserId,
+                        bookingId: booking.Id,
+                        cancellationToken: cancellationToken
+                    );
+                }
+                else
+                {
+                    _logger.LogWarning("No se pudo enviar SMS de confirmación para reserva {BookingId}: no hay número de teléfono", booking.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                // No fallar la creación de la reserva si el SMS falla
+                _logger.LogError(ex, "Error al enviar SMS de confirmación para reserva {BookingId}", booking.Id);
+            }
+
             return booking;
         }
         catch
@@ -349,10 +395,35 @@ public class BookingService : IBookingService
                 userId: booking.UserId,
                 bookingId: booking.Id
             );
+
+            // Enviar SMS de cancelación
+            var phoneNumber = booking.User.Phone;
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                var firstParticipantWithPhone = booking.Participants
+                    .FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Phone));
+                phoneNumber = firstParticipantWithPhone?.Phone;
+            }
+
+            if (!string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                await _smsNotificationService.SendTemplatedSmsAsync(
+                    phoneNumber: phoneNumber,
+                    templateName: "booking-cancellation",
+                    templateData: new
+                    {
+                        TourName = booking.Tour.Name
+                    },
+                    type: SmsNotificationType.BookingCancellation,
+                    userId: booking.UserId,
+                    bookingId: booking.Id,
+                    cancellationToken: cancellationToken
+                );
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al enviar email de cancelación para reserva {BookingId}", bookingId);
+            _logger.LogError(ex, "Error al enviar notificaciones de cancelación para reserva {BookingId}", bookingId);
         }
 
         return true;

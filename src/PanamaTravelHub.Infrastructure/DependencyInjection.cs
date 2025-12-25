@@ -66,6 +66,9 @@ public static class DependencyInjection
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IEmailNotificationService, EmailNotificationService>();
         
+        // Registrar servicios de SMS
+        services.AddScoped<ISmsNotificationService, SmsNotificationService>();
+        
         // Registrar BackgroundService para procesar cola de emails
         services.AddHostedService<EmailQueueService>();
 

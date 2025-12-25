@@ -29,6 +29,7 @@ public class ApplicationDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<MediaFile> MediaFiles { get; set; }
     public DbSet<Page> Pages { get; set; }
     public DbSet<Country> Countries { get; set; }
+    public DbSet<SmsNotification> SmsNotifications { get; set; }
     
     // Data Protection Keys (para persistencia en PostgreSQL)
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
