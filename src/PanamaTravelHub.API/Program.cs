@@ -148,6 +148,9 @@ builder.Services.AddCors(options =>
 // Add Infrastructure (DbContext, Repositories, etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Configurar Razor Pages
+builder.Services.AddRazorPages();
+
 // Configurar Data Protection para usar PostgreSQL (IMPORTANTE para producción)
 // Esto evita que las keys se pierdan cuando Render recrea contenedores
 builder.Services.AddDataProtection()
@@ -231,16 +234,8 @@ builder.Services.AddHealthChecks()
         tags: new[] { "db", "postgresql" },
         timeout: TimeSpan.FromSeconds(5));
 
-// Health check UI (solo en desarrollo)
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddHealthChecksUI(setup =>
-    {
-        setup.SetEvaluationTimeInSeconds(10);
-        setup.MaximumHistoryEntriesPerEndpoint(50);
-        setup.AddHealthCheckEndpoint("API", "/health");
-    });
-}
+// Health check UI removido - requiere base de datos adicional
+// Los endpoints básicos /health, /health/ready, /health/live siguen funcionando
 
 // Alternativa más simple: Rate limiting básico sin paquete externo
 // Se puede implementar con middleware personalizado si AspNetCoreRateLimit da problemas
@@ -264,8 +259,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Habilitar archivos estáticos para el frontend
-app.UseDefaultFiles();
+// Habilitar archivos estáticos para CSS, JS, imágenes
 app.UseStaticFiles();
 
 // En Render, el proxy ya maneja HTTPS, así que solo redirigir en desarrollo
@@ -315,6 +309,9 @@ app.UseIpRateLimiting();
 // Authentication debe ir antes de Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Mapear Razor Pages
+app.MapRazorPages();
 
 // Audit middleware (debe ir después de authentication para tener acceso al usuario)
 app.UseMiddleware<AuditMiddleware>();

@@ -12,7 +12,7 @@ namespace PanamaTravelHub.API.Controllers;
 
 [ApiController]
 [Route("api/payments")]
-[Authorize]
+[Authorize(Policy = "AdminOrCustomer")]
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentProviderFactory _paymentProviderFactory;

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Claims;
+using Microsoft.Extensions.DependencyInjection;
 using PanamaTravelHub.Application.Services;
 
 namespace PanamaTravelHub.API.Middleware;
@@ -11,7 +12,6 @@ public class AuditMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<AuditMiddleware> _logger;
-    private readonly IAuditService _auditService;
 
     // Acciones que deben ser auditadas
     private static readonly HashSet<string> AuditableActions = new()
@@ -29,12 +29,10 @@ public class AuditMiddleware
 
     public AuditMiddleware(
         RequestDelegate next,
-        ILogger<AuditMiddleware> logger,
-        IAuditService auditService)
+        ILogger<AuditMiddleware> logger)
     {
         _next = next;
         _logger = logger;
-        _auditService = auditService;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -97,16 +95,48 @@ public class AuditMiddleware
         {
             try
             {
+                // Obtener el servicio scoped desde el scope del request
+                var auditService = context.RequestServices.GetRequiredService<IAuditService>();
+
                 // Extraer información de la entidad desde la ruta
                 var entityType = ExtractEntityType(context.Request.Path);
                 var entityId = ExtractEntityId(context.Request.Path, requestBody);
 
                 if (!string.IsNullOrEmpty(entityType))
                 {
-                    await _auditService.LogActionAsync(
+                    // Mapear métodos HTTP a acciones permitidas
+                    var action = context.Request.Method.ToUpper() switch
+                    {
+                        "POST" => "CREATE",
+                        "PUT" or "PATCH" => "UPDATE",
+                        "DELETE" => "DELETE",
+                        "GET" => "READ",
+                        _ => "READ" // Por defecto
+                    };
+
+                    // Mapeo especial para rutas de autenticación
+                    var requestPath = context.Request.Path.Value?.ToLower() ?? "";
+                    if (requestPath.Contains("/api/auth/login"))
+                    {
+                        action = "LOGIN";
+                    }
+                    else if (requestPath.Contains("/api/auth/logout"))
+                    {
+                        action = "LOGOUT";
+                    }
+                    else if (requestPath.Contains("/api/payments"))
+                    {
+                        action = "PAYMENT";
+                    }
+                    else if (requestPath.Contains("/cancel") || requestPath.Contains("/cancellation"))
+                    {
+                        action = "CANCEL";
+                    }
+
+                    await auditService.LogActionAsync(
                         entityType: entityType,
                         entityId: entityId,
-                        action: context.Request.Method,
+                        action: action,
                         userId: userIdGuid,
                         beforeState: null, // Se puede mejorar para capturar el estado antes
                         afterState: requestBody != null ? new { RequestBody = requestBody } : null,

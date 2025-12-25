@@ -35,13 +35,13 @@
       <form id="authForm" onsubmit="handleSubmit(event)">
         <div class="form-group">
           <label class="form-label" for="email">Correo Electrónico</label>
-          <input type="email" id="email" class="form-input" required autocomplete="email" placeholder="tu@email.com" />
+          <input type="email" id="email" class="form-input" required autocomplete="email" placeholder="tu@email.com" value="admin@panamatravelhub.com" />
           <span class="field-error" id="emailError"></span>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="password">Contraseña</label>
-          <input type="password" id="password" class="form-input" required autocomplete="current-password" placeholder="••••••••" minlength="8" />
+          <input type="password" id="password" class="form-input" required autocomplete="current-password" placeholder="••••••••" minlength="8" value="Admin123!" />
           <span class="field-error" id="passwordError"></span>
           <!-- Indicador de fortaleza de contraseña (solo en modo registro) -->
           <div id="passwordStrength" style="display:none; margin-top: 8px;">
@@ -509,7 +509,52 @@
 
       try {
         if (isLoginMode) {
-          await api.login(email, password);
+          const loginResponse = await api.login(email, password);
+          // La respuesta ya se guardó en localStorage dentro de api.login()
+          logger.success('Login exitoso', loginResponse);
+          
+          // Usar RedirectUrl del backend (determinado por roles)
+          // ASP.NET Core serializa en camelCase, así que la propiedad será 'redirectUrl'
+          const redirectUrl = loginResponse?.redirectUrl || loginResponse?.RedirectUrl || '/Reservas';
+          const userRoles = loginResponse?.user?.roles || loginResponse?.user?.Roles || [];
+          
+          console.log('🔐 [login] ========== DEBUGGING LOGIN ==========');
+          console.log('🔐 [login] LoginResponse completo:', loginResponse);
+          console.log('🔐 [login] redirectUrl (camelCase):', loginResponse?.redirectUrl);
+          console.log('🔐 [login] RedirectUrl (PascalCase):', loginResponse?.RedirectUrl);
+          console.log('🔐 [login] Roles del usuario:', userRoles);
+          console.log('🔐 [login] RedirectUrl final a usar:', redirectUrl);
+          console.log('👤 [login] Estoy redirigiendo a:', redirectUrl, 'y su rol es:', userRoles.join(', '));
+          console.log('🔐 [login] ========================================');
+          
+          // Verificar que el token esté guardado antes de redirigir
+          let attempts = 0;
+          while (attempts < 10) {
+            const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+            if (token) {
+              console.log('✅ Token verificado en localStorage antes de redirigir');
+              break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+          }
+          
+          // Verificar una última vez
+          const finalToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+          if (!finalToken) {
+            console.error('❌ Token no encontrado después de intentos, redirigiendo de todas formas');
+          }
+          
+          // Redirigir según la URL determinada por el backend
+          const fullUrl = window.location.origin + redirectUrl;
+          console.log('👤 [login] ========== REDIRECCIÓN ==========');
+          console.log('👤 [login] RedirectUrl recibido del backend:', redirectUrl);
+          console.log('👤 [login] URL completa será:', fullUrl);
+          console.log('👤 [login] Token disponible:', !!finalToken);
+          console.log('👤 [login] EJECUTANDO: window.location.href =', redirectUrl);
+          console.log('👤 [login] ====================================');
+          window.location.href = redirectUrl;
+          return;
         } else {
           const firstName = document.getElementById('firstName').value.trim();
           const lastName = document.getElementById('lastName').value.trim();
@@ -566,45 +611,21 @@
             return;
           }
 
-          await api.register({ 
+          const registerResponse = await api.register({ 
             email, 
             password: passwordTrimmed, 
             confirmPassword: confirmPasswordTrimmed,
             firstName, 
             lastName 
           });
-        }
-
-        // Verificar si el usuario es admin y redirigir al panel de administración
-        const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
-        
-        // Verificar si es admin (case-insensitive)
-        const isAdmin = Array.isArray(userRoles) && (
-          userRoles.some(role => role && role.toLowerCase() === 'admin')
-        );
-        
-        console.log('🔐 [login] Roles del usuario:', userRoles, 'Es admin:', isAdmin);
-        console.log('🔐 [login] User response:', response.user);
-        
-        // Prioridad 1: Verificar si hay un parámetro redirect
-        const urlParams = new URLSearchParams(window.location.search);
-        const redirectParam = urlParams.get('redirect');
-        
-        if (redirectParam && !isAdmin) {
-          // Solo respetar redirect si NO es admin
-          console.log('👤 [login] Redirigiendo según parámetro redirect:', redirectParam);
-          window.location.href = redirectParam;
+          
+          // Usar RedirectUrl del backend (nuevos usuarios siempre son Customer)
+          const redirectUrl = registerResponse?.redirectUrl || '/reservas.html';
+          const userRoles = registerResponse?.user?.roles || [];
+          console.log('👤 [register] Usuario registrado, RedirectUrl desde backend:', redirectUrl);
+          console.log('👤 [register] Estoy redirigiendo a:', redirectUrl, 'y su rol es:', userRoles.join(', '));
+          window.location.href = redirectUrl;
           return;
-        }
-        
-        if (isAdmin) {
-          // Si es admin, SIEMPRE redirigir al panel de administración
-          console.log('👨‍💼 [login] Redirigiendo a panel de administración');
-          window.location.href = '/admin.html';
-        } else {
-          // Si no es admin (cliente), redirigir a Mis Reservas por defecto
-          console.log('👤 [login] Redirigiendo a Mis Reservas (cliente)');
-          window.location.href = '/reservas.html';
         }
       } catch (error) {
         if (submitButton && loaderId) {

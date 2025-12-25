@@ -157,7 +157,7 @@ function checkAuth() {
       if (adminLink) adminLink.style.display = 'block';
       // Si estamos en la página principal y el usuario es admin, redirigir al panel
       if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
-        window.location.href = '/admin.html';
+        window.location.href = '/Admin';
       }
     } else {
       if (adminLink) adminLink.style.display = 'none';

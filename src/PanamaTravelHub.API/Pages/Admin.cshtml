@@ -1,0 +1,463 @@
+@page "/Admin"
+@model PanamaTravelHub.API.Pages.AdminModel
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Administrativo — ToursPanama</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/admin.css" />
+  <link rel="stylesheet" href="/css/loading.css" />
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner wrap">
+      <div class="brand">
+        <div class="mark"></div>
+        <span class="brand-text">ToursPanama</span>
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Inicio</a>
+        <a href="/Admin" class="nav-link active">Admin</a>
+        <button class="btn-primary" id="logoutBtn">Cerrar Sesión</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="wrap admin-container">
+    <div class="admin-header">
+      <h1>Panel Administrativo</h1>
+      <p>Gestiona tours, reservas, usuarios y contenido</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="switchTab('tours', event)">Tours</button>
+      <button class="admin-tab" onclick="switchTab('bookings', event)">Reservas</button>
+      <button class="admin-tab" onclick="switchTab('users', event)">Usuarios</button>
+      <button class="admin-tab" onclick="switchTab('cms', event)">CMS</button>
+      <button class="admin-tab" onclick="switchTab('media', event)">Media</button>
+      <button class="admin-tab" onclick="switchTab('pages', event)">Páginas</button>
+      <button class="admin-tab" onclick="switchTab('stats', event)">Estadísticas</button>
+    </div>
+
+    <!-- Content -->
+    <div id="adminContent">
+      <!-- Tours Tab -->
+      <div id="tours" class="admin-content active">
+        <div class="admin-header">
+          <h2>Tours</h2>
+          <button class="btn-primary" onclick="showAddTourModal()">+ Nuevo Tour</button>
+        </div>
+        <div class="admin-card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Imagen</th>
+                  <th>Nombre</th>
+                  <th>Precio</th>
+                  <th>Capacidad</th>
+                  <th>Disponibles</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="toursTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center; color: var(--text-muted);">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bookings Tab -->
+      <div id="bookings" class="admin-content">
+        <div class="admin-header">
+          <h2>Reservas</h2>
+        </div>
+        <div class="admin-card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tour</th>
+                  <th>Cliente</th>
+                  <th>Email</th>
+                  <th>Participantes</th>
+                  <th>Total</th>
+                  <th>Estado</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="bookingsTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center; color: var(--text-muted);">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div id="users" class="admin-content">
+        <div class="admin-header">
+          <h2>Usuarios</h2>
+        </div>
+        <div class="admin-card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Nombre</th>
+                  <th>Teléfono</th>
+                  <th>Roles</th>
+                  <th>Estado</th>
+                  <th>Reservas</th>
+                  <th>Último Login</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr>
+                  <td colspan="8" style="text-align: center; color: var(--text-muted);">Cargando...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CMS Tab -->
+      <div id="cms" class="admin-content">
+        <div class="admin-header">
+          <h2>Gestión de Contenido (CMS)</h2>
+        </div>
+        <div class="admin-card">
+          <p>Cargando contenido...</p>
+        </div>
+      </div>
+
+      <!-- Media Tab -->
+      <div id="media" class="admin-content">
+        <div class="admin-header">
+          <h2>Media</h2>
+        </div>
+        <div class="admin-card">
+          <p>Cargando media...</p>
+        </div>
+      </div>
+
+      <!-- Pages Tab -->
+      <div id="pages" class="admin-content">
+        <div class="admin-header">
+          <h2>Páginas</h2>
+        </div>
+        <div class="admin-card">
+          <p>Cargando páginas...</p>
+        </div>
+      </div>
+
+      <!-- Stats Tab -->
+      <div id="stats" class="admin-content">
+        <div class="admin-header">
+          <h2>Estadísticas</h2>
+        </div>
+        <div class="admin-card">
+          <p>Cargando estadísticas...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/loading.js"></script>
+  <script src="/js/logger.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    // Helper function para formatear precios
+    function formatPrice(value, fallbackText = '$0.00') {
+      const rawPrice = value ?? null;
+      let price = Number(rawPrice ?? 0);
+      
+      if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
+        console.warn('⚠️ [formatPrice] Precio inválido, usando 0:', { value, rawPrice, price });
+        price = 0;
+      }
+      
+      const formattedPrice = price.toFixed(2);
+      return price > 0 ? `$${formattedPrice}` : fallbackText;
+    }
+
+    let currentTourId = null;
+
+    // Switch tabs
+    function switchTab(tabName, e) {
+      const clickedTab = e ? e.target : (window.event ? window.event.target : null);
+      document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      if (clickedTab) {
+        clickedTab.classList.add('active');
+      }
+
+      document.querySelectorAll('.admin-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(tabName).classList.add('active');
+
+      // Load tab data
+      if (tabName === 'tours') loadTours();
+      if (tabName === 'bookings') loadBookings();
+      if (tabName === 'users') loadUsers();
+      if (tabName === 'cms') loadHomePageContent();
+      if (tabName === 'media') loadMediaFiles();
+      if (tabName === 'pages') loadPages();
+      if (tabName === 'stats') loadStats();
+    }
+
+    // Load Users
+    async function loadUsers() {
+      try {
+        const users = await api.getAdminUsers();
+        const tbody = document.getElementById('usersTableBody');
+        
+        if (!users || users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No hay usuarios disponibles</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = users.map(user => {
+          const rolesBadges = user.roles.map(role => 
+            `<span class="badge ${role === 'Admin' ? 'active' : 'inactive'}" style="margin-right: 4px;">${role}</span>`
+          ).join('');
+          
+          const isLocked = user.lockedUntil && new Date(user.lockedUntil) > new Date();
+          const statusBadge = user.isActive 
+            ? `<span class="badge active">Activo</span>`
+            : `<span class="badge inactive">Inactivo</span>`;
+          
+          const lockedBadge = isLocked 
+            ? `<span class="badge" style="background: #ef4444; margin-left: 4px;">Bloqueado</span>`
+            : '';
+
+          return `
+            <tr>
+              <td>${user.email}</td>
+              <td>${user.firstName} ${user.lastName}</td>
+              <td>${user.phone || '—'}</td>
+              <td>${rolesBadges}</td>
+              <td>${statusBadge}${lockedBadge}</td>
+              <td>${user.totalBookings}</td>
+              <td>${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('es-PA') : 'Nunca'}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-sm btn-primary" onclick="viewUser('${user.id}')">Ver</button>
+                  <button class="btn-sm btn-secondary" onclick="editUser('${user.id}')">Editar</button>
+                  ${isLocked ? `<button class="btn-sm" style="background: #10b981;" onclick="unlockUser('${user.id}')">Desbloquear</button>` : ''}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Error loading users:', error);
+        document.getElementById('usersTableBody').innerHTML = 
+          '<tr><td colspan="8" style="text-align: center; color: var(--error);">Error al cargar usuarios</td></tr>';
+      }
+    }
+
+    // Load Tours
+    async function loadTours() {
+      const tbody = document.getElementById('toursTableBody');
+      const loaderId = loadingManager.showInline(tbody, 'Cargando tours...');
+      
+      try {
+        const tours = await api.getAdminTours();
+        loadingManager.hideInline(tbody);
+        
+        if (!tours || tours.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay tours disponibles</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = tours.map(tour => `
+          <tr>
+            <td>
+              ${tour.imageUrl ? `<img src="${tour.imageUrl}" class="tour-image-preview" alt="${tour.name}" />` : '—'}
+            </td>
+            <td>${tour.name}</td>
+            <td>${formatPrice(tour.price ?? tour.Price)}</td>
+            <td>${tour.maxCapacity}</td>
+            <td>${tour.availableSpots}</td>
+            <td>
+              <span class="badge ${tour.isActive ? 'active' : 'inactive'}">
+                ${tour.isActive ? 'Activo' : 'Inactivo'}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-sm btn-primary" onclick="editTour('${tour.id}')">Editar</button>
+                <button class="btn-sm btn-secondary" onclick="deleteTour('${tour.id}')">Eliminar</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading tours:', error);
+        loadingManager.hideInline(tbody);
+        document.getElementById('toursTableBody').innerHTML = 
+          '<tr><td colspan="7" style="text-align: center; color: var(--error);">Error al cargar tours</td></tr>';
+      }
+    }
+
+    // Load Bookings
+    async function loadBookings() {
+      try {
+        const bookings = await api.getAdminBookings();
+        const tbody = document.getElementById('bookingsTableBody');
+        
+        if (!bookings || bookings.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay reservas disponibles</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = bookings.map(booking => `
+          <tr>
+            <td>${booking.tourName || 'N/A'}</td>
+            <td>${booking.userName || 'N/A'}</td>
+            <td>${booking.userEmail || 'N/A'}</td>
+            <td>${booking.numberOfParticipants}</td>
+            <td>${formatPrice(booking.totalAmount)}</td>
+            <td>
+              <span class="badge ${booking.status === 'Confirmed' ? 'active' : 'inactive'}">
+                ${booking.status}
+              </span>
+            </td>
+            <td>${new Date(booking.createdAt).toLocaleDateString('es-PA')}</td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading bookings:', error);
+        document.getElementById('bookingsTableBody').innerHTML = 
+          '<tr><td colspan="7" style="text-align: center; color: var(--error);">Error al cargar reservas</td></tr>';
+      }
+    }
+
+    // Load Stats
+    async function loadStats() {
+      try {
+        const stats = await api.getAdminStats();
+        const content = document.getElementById('stats');
+        content.innerHTML = `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>${stats.totalTours}</h3>
+              <p>Tours Totales</p>
+            </div>
+            <div class="stat-card">
+              <h3>${stats.totalBookings}</h3>
+              <p>Reservas Totales</p>
+            </div>
+            <div class="stat-card">
+              <h3>${formatPrice(stats.totalRevenue)}</h3>
+              <p>Ingresos Totales</p>
+            </div>
+            <div class="stat-card">
+              <h3>${stats.totalUsers}</h3>
+              <p>Usuarios</p>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error loading stats:', error);
+        document.getElementById('stats').innerHTML = 
+          '<p style="color: var(--error);">Error al cargar estadísticas</p>';
+      }
+    }
+
+    // Placeholder functions
+    function showAddTourModal() {
+      alert('Funcionalidad de agregar tour - por implementar');
+    }
+
+    function editTour(id) {
+      alert('Funcionalidad de editar tour - por implementar');
+    }
+
+    function deleteTour(id) {
+      if (!confirm('¿Estás seguro de eliminar este tour?')) return;
+      alert('Funcionalidad de eliminar tour - por implementar');
+    }
+
+    function viewUser(id) {
+      alert('Funcionalidad de ver usuario - por implementar');
+    }
+
+    function editUser(id) {
+      alert('Funcionalidad de editar usuario - por implementar');
+    }
+
+    function unlockUser(id) {
+      alert('Funcionalidad de desbloquear usuario - por implementar');
+    }
+
+    async function loadHomePageContent() {
+      const content = document.getElementById('cms');
+      content.innerHTML = '<p>CMS - por implementar</p>';
+    }
+
+    async function loadMediaFiles() {
+      const content = document.getElementById('media');
+      content.innerHTML = '<p>Media - por implementar</p>';
+    }
+
+    async function loadPages() {
+      const content = document.getElementById('pages');
+      content.innerHTML = '<p>Páginas - por implementar</p>';
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Esperar un momento para asegurar que localStorage esté disponible
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Verificar token ANTES de hacer cualquier request
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+      if (!token) {
+        console.warn('⚠️ No hay token, redirigiendo a login');
+        window.location.href = '/login.html';
+        return;
+      }
+
+      console.log('✅ Token encontrado, cargando datos...');
+
+      // Cargar datos
+      loadTours();
+      loadStats();
+
+      // Logout button
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+          try {
+            await api.logout();
+          } catch (error) {
+            console.error('Error en logout:', error);
+          }
+          localStorage.clear();
+          window.location.href = '/';
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+

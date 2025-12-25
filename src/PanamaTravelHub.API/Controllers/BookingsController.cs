@@ -28,7 +28,7 @@ public class BookingsController : ControllerBase
     /// Obtiene las reservas del usuario actual
     /// </summary>
     [HttpGet("my")]
-    [Authorize]
+    [Authorize(Policy = "AdminOrCustomer")]
     public async Task<ActionResult<IEnumerable<BookingResponseDto>>> GetMyBookings()
     {
         try
@@ -96,7 +96,7 @@ public class BookingsController : ControllerBase
     /// Obtiene una reserva por ID
     /// </summary>
     [HttpGet("{id}")]
-    [Authorize]
+    [Authorize(Policy = "AdminOrCustomer")]
     public async Task<ActionResult<BookingDetailResponseDto>> GetBooking(Guid id)
     {
         var booking = await _bookingService.GetBookingByIdAsync(id);
@@ -150,7 +150,7 @@ public class BookingsController : ControllerBase
     /// Crea una nueva reserva
     /// </summary>
     [HttpPost]
-    [Authorize]
+    [Authorize(Policy = "AdminOrCustomer")]
     public async Task<ActionResult<BookingResponseDto>> CreateBooking([FromBody] CreateBookingRequestDto request)
     {
         // La validación se hace automáticamente por FluentValidation
@@ -225,7 +225,7 @@ public class BookingsController : ControllerBase
     /// Cancela una reserva
     /// </summary>
     [HttpPost("{id}/cancel")]
-    [Authorize]
+    [Authorize(Policy = "AdminOrCustomer")]
     public async Task<ActionResult> CancelBooking(Guid id)
     {
         // Verificar que el usuario sea el dueño de la reserva o admin

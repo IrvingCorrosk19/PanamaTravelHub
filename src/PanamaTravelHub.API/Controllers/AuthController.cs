@@ -106,6 +106,9 @@ public class AuthController : ControllerBase
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email, roles);
         var refreshToken = await CreateRefreshTokenAsync(user.Id);
 
+        // Usuarios nuevos siempre son Customer, redirigir a reservas (Razor Pages)
+        var redirectUrl = "/Reservas";
+
         // Devolver 201 Created (según especificaciones)
         return CreatedAtAction(nameof(GetCurrentUser), new { id = user.Id }, new AuthResponseDto
         {
@@ -118,7 +121,8 @@ public class AuthController : ControllerBase
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Roles = roles
-            }
+            },
+            RedirectUrl = redirectUrl
         });
     }
 
@@ -239,6 +243,21 @@ public class AuthController : ControllerBase
             var roles = user.UserRoles
                 .Select(ur => ur.Role.Name)
                 .ToList();
+            
+            _logger.LogInformation("Roles obtenidos para usuario {Email}: {Roles}", user.Email, string.Join(", ", roles));
+
+            // Determinar URL de redirección basada en roles (Razor Pages)
+            string redirectUrl;
+            if (roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+            {
+                redirectUrl = "/Admin";
+                _logger.LogInformation("Usuario admin detectado, redirigiendo a panel de administración. Roles: {Roles}", string.Join(", ", roles));
+            }
+            else
+            {
+                redirectUrl = "/Reservas";
+                _logger.LogInformation("Usuario cliente detectado, redirigiendo a reservas. Roles: {Roles}", string.Join(", ", roles));
+            }
 
             // Generar tokens
             var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email, roles);
@@ -255,7 +274,8 @@ public class AuthController : ControllerBase
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Roles = roles
-                }
+                },
+                RedirectUrl = redirectUrl
             });
         }
         catch (Exception ex)
@@ -330,6 +350,17 @@ public class AuthController : ControllerBase
 
         _logger.LogInformation("Token refrescado exitosamente para usuario: {Email}", refreshToken.User.Email);
 
+        // Determinar URL de redirección basada en roles (Razor Pages)
+        string redirectUrl;
+        if (roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+        {
+            redirectUrl = "/Admin";
+        }
+        else
+        {
+            redirectUrl = "/Reservas";
+        }
+
         return Ok(new AuthResponseDto
         {
             AccessToken = newAccessToken,
@@ -341,7 +372,8 @@ public class AuthController : ControllerBase
                 FirstName = refreshToken.User.FirstName,
                 LastName = refreshToken.User.LastName,
                 Roles = roles
-            }
+            },
+            RedirectUrl = redirectUrl
         });
     }
 
@@ -349,7 +381,7 @@ public class AuthController : ControllerBase
     /// Logout - revoca el refresh token
     /// </summary>
     [HttpPost("logout")]
-    [Authorize]
+    [Authorize(Policy = "AdminOrCustomer")]
     public async Task<ActionResult> Logout([FromBody] LogoutRequestDto? request)
     {
         var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
@@ -401,7 +433,7 @@ public class AuthController : ControllerBase
     /// Obtener información del usuario actual
     /// </summary>
     [HttpGet("me")]
-    [Authorize]
+    [Authorize(Policy = "AdminOrCustomer")]
     public async Task<ActionResult<UserDto>> GetCurrentUser()
     {
         var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
@@ -670,6 +702,7 @@ public class AuthResponseDto
     public string AccessToken { get; set; } = string.Empty;
     public string RefreshToken { get; set; } = string.Empty;
     public UserDto User { get; set; } = new();
+    public string RedirectUrl { get; set; } = string.Empty;
 }
 
 public class UserDto

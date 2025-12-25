@@ -229,14 +229,25 @@ class ApiClient {
       logger.success('Login exitoso', { userId: response.user?.id });
       
       // Guardar accessToken y refreshToken
-      if (response.accessToken && response.refreshToken) {
-        this.accessToken = response.accessToken;
-        this.refreshToken = response.refreshToken;
-        localStorage.setItem('accessToken', response.accessToken);
-        localStorage.setItem('refreshToken', response.refreshToken);
+      // ASP.NET Core puede serializar en PascalCase o camelCase dependiendo de la configuración
+      const accessToken = response.accessToken || response.AccessToken;
+      const refreshToken = response.refreshToken || response.RefreshToken;
+      
+      console.log('🔐 [login] Response keys:', Object.keys(response));
+      console.log('🔐 [login] accessToken:', !!response.accessToken, 'AccessToken:', !!response.AccessToken);
+      console.log('🔐 [login] refreshToken:', !!response.refreshToken, 'RefreshToken:', !!response.RefreshToken);
+      
+      if (accessToken && refreshToken) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
         // Mantener compatibilidad con código antiguo
-        localStorage.setItem('authToken', response.accessToken);
+        localStorage.setItem('authToken', accessToken);
         logger.debug('Tokens guardados en localStorage');
+        console.log('✅ [login] Tokens guardados correctamente');
+      } else {
+        console.error('❌ [login] No se encontraron tokens en la respuesta:', response);
       }
       
       // Guardar userId para usar en reservas
