@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PanamaTravelHub.Application.DTOs;
@@ -13,6 +14,7 @@ namespace PanamaTravelHub.API.Controllers;
 
 [ApiController]
 [Route("api/admin")]
+[Authorize(Policy = "AdminOnly")]
 public class AdminController : ControllerBase
 {
     private readonly IRepository<Tour> _tourRepository;

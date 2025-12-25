@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PanamaTravelHub.Application.Exceptions;
 using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Domain.Enums;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace PanamaTravelHub.API.Controllers;
 
@@ -25,21 +28,18 @@ public class BookingsController : ControllerBase
     /// Obtiene las reservas del usuario actual
     /// </summary>
     [HttpGet("my")]
-    public async Task<ActionResult<IEnumerable<BookingResponseDto>>> GetMyBookings([FromQuery] Guid? userId = null)
+    [Authorize]
+    public async Task<ActionResult<IEnumerable<BookingResponseDto>>> GetMyBookings()
     {
         try
         {
-            // Obtener userId del query parameter o usar el hardcodeado como fallback
-            Guid actualUserId;
-            if (userId.HasValue && userId.Value != Guid.Empty)
+            // Obtener userId del token JWT
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                             User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var actualUserId))
             {
-                actualUserId = userId.Value;
-            }
-            else
-            {
-                // TODO: Obtener userId del token JWT cuando la autenticación esté implementada
-                // Por ahora usar un GUID mock para testing
-                actualUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+                return Unauthorized(new { message = "Usuario no autenticado" });
             }
 
             var bookings = await _bookingService.GetUserBookingsAsync(actualUserId);
@@ -69,9 +69,9 @@ public class BookingsController : ControllerBase
     /// Obtiene todas las reservas (Admin)
     /// </summary>
     [HttpGet]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<ActionResult<IEnumerable<BookingResponseDto>>> GetAllBookings()
     {
-        // TODO: Verificar que el usuario sea admin
         var bookings = await _bookingService.GetAllBookingsAsync();
 
         var result = bookings.Select(b => new BookingResponseDto
@@ -96,13 +96,29 @@ public class BookingsController : ControllerBase
     /// Obtiene una reserva por ID
     /// </summary>
     [HttpGet("{id}")]
+    [Authorize]
     public async Task<ActionResult<BookingDetailResponseDto>> GetBooking(Guid id)
     {
         var booking = await _bookingService.GetBookingByIdAsync(id);
         if (booking == null)
             throw new NotFoundException("Reserva", id);
 
-            var result = new BookingDetailResponseDto
+        // Verificar que el usuario sea el dueño de la reserva o admin
+        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                         User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var currentUserId))
+        {
+            return Unauthorized(new { message = "Usuario no autenticado" });
+        }
+
+        // Verificar propiedad o rol admin
+        if (booking.UserId != currentUserId && !User.IsInRole("Admin"))
+        {
+            return StatusCode(403, new { message = "No tienes permisos para ver esta reserva" });
+        }
+
+        var result = new BookingDetailResponseDto
             {
                 Id = booking.Id,
                 TourId = booking.TourId,
@@ -134,20 +150,27 @@ public class BookingsController : ControllerBase
     /// Crea una nueva reserva
     /// </summary>
     [HttpPost]
+    [Authorize]
     public async Task<ActionResult<BookingResponseDto>> CreateBooking([FromBody] CreateBookingRequestDto request)
     {
         // La validación se hace automáticamente por FluentValidation
-        // Obtener userId del request o usar el del body si está disponible
-        Guid userId;
+        // Obtener userId del token JWT
+        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                         User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { message = "Usuario no autenticado. Debes iniciar sesión para realizar una reserva." });
+        }
+
+        // Si viene userId en el request, validar que coincida con el del token (solo admin puede crear para otros)
         if (request.UserId.HasValue && request.UserId.Value != Guid.Empty)
         {
+            if (request.UserId.Value != userId && !User.IsInRole("Admin"))
+            {
+                return StatusCode(403, new { message = "No puedes crear reservas para otros usuarios" });
+            }
             userId = request.UserId.Value;
-        }
-        else
-        {
-            // TODO: Obtener userId del token JWT cuando la autenticación esté implementada
-            // Por ahora, si no viene en el request, lanzar error
-            throw new BusinessException("Usuario no autenticado. Debes iniciar sesión para realizar una reserva.", "USER_NOT_AUTHENTICATED");
         }
 
         // Convertir participantes
@@ -187,9 +210,9 @@ public class BookingsController : ControllerBase
     /// Confirma una reserva (Admin)
     /// </summary>
     [HttpPost("{id}/confirm")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<ActionResult> ConfirmBooking(Guid id)
     {
-        // TODO: Verificar que el usuario sea admin
         var success = await _bookingService.ConfirmBookingAsync(id);
         if (!success)
             throw new BusinessException("No se pudo confirmar la reserva. Verifica que la reserva esté en estado Pending.", "CANNOT_CONFIRM_BOOKING");
@@ -201,8 +224,28 @@ public class BookingsController : ControllerBase
     /// Cancela una reserva
     /// </summary>
     [HttpPost("{id}/cancel")]
+    [Authorize]
     public async Task<ActionResult> CancelBooking(Guid id)
     {
+        // Verificar que el usuario sea el dueño de la reserva o admin
+        var booking = await _bookingService.GetBookingByIdAsync(id);
+        if (booking == null)
+            throw new NotFoundException("Reserva", id);
+
+        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                         User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var currentUserId))
+        {
+            return Unauthorized(new { message = "Usuario no autenticado" });
+        }
+
+        // Verificar propiedad o rol admin
+        if (booking.UserId != currentUserId && !User.IsInRole("Admin"))
+        {
+            return StatusCode(403, new { message = "No tienes permisos para cancelar esta reserva" });
+        }
+
         var success = await _bookingService.CancelBookingAsync(id);
         if (!success)
             throw new BusinessException("No se pudo cancelar la reserva. Verifica que la reserva no esté completada o ya cancelada.", "CANNOT_CANCEL_BOOKING");
