@@ -362,6 +362,14 @@ function createTourCard(tour) {
   const availability = (availableSpots ?? 0) > 0 ? 'Disponible' : 'Agotado';
   const availabilityClass = (availableSpots ?? 0) > 0 ? 'success' : 'danger';
   
+  console.log('🏷️ [createTourCard] Disponibilidad calculada:', {
+    availableSpots,
+    maxCapacity,
+    availability,
+    availabilityClass,
+    isAvailable: (availableSpots ?? 0) > 0
+  });
+  
   console.log('💰 [createTourCard] === PROCESANDO PRECIO ===');
   
   // ✅ SOLUCIÓN ROBUSTA: Normalizar precio de forma segura

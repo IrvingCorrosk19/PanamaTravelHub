@@ -330,14 +330,26 @@
           itinerarySection.style.display = 'block';
         }
 
-        // Badge
+        // Badge (usar variable normalizada availableSpots en lugar de currentTour.availableSpots)
         const badge = document.getElementById('tourBadge');
-        if (currentTour.availableSpots > 0) {
-          badge.textContent = 'Disponible';
-          badge.className = 'tour-badge-large available';
+        console.log('🏷️ [loadTour] Actualizando badge:', { 
+          availableSpots, 
+          currentTourAvailableSpots: currentTour.availableSpots,
+          currentTourAvailableSpotsUpper: currentTour.AvailableSpots,
+          badgeExists: !!badge 
+        });
+        if (availableSpots > 0) {
+          if (badge) {
+            badge.textContent = 'Disponible';
+            badge.className = 'tour-badge-large available';
+            console.log('✅ [loadTour] Badge actualizado a: Disponible');
+          }
         } else {
-          badge.textContent = 'Agotado';
-          badge.className = 'tour-badge-large sold-out';
+          if (badge) {
+            badge.textContent = 'Agotado';
+            badge.className = 'tour-badge-large sold-out';
+            console.log('⚠️ [loadTour] Badge actualizado a: Agotado');
+          }
         }
 
         document.getElementById('loadingState').style.display = 'none';

@@ -320,14 +320,25 @@
         const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
         const isAdmin = userRoles.includes('Admin') || userRoles.includes('admin');
         
+        console.log('🔐 [login] Roles del usuario:', userRoles, 'Es admin:', isAdmin);
+        
         if (isAdmin) {
           // Si es admin, redirigir al panel de administración
+          console.log('👨‍💼 [login] Redirigiendo a panel de administración');
           window.location.href = '/admin.html';
         } else {
-          // Si no es admin, redirigir según el parámetro redirect o a la página principal
+          // Si no es admin (cliente), redirigir a Mis Reservas o según parámetro redirect
           const urlParams = new URLSearchParams(window.location.search);
-          const redirect = urlParams.get('redirect') || '/';
-          window.location.href = redirect;
+          const redirect = urlParams.get('redirect');
+          
+          if (redirect) {
+            console.log('👤 [login] Redirigiendo a:', redirect);
+            window.location.href = redirect;
+          } else {
+            // Cliente va a Mis Reservas por defecto
+            console.log('👤 [login] Redirigiendo a Mis Reservas (cliente)');
+            window.location.href = '/reservas.html';
+          }
         }
       } catch (error) {
         if (submitButton && loaderId) {
