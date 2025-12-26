@@ -254,13 +254,24 @@
         }
 
         tbody.innerHTML = users.map(user => {
-          const roles = user.roles || [];
-          const rolesBadges = roles.map(role => 
+          // Manejar tanto Id (mayúscula) como id (minúscula) del JSON
+          const userId = user.id || user.Id || '';
+          const userEmail = user.email || user.Email || 'N/A';
+          const userFirstName = user.firstName || user.FirstName || '';
+          const userLastName = user.lastName || user.LastName || '';
+          const userPhone = user.phone || user.Phone || '—';
+          const userRoles = user.roles || user.Roles || [];
+          const userIsActive = user.isActive !== undefined ? user.isActive : (user.IsActive !== undefined ? user.IsActive : true);
+          const userLockedUntil = user.lockedUntil || user.LockedUntil;
+          const userLastLoginAt = user.lastLoginAt || user.LastLoginAt;
+          const userTotalBookings = user.totalBookings || user.TotalBookings || 0;
+          
+          const rolesBadges = userRoles.map(role => 
             `<span class="badge ${role === 'Admin' || role === 'admin' ? 'active' : 'inactive'}" style="margin-right: 4px;">${escapeHtml(role)}</span>`
           ).join('');
           
-          const isLocked = user.lockedUntil && new Date(user.lockedUntil) > new Date();
-          const statusBadge = user.isActive 
+          const isLocked = userLockedUntil && new Date(userLockedUntil) > new Date();
+          const statusBadge = userIsActive 
             ? `<span class="badge active">Activo</span>`
             : `<span class="badge inactive">Inactivo</span>`;
           
@@ -270,18 +281,18 @@
 
           return `
             <tr>
-              <td>${escapeHtml(user.email || 'N/A')}</td>
-              <td>${escapeHtml((user.firstName || '') + ' ' + (user.lastName || ''))}</td>
-              <td>${escapeHtml(user.phone || '—')}</td>
+              <td>${escapeHtml(userEmail)}</td>
+              <td>${escapeHtml(userFirstName + ' ' + userLastName)}</td>
+              <td>${escapeHtml(userPhone)}</td>
               <td>${rolesBadges || '<span class="badge inactive">Sin roles</span>'}</td>
               <td>${statusBadge}${lockedBadge}</td>
-              <td>${user.totalBookings || 0}</td>
-              <td>${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('es-PA') : 'Nunca'}</td>
+              <td>${userTotalBookings}</td>
+              <td>${userLastLoginAt ? new Date(userLastLoginAt).toLocaleDateString('es-PA') : 'Nunca'}</td>
               <td>
                 <div class="action-buttons">
-                  <button class="btn-sm btn-primary" onclick="viewUser('${user.id || ''}')">Ver</button>
-                  <button class="btn-sm btn-secondary" onclick="editUser('${user.id || ''}')">Editar</button>
-                  ${isLocked ? `<button class="btn-sm" style="background: #10b981; color: white;" onclick="unlockUser('${user.id || ''}')">Desbloquear</button>` : ''}
+                  <button class="btn-sm btn-primary" onclick="viewUser('${userId}')">Ver</button>
+                  <button class="btn-sm btn-secondary" onclick="editUser('${userId}')">Editar</button>
+                  ${isLocked ? `<button class="btn-sm" style="background: #10b981; color: white;" onclick="unlockUser('${userId}')">Desbloquear</button>` : ''}
                 </div>
               </td>
             </tr>
@@ -1377,8 +1388,30 @@
 
     // User Functions
     async function viewUser(id) {
+      if (!id || id === 'undefined' || id === '') {
+        console.error('ID de usuario inválido:', id);
+        notificationManager.error('ID de usuario inválido. Por favor, recarga la página.');
+        return;
+      }
       try {
         const user = await api.getAdminUser(id);
+        
+        // Manejar tanto camelCase como PascalCase del JSON
+        const userFirstName = user.firstName || user.FirstName || '';
+        const userLastName = user.lastName || user.LastName || '';
+        const userEmail = user.email || user.Email || 'N/A';
+        const userPhone = user.phone || user.Phone || 'N/A';
+        const userRoles = user.roles || user.Roles || [];
+        const userIsActive = user.isActive !== undefined ? user.isActive : (user.IsActive !== undefined ? user.IsActive : true);
+        const userTotalBookings = user.totalBookings || user.TotalBookings || 0;
+        const userLastLoginAt = user.lastLoginAt || user.LastLoginAt;
+        const userLockedUntil = user.lockedUntil || user.LockedUntil;
+        const userBookings = user.bookings || user.Bookings || [];
+        
+        const rolesText = Array.isArray(userRoles) && userRoles.length > 0 
+          ? userRoles.join(', ') 
+          : 'Sin roles';
+        
         const modal = document.createElement('div');
         modal.className = 'modal active';
         modal.innerHTML = `
@@ -1388,19 +1421,24 @@
               <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
             </div>
             <div class="admin-card">
-              <h4>${user.firstName} ${user.lastName}</h4>
-              <p><strong>Email:</strong> ${user.email}</p>
-              <p><strong>Teléfono:</strong> ${user.phone || 'N/A'}</p>
-              <p><strong>Roles:</strong> ${user.roles.join(', ')}</p>
-              <p><strong>Estado:</strong> ${user.isActive ? 'Activo' : 'Inactivo'}</p>
-              <p><strong>Reservas Totales:</strong> ${user.totalBookings || 0}</p>
-              <p><strong>Último Login:</strong> ${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('es-PA') : 'Nunca'}</p>
-              ${user.lockedUntil && new Date(user.lockedUntil) > new Date() ? 
-                `<p><strong>Bloqueado hasta:</strong> ${new Date(user.lockedUntil).toLocaleString('es-PA')}</p>` : ''}
-              ${user.bookings && user.bookings.length > 0 ? `
+              <h4>${escapeHtml(userFirstName + ' ' + userLastName)}</h4>
+              <p><strong>Email:</strong> ${escapeHtml(userEmail)}</p>
+              <p><strong>Teléfono:</strong> ${escapeHtml(userPhone)}</p>
+              <p><strong>Roles:</strong> ${escapeHtml(rolesText)}</p>
+              <p><strong>Estado:</strong> ${userIsActive ? 'Activo' : 'Inactivo'}</p>
+              <p><strong>Reservas Totales:</strong> ${userTotalBookings}</p>
+              <p><strong>Último Login:</strong> ${userLastLoginAt ? new Date(userLastLoginAt).toLocaleString('es-PA') : 'Nunca'}</p>
+              ${userLockedUntil && new Date(userLockedUntil) > new Date() ? 
+                `<p><strong>Bloqueado hasta:</strong> ${new Date(userLockedUntil).toLocaleString('es-PA')}</p>` : ''}
+              ${Array.isArray(userBookings) && userBookings.length > 0 ? `
                 <h5>Reservas:</h5>
                 <ul>
-                  ${user.bookings.map(b => `<li>${b.tourName} - ${b.status} - ${formatPrice(b.totalAmount)}</li>`).join('')}
+                  ${userBookings.map(b => {
+                    const tourName = b.tourName || b.TourName || 'N/A';
+                    const status = b.status || b.Status || 'N/A';
+                    const totalAmount = b.totalAmount || b.TotalAmount || 0;
+                    return `<li>${escapeHtml(tourName)} - ${escapeHtml(status)} - ${formatPrice(totalAmount)}</li>`;
+                  }).join('')}
                 </ul>
               ` : ''}
             </div>
@@ -1415,62 +1453,170 @@
     }
 
     async function editUser(id) {
-      if (!id || id === 'undefined') {
+      if (!id || id === 'undefined' || id === '') {
         console.error('ID de usuario inválido:', id);
+        notificationManager.error('ID de usuario inválido. Por favor, recarga la página.');
         return;
       }
       try {
+        console.log('🔍 [editUser] Cargando usuario con ID:', id);
         const user = await api.getAdminUser(id);
+        console.log('🔍 [editUser] Usuario cargado:', user);
         const roles = await api.getAdminRoles();
+        console.log('🔍 [editUser] Roles cargados:', roles);
+        
+        // Manejar tanto camelCase como PascalCase del JSON
+        const userId = user.id || user.Id || id;
+        const userFirstName = user.firstName || user.FirstName || '';
+        const userLastName = user.lastName || user.LastName || '';
+        const userPhone = user.phone || user.Phone || '';
+        const userRoles = user.roles || user.Roles || [];
+        const userIsActive = user.isActive !== undefined ? user.isActive : (user.IsActive !== undefined ? user.IsActive : true);
+        
+        console.log('🔍 [editUser] Datos normalizados:', {
+          userId,
+          userFirstName,
+          userLastName,
+          userPhone,
+          userRoles,
+          userIsActive
+        });
+        
+        // Verificar que roles es un array
+        if (!Array.isArray(roles)) {
+          console.error('🔍 [editUser] Roles no es un array:', roles);
+          roles = [];
+        }
         
         const modal = document.createElement('div');
         modal.className = 'modal';
+        
+        // Construir HTML del modal de forma segura
+        let rolesHtml = '';
+        if (Array.isArray(roles) && roles.length > 0) {
+          rolesHtml = roles.map(role => {
+            const roleName = role.name || role.Name || '';
+            const isChecked = Array.isArray(userRoles) && userRoles.includes(roleName);
+            return `
+              <label class="form-label" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; cursor: pointer;">
+                <input type="checkbox" name="userRoles" value="${escapeHtml(roleName)}" 
+                  ${isChecked ? 'checked' : ''} style="margin: 0; width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);" />
+                <span class="label-text">${escapeHtml(roleName)}</span>
+              </label>
+            `;
+          }).join('');
+        } else {
+          rolesHtml = '<p class="form-hint" style="color: var(--text-muted);">No hay roles disponibles</p>';
+        }
+        
         modal.innerHTML = `
-          <div class="modal-content">
+          <div class="modal-content modal-edit-user">
             <div class="modal-header">
-              <h3>Editar Usuario</h3>
-              <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+              <div class="modal-header-content">
+                <h2>Editar Usuario</h2>
+                <p class="modal-subtitle">Actualiza la información del usuario</p>
+              </div>
+              <button class="modal-close" onclick="this.closest('.modal').remove()" aria-label="Cerrar">×</button>
             </div>
-            <form onsubmit="saveUser(event, '${id}')">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Nombre</label>
-                  <input type="text" id="userFirstName" class="form-input" value="${user.firstName}" />
+            <form class="user-edit-form" onsubmit="saveUser(event, '${userId}')">
+              <div class="modal-body">
+                <div class="form-section">
+                  <div class="form-section-header">
+                    <h3>👤 Información Personal</h3>
+                  </div>
+                  <div class="form-grid form-grid-2">
+                    <div class="form-group">
+                      <label class="form-label" for="userFirstName">
+                        <span class="label-text">Nombre</span>
+                      </label>
+                      <input type="text" id="userFirstName" name="userFirstName" class="form-input" value="${escapeHtml(userFirstName)}" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" for="userLastName">
+                        <span class="label-text">Apellido</span>
+                      </label>
+                      <input type="text" id="userLastName" name="userLastName" class="form-input" value="${escapeHtml(userLastName)}" />
+                    </div>
+                    <div class="form-group full-width">
+                      <label class="form-label" for="userPhone">
+                        <span class="label-text">Teléfono</span>
+                        <span class="label-optional">(Opcional)</span>
+                      </label>
+                      <input type="text" id="userPhone" name="userPhone" class="form-input" value="${escapeHtml(userPhone)}" />
+                    </div>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>Apellido</label>
-                  <input type="text" id="userLastName" class="form-input" value="${user.lastName}" />
-                </div>
-                <div class="form-group">
-                  <label>Teléfono</label>
-                  <input type="text" id="userPhone" class="form-input" value="${user.phone || ''}" />
-                </div>
-                <div class="form-group full-width">
-                  <label>Roles</label>
-                  ${roles.map(role => `
-                    <label style="display: block; margin-bottom: 8px;">
-                      <input type="checkbox" name="userRoles" value="${role.name}" 
-                        ${user.roles.includes(role.name) ? 'checked' : ''} />
-                      ${role.name}
+                <div class="form-section">
+                  <div class="form-section-header">
+                    <h3>🔐 Permisos y Roles</h3>
+                  </div>
+                  <div class="form-group full-width">
+                    <label class="form-label">
+                      <span class="label-text">Roles</span>
                     </label>
-                  `).join('')}
-                </div>
-                <div class="form-group">
-                  <label>
-                    <input type="checkbox" id="userIsActive" ${user.isActive ? 'checked' : ''} /> Activo
-                  </label>
+                    <div class="roles-container">
+                      ${rolesHtml}
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">
+                      <input type="checkbox" id="userIsActive" name="userIsActive" ${userIsActive ? 'checked' : ''} style="margin-right: 8px;" />
+                      <span class="label-text">Usuario Activo</span>
+                    </label>
+                    <p class="form-hint">Los usuarios inactivos no podrán iniciar sesión</p>
+                  </div>
                 </div>
               </div>
-              <div style="margin-top: var(--spacing-lg); display: flex; gap: var(--spacing-md);">
-                <button type="submit" class="btn-primary">Guardar</button>
-                <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Cancelar</button>
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="this.closest('.modal').remove()">Cancelar</button>
+                <button type="submit" class="btn-save">Guardar Cambios</button>
               </div>
             </form>
           </div>
         `;
+        
+        console.log('🔍 [editUser] Modal creado, agregando al DOM...');
         document.body.appendChild(modal);
+        console.log('🔍 [editUser] Modal agregado al DOM');
+        
+        // Actualizar texto y estilo del switch cuando cambie (solo UI, no lógica)
+        const switchInput = modal.querySelector('#userIsActive');
+        const switchStatus = modal.querySelector('.switch-status');
+        if (switchInput && switchStatus) {
+          const updateSwitchText = () => {
+            switchStatus.textContent = switchInput.checked ? 'Activo' : 'Inactivo';
+            if (switchInput.checked) {
+              switchStatus.style.color = 'var(--primary)';
+              switchStatus.style.fontWeight = '600';
+            } else {
+              switchStatus.style.color = 'var(--text-muted)';
+              switchStatus.style.fontWeight = '500';
+            }
+          };
+          switchInput.addEventListener('change', updateSwitchText);
+          updateSwitchText(); // Inicializar texto y estilo
+        }
+        
+        // Forzar que el modal sea visible - usar setTimeout para asegurar que el DOM esté listo
+        setTimeout(() => {
+          modal.classList.add('active');
+          modal.style.display = 'flex';
+          modal.style.position = 'fixed';
+          modal.style.top = '0';
+          modal.style.left = '0';
+          modal.style.width = '100%';
+          modal.style.height = '100%';
+          modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+          modal.style.zIndex = '9999';
+          modal.style.alignItems = 'center';
+          modal.style.justifyContent = 'center';
+          console.log('🔍 [editUser] Modal configurado con estilos inline, debería ser visible ahora');
+          console.log('🔍 [editUser] Modal classes:', modal.className);
+          console.log('🔍 [editUser] Modal styles:', window.getComputedStyle(modal).display);
+        }, 10);
       } catch (error) {
-        console.error('Error loading user:', error);
+        console.error('❌ [editUser] Error loading user:', error);
+        console.error('❌ [editUser] Error stack:', error.stack);
         const errorMessage = error.message || error.detail || 'Error desconocido';
         notificationManager.error('Error al cargar el usuario: ' + errorMessage);
       }
