@@ -151,7 +151,7 @@ async function loadCountries() {
             'Ã': 'Í',
             'Ã"': 'Ó',
             'Ãš': 'Ú',
-            'Ã'': 'Ñ'
+            "Ã'": 'Ñ'
           };
           
           // Aplicar correcciones
