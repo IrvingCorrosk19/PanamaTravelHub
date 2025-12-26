@@ -902,12 +902,25 @@ async function processPayment() {
     return;
   }
   
-  const availableSpots = selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0;
-  if (availableSpots < numberOfParticipants) {
-    const dateError = document.getElementById('dateError');
-    dateError.textContent = `Solo hay ${availableSpots} cupo(s) disponible(s) para esta fecha`;
-    dateError.style.display = 'block';
-    return;
+  // Verificar cupos de la fecha seleccionada (si es una fecha específica)
+  // Si es la fecha principal del tour (selectedTourDateId === 'tour-main-date' o null), 
+  // los cupos se validarán más adelante usando los del tour
+  if (selectedTourDateId && selectedTourDateId !== 'tour-main-date') {
+    const availableSpots = selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0;
+    console.log('🔍 [processPayment] Validando cupos de fecha específica:', {
+      dateId: selectedTourDateId,
+      availableSpots,
+      numberOfParticipants
+    });
+    
+    if (availableSpots < numberOfParticipants) {
+      const dateError = document.getElementById('dateError');
+      dateError.textContent = `Solo hay ${availableSpots} cupo(s) disponible(s) para esta fecha`;
+      dateError.style.display = 'block';
+      return;
+    }
+  } else {
+    console.log('🔍 [processPayment] Usando fecha principal del tour, cupos se validarán con los del tour');
   }
   
   // Validar participantes
@@ -952,12 +965,55 @@ async function processPayment() {
     return;
   }
   
-  const availableSpotsCheck = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
-  if (availableSpotsCheck < numberOfParticipants) {
-    const msg = 'No hay suficientes cupos disponibles para este tour';
+  // Determinar cupos disponibles: si hay fecha seleccionada, usar cupos de esa fecha, sino usar cupos del tour
+  let availableSpotsCheck = 0;
+  if (selectedTourDateId && selectedDate) {
+    // Si hay una fecha específica seleccionada, usar sus cupos
+    const dateSpots = selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0;
+    availableSpotsCheck = Number(dateSpots) || 0;
+    console.log('🔍 [processPayment] Verificando cupos de fecha seleccionada:', {
+      dateId: selectedTourDateId,
+      selectedDate: selectedDate,
+      availableSpotsRaw: dateSpots,
+      availableSpots: availableSpotsCheck,
+      numberOfParticipants: numberOfParticipants,
+      typeAvailable: typeof availableSpotsCheck,
+      typeRequired: typeof numberOfParticipants
+    });
+  } else {
+    // Si no hay fecha específica, usar cupos del tour general
+    const tourSpots = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
+    availableSpotsCheck = Number(tourSpots) || 0;
+    console.log('🔍 [processPayment] Verificando cupos del tour general:', {
+      tourId: currentTour.Id || currentTour.id,
+      currentTour: currentTour,
+      availableSpotsRaw: tourSpots,
+      availableSpots: availableSpotsCheck,
+      numberOfParticipants: numberOfParticipants,
+      typeAvailable: typeof availableSpotsCheck,
+      typeRequired: typeof numberOfParticipants
+    });
+  }
+  
+  // Asegurar que numberOfParticipants sea un número
+  const numParticipants = Number(numberOfParticipants) || 1;
+  
+  if (availableSpotsCheck < numParticipants) {
+    const msg = `No hay suficientes cupos disponibles. Solo hay ${availableSpotsCheck} cupo(s) disponible(s) y necesitas ${numParticipants}`;
+    console.warn('⚠️ [processPayment] Cupos insuficientes:', {
+      available: availableSpotsCheck,
+      required: numParticipants,
+      comparison: `${availableSpotsCheck} < ${numParticipants} = ${availableSpotsCheck < numParticipants}`
+    });
     showNotificationError(msg);
     return;
   }
+  
+  console.log('✅ [processPayment] Cupos verificados correctamente:', {
+    available: availableSpotsCheck,
+    required: numParticipants,
+    comparison: `${availableSpotsCheck} >= ${numParticipants} = ${availableSpotsCheck >= numParticipants}`
+  });
 
   // Mostrar modal de procesamiento
   modal.style.display = 'flex';
@@ -987,10 +1043,22 @@ async function processPayment() {
       }
     });
 
-    // Validar que el tour tenga cupos disponibles
-    const availableSpotsForBooking = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
+    // Validar que el tour tenga cupos disponibles (usar la misma lógica que arriba)
+    let availableSpotsForBooking = 0;
+    if (selectedTourDateId && selectedDate) {
+      availableSpotsForBooking = selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0;
+    } else {
+      availableSpotsForBooking = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
+    }
+    
+    console.log('🔍 [processPayment] Validación final de cupos antes de crear reserva:', {
+      available: availableSpotsForBooking,
+      required: numberOfParticipants,
+      hasSelectedDate: !!selectedTourDateId
+    });
+    
     if (availableSpotsForBooking < numberOfParticipants) {
-      statusText.textContent = 'Error: No hay suficientes cupos disponibles';
+      statusText.textContent = `Error: Solo hay ${availableSpotsForBooking} cupo(s) disponible(s)`;
       await sleep(2000);
       modal.style.display = 'none';
       btn.disabled = false;
