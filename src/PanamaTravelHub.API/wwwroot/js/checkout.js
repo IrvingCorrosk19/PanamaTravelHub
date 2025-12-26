@@ -35,6 +35,7 @@ let selectedTourDateId = null;
 let availableDates = [];
 let stripe = null;
 let stripePublishableKey = null;
+let isStripeEnabled = false; // Flag global para saber si Stripe está habilitado
 
 // Cargar información del tour desde URL
 document.addEventListener('DOMContentLoaded', async () => {
@@ -48,15 +49,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadStripeConfig() {
   try {
     const config = await api.getStripeConfig();
-    stripePublishableKey = config.publishableKey;
-    if (stripePublishableKey && typeof Stripe !== 'undefined') {
+    stripePublishableKey = config.publishableKey || config.PublishableKey;
+    
+    // Determinar si Stripe está habilitado (tiene clave válida y no está vacía)
+    isStripeEnabled = !!(stripePublishableKey && 
+                        stripePublishableKey.trim() !== '' && 
+                        !stripePublishableKey.includes('YOUR_STRIPE') &&
+                        typeof Stripe !== 'undefined');
+    
+    if (isStripeEnabled) {
       stripe = Stripe(stripePublishableKey);
-      console.log('✅ Stripe configurado correctamente');
+      console.log('✅ Stripe configurado correctamente (modo real)');
     } else {
       console.warn('⚠️ Stripe no está disponible, se usará modo simulación');
+      console.log('💡 En modo simulación no se requiere información de tarjeta');
     }
+    
+    // Guardar globalmente para acceso fácil
+    window.isStripeEnabled = isStripeEnabled;
   } catch (error) {
     console.warn('⚠️ No se pudo cargar la configuración de Stripe, usando modo simulación:', error);
+    isStripeEnabled = false;
+    window.isStripeEnabled = false;
     // Continuar sin Stripe - se usará simulación
   }
 }
@@ -824,6 +838,12 @@ function validateParticipants() {
 
 function validatePaymentMethod() {
   if (selectedPaymentMethod === 'stripe') {
+    // En modo simulación, no validar campos de tarjeta
+    if (!isStripeEnabled) {
+      console.log('💡 Modo simulación: se omite validación de tarjeta');
+      return true; // Validación exitosa (no hay nada que validar)
+    }
+    
     const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
     const cardExpiry = document.getElementById('cardExpiry').value;
     const cardCvv = document.getElementById('cardCvv').value;
@@ -1405,40 +1425,25 @@ async function processPayment() {
 
     // Procesar pago según el método seleccionado
     if (selectedPaymentMethod === 'stripe') {
-      statusText.textContent = 'Iniciando pago con Tarjeta de Crédito...';
+      // 🔍 LOG DE PROTECCIÓN: Verificar bookingId antes de crear pago
+      if (!bookingId) {
+        console.error('❌ [processPayment] bookingId es null/undefined antes de crear pago Stripe');
+        throw new Error('No se pudo obtener el ID de la reserva para procesar el pago');
+      }
       
-      // Crear el payment intent
-      const paymentResponse = await api.createPayment(bookingId, 'USD', 'stripe');
-      
-      // MODO SIMULACIÓN: Si Stripe no está configurado, simular el pago
-      if (!stripe || !stripePublishableKey) {
-        console.warn('⚠️ Stripe no está configurado, usando modo simulación');
-        statusText.textContent = 'Simulando pago con tarjeta...';
+      // MODO SIMULACIÓN: Si Stripe no está habilitado, procesar pago simulado sin validar tarjeta
+      if (!isStripeEnabled) {
+        console.log('💳 [processPayment] Modo simulación activo: procesando pago sin validar tarjeta');
+        statusText.textContent = 'Procesando pago (modo simulación)...';
         
-        // Validar datos de tarjeta (solo formato, no validación real)
-        const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
-        const cardExpiry = document.getElementById('cardExpiry').value;
-        const cardCvv = document.getElementById('cardCvv').value;
-        const cardName = document.getElementById('cardName').value;
+        // Crear el payment intent (el backend simulará)
+        const paymentResponse = await api.createPayment(bookingId, 'USD', 'stripe');
         
-        if (!cardNumber || cardNumber.length < 13) {
-          throw new Error('Por favor ingresa un número de tarjeta válido');
-        }
-        if (!cardExpiry || !/^\d{2}\/\d{2}$/.test(cardExpiry)) {
-          throw new Error('Por favor ingresa una fecha de vencimiento válida (MM/AA)');
-        }
-        if (!cardCvv || cardCvv.length < 3) {
-          throw new Error('Por favor ingresa un CVV válido');
-        }
-        if (!cardName || cardName.length < 2) {
-          throw new Error('Por favor ingresa el nombre completo en la tarjeta');
-        }
+        // Simular delay para hacerlo más realista
+        await sleep(1500);
+        statusText.textContent = 'Confirmando pago simulado...';
         
-        // Simular procesamiento de pago
-        await sleep(2000);
-        statusText.textContent = 'Pago simulado exitosamente...';
-        
-        // Confirmar el pago en el backend
+        // Confirmar el pago en el backend (también simulado)
         await api.confirmPayment(paymentResponse.paymentIntentId);
         
         // Redirigir a página de éxito
@@ -1447,6 +1452,13 @@ async function processPayment() {
         window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
         return;
       }
+      
+      // MODO REAL: Stripe está habilitado, validar y procesar pago real
+      console.log('💳 [processPayment] Creando pago Stripe real con bookingId:', bookingId);
+      statusText.textContent = 'Iniciando pago con Tarjeta de Crédito...';
+      
+      // Crear el payment intent
+      const paymentResponse = await api.createPayment(bookingId, 'USD', 'stripe');
 
       // MODO REAL: Si Stripe está configurado, usar Stripe real
       if (!paymentResponse.clientSecret) {
