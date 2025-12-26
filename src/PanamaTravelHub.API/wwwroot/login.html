@@ -508,6 +508,13 @@
       const loaderId = submitButton ? loadingManager.showInButton(submitButton, isLoginMode ? 'Iniciando sesión...' : 'Creando cuenta...') : null;
 
       try {
+        // Función helper para limpiar el loading
+        const cleanupLoading = () => {
+          if (submitButton && loaderId) {
+            loadingManager.hideInButton(submitButton);
+          }
+        };
+
         if (isLoginMode) {
           const loginResponse = await api.login(email, password);
           // La respuesta ya se guardó en localStorage dentro de api.login()
@@ -545,6 +552,9 @@
             console.error('❌ Token no encontrado después de intentos, redirigiendo de todas formas');
           }
           
+          // Desactivar loading antes de redirigir
+          cleanupLoading();
+          
           // Redirigir según la URL determinada por el backend
           const fullUrl = window.location.origin + redirectUrl;
           console.log('👤 [login] ========== REDIRECCIÓN ==========');
@@ -562,6 +572,7 @@
 
           // Validaciones de registro
           if (!firstName || !lastName) {
+            cleanupLoading();
             errorDiv.textContent = 'Por favor completa todos los campos';
             errorDiv.style.display = 'block';
             if (!firstName) {
@@ -577,12 +588,14 @@
 
           // Validar formato de nombres
           if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(firstName)) {
+            cleanupLoading();
             document.getElementById('firstNameError').textContent = 'Solo se permiten letras y espacios';
             document.getElementById('firstName').classList.add('input-error');
             return;
           }
 
           if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(lastName)) {
+            cleanupLoading();
             document.getElementById('lastNameError').textContent = 'Solo se permiten letras y espacios';
             document.getElementById('lastName').classList.add('input-error');
             return;
@@ -593,12 +606,14 @@
           const confirmPasswordTrimmed = confirmPassword.trim();
 
           if (passwordTrimmed !== confirmPasswordTrimmed) {
+            cleanupLoading();
             document.getElementById('confirmPasswordError').textContent = 'Las contraseñas no coinciden';
             document.getElementById('confirmPassword').classList.add('input-error');
             return;
           }
 
           if (passwordTrimmed.length < 8) {
+            cleanupLoading();
             document.getElementById('passwordError').textContent = 'La contraseña debe tener al menos 8 caracteres';
             document.getElementById('password').classList.add('input-error');
             return;
@@ -606,6 +621,7 @@
 
           // Validar complejidad de contraseña
           if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordTrimmed)) {
+            cleanupLoading();
             document.getElementById('passwordError').textContent = 'Debe contener al menos una mayúscula, una minúscula y un número';
             document.getElementById('password').classList.add('input-error');
             return;
@@ -624,10 +640,15 @@
           const userRoles = registerResponse?.user?.roles || [];
           console.log('👤 [register] Usuario registrado, RedirectUrl desde backend:', redirectUrl);
           console.log('👤 [register] Estoy redirigiendo a:', redirectUrl, 'y su rol es:', userRoles.join(', '));
+          // Desactivar loading antes de redirigir (aunque se redirige, es buena práctica)
+          if (submitButton && loaderId) {
+            loadingManager.hideInButton(submitButton);
+          }
           window.location.href = redirectUrl;
           return;
         }
       } catch (error) {
+        // Limpiar loading en caso de error
         if (submitButton && loaderId) {
           loadingManager.hideInButton(submitButton);
         }
