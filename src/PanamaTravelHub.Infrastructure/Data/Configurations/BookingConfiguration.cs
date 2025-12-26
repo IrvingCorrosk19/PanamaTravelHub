@@ -75,6 +75,7 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasIndex(b => new { b.UserId, b.Status })
             .HasDatabaseName("idx_bookings_user_status");
 
+        // Índices
         builder.HasIndex(b => b.CountryId)
             .HasDatabaseName("idx_bookings_country_id");
 
@@ -82,7 +83,8 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasOne(b => b.Country)
             .WithMany(c => c.Bookings)
             .HasForeignKey(b => b.CountryId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
 
         builder.HasMany(b => b.Participants)
             .WithOne(bp => bp.Booking)

@@ -229,49 +229,50 @@ tbody tr:nth-child(even):hover {
 }
 
 /* Modal */
+/* MODAL OVERLAY */
 .modal {
-  display: none;
   position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
   z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(8px);
-  overflow-y: auto;
-  animation: fadeIn 0.2s ease;
 }
 
 .modal.active {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-lg);
 }
 
+/* MODAL BOX */
 .modal-content {
-  background: var(--card);
-  border-radius: var(--radius-lg);
-  padding: 0;
-  max-width: 900px;
+  background: #fff;
   width: 100%;
+  max-width: 1100px;
   max-height: 90vh;
-  overflow: hidden;
-  box-shadow: var(--shadow-xl);
-  animation: slideUp 0.3s ease;
+  height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--stroke);
-  margin: auto;
-  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
 }
 
+/* FORM */
+.tour-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* HEADER */
 .modal-header {
+  flex-shrink: 0;
+  flex-grow: 0;
   padding: var(--spacing-2xl);
   border-bottom: 1px solid var(--stroke);
-  background: linear-gradient(135deg, var(--primary) 0%, #0891b2 100%);
-  color: white;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0891b2 100%) !important;
+  color: #ffffff !important;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -299,15 +300,17 @@ tbody tr:nth-child(even):hover {
 
 .modal-header h2 {
   margin: 0 0 var(--spacing-xs) 0;
-  color: white;
+  color: #ffffff !important;
   font-size: 1.875rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .modal-subtitle {
   margin: 0;
-  color: rgba(255, 255, 255, 0.9);
+  color: #ffffff !important;
+  opacity: 0.95;
   font-size: 0.9375rem;
   font-weight: 400;
 }
@@ -344,13 +347,14 @@ tbody tr:nth-child(even):hover {
   stroke-width: 2.5;
 }
 
+/* BODY (SCROLL AQUÍ) */
 .modal-body {
-  padding: var(--spacing-2xl);
+  flex: 1 1 0;
   overflow-y: auto;
-  flex: 1;
-  background: linear-gradient(to bottom, #ffffff 0%, #f8fafc 100%);
-  max-height: calc(92vh - 220px);
-  min-height: 300px;
+  overflow-x: hidden;
+  padding: 24px;
+  background: #f9fafb;
+  min-height: 0;
 }
 
 .modal-body::-webkit-scrollbar {
@@ -1284,17 +1288,21 @@ select:focus,
 }
 
 /* Form Actions - Enhanced */
+/* FOOTER (BOTONES) */
 .form-actions {
+  flex-shrink: 0;
+  flex-grow: 0;
+  padding: 16px 24px;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
   display: flex;
-  gap: var(--spacing-md);
   justify-content: flex-end;
-  padding: var(--spacing-xl) var(--spacing-2xl);
-  border-top: 1px solid var(--stroke);
-  background: linear-gradient(to bottom, #ffffff 0%, #f8fafc 100%);
-  margin-left: calc(var(--spacing-2xl) * -1);
-  margin-right: calc(var(--spacing-2xl) * -1);
-  margin-bottom: calc(var(--spacing-2xl) * -1);
-  margin-top: var(--spacing-2xl);
+  gap: 12px;
+  margin-top: auto;
+  position: relative !important;
+  z-index: 100 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .form-actions button {
@@ -1304,11 +1312,14 @@ select:focus,
   font-size: 0.9375rem;
   border-radius: var(--radius);
   transition: all 0.2s ease;
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
   border: 2px solid transparent;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
 }
 
 .form-actions button svg {
@@ -1331,21 +1342,83 @@ select:focus,
 }
 
 .btn-save {
-  background: linear-gradient(135deg, var(--primary) 0%, #0891b2 100%);
-  color: white;
-  border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+  background: linear-gradient(135deg, #0ea5e9 0%, #0891b2 100%) !important;
+  background-color: #0ea5e9 !important;
+  color: #ffffff !important;
+  border: 2px solid #0ea5e9 !important;
+  border-color: #0ea5e9 !important;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4) !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  min-width: 140px !important;
+  height: auto !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  z-index: 10 !important;
 }
 
 .btn-save:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
-  background: linear-gradient(135deg, #0891b2 0%, var(--primary) 100%);
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5) !important;
+  background: linear-gradient(135deg, #0891b2 0%, #0ea5e9 100%) !important;
+  background-color: #0891b2 !important;
+  color: #ffffff !important;
+  border-color: #0891b2 !important;
 }
 
 .btn-save:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3) !important;
+  background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%) !important;
+  background-color: #0284c7 !important;
+}
+
+.btn-save:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%) !important;
+  background-color: #94a3b8 !important;
+  border-color: #94a3b8 !important;
+}
+
+/* Estilos específicos para el botón del modal de tours - Máxima prioridad */
+#tourFormSubmitBtn.btn-save,
+button.btn-save#tourFormSubmitBtn,
+.form-actions .btn-save#tourFormSubmitBtn {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0891b2 100%) !important;
+  background-color: #0ea5e9 !important;
+  background-image: linear-gradient(135deg, #0ea5e9 0%, #0891b2 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid #0ea5e9 !important;
+  border-color: #0ea5e9 !important;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4) !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  min-width: 140px !important;
+  height: auto !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  z-index: 10 !important;
 }
 
 /* Responsive - Enhanced */
@@ -1634,16 +1707,34 @@ select:focus,
 
 
 /* =========================
-   TOUR FORM MODAL - Dise�o Moderno
+   TOUR FORM MODAL - Dise�o Moderno
    ========================= */
 
 .tour-form-modal {
-  background: #f8fafc;
+  height: 90vh !important;
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .tour-form-modal .modal-body {
-  background: #f8fafc;
-  padding: var(--spacing-2xl);
+  background: #f9fafb;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+.tour-form-modal .tour-form {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.tour-form-modal .form-actions {
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  margin-top: 0 !important;
 }
 
 .tour-form .form-section {

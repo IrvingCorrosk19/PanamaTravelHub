@@ -395,15 +395,19 @@ function createTourCard(tour) {
   console.log('✅ [createTourCard] Tour válido, normalizando propiedades...');
 
   // Normalizar propiedades (el backend puede retornar Id/Name con mayúscula)
-  const tourId = tour.id || tour.Id || '';
-  const tourName = tour.name || tour.Name || '';
-  const tourDescription = tour.description || tour.Description || '';
-  const tourLocation = tour.location || tour.Location || '';
-  const tourImages = tour.tourImages || tour.TourImages || [];
-  const availableSpots = tour.availableSpots !== undefined ? tour.availableSpots : 
-                         (tour.AvailableSpots !== undefined ? tour.AvailableSpots : 0);
-  const maxCapacity = tour.maxCapacity !== undefined ? tour.maxCapacity : 
-                      (tour.MaxCapacity !== undefined ? tour.MaxCapacity : 0);
+  // El backend ASP.NET Core retorna PascalCase por defecto
+  const tourId = tour.Id || tour.id || '';
+  const tourName = tour.Name || tour.name || '';
+  const tourDescription = tour.Description || tour.description || '';
+  const tourLocation = tour.Location || tour.location || '';
+  
+  // Priorizar TourImages (PascalCase) que es lo que devuelve el backend
+  const tourImages = tour.TourImages || tour.tourImages || [];
+  
+  const availableSpots = tour.AvailableSpots !== undefined ? tour.AvailableSpots : 
+                         (tour.availableSpots !== undefined ? tour.availableSpots : 0);
+  const maxCapacity = tour.MaxCapacity !== undefined ? tour.MaxCapacity : 
+                      (tour.maxCapacity !== undefined ? tour.maxCapacity : 0);
   
   console.log('📋 [createTourCard] Propiedades normalizadas:', {
     tourId,
@@ -414,12 +418,38 @@ function createTourCard(tour) {
     tourImagesCount: tourImages.length
   });
 
-  // Validar y sanitizar datos del tour
-  // Prioridad: tourImages[0].imageUrl > imageUrl > imagen de referencia > placeholder
-  const imageUrl = tourImages?.[0]?.imageUrl || tourImages?.[0]?.ImageUrl
-    || tour.imageUrl 
-    || getDefaultTourImage(tourId)
-    || 'https://via.placeholder.com/400x220?text=Tour+Image';
+  // ============================================
+  // DISTRIBUCIÓN DE IMÁGENES EN HOME/INDEX
+  // ============================================
+  // Las imágenes se muestran en las tarjetas de tours con la siguiente prioridad:
+  // 1. tourImages[0].ImageUrl - Primera imagen del array (PascalCase del backend)
+  // 2. tourImages[0].imageUrl - Primera imagen (camelCase fallback)
+  // 3. Imagen principal (IsPrimary = true) si existe
+  // 4. tour.ImageUrl - Imagen principal del tour (fallback)
+  // 5. getDefaultTourImage(tourId) - Imagen de referencia basada en el ID del tour (rotativa)
+  // 6. Placeholder genérico - Si no hay ninguna imagen disponible
+  //
+  // NOTA: El backend retorna las imágenes en el array 'TourImages' (PascalCase) ordenadas por DisplayOrder,
+  // donde la primera imagen (índice 0) es la imagen principal (IsPrimary = true).
+  // ============================================
+  
+  // Buscar imagen principal (IsPrimary = true) o usar la primera imagen
+  let imageUrl = null;
+  if (tourImages && tourImages.length > 0) {
+    // Buscar imagen principal
+    const primaryImage = tourImages.find(img => img.IsPrimary === true || img.isPrimary === true);
+    if (primaryImage) {
+      imageUrl = primaryImage.ImageUrl || primaryImage.imageUrl;
+    } else {
+      // Si no hay imagen principal, usar la primera
+      imageUrl = tourImages[0]?.ImageUrl || tourImages[0]?.imageUrl;
+    }
+  }
+  
+  // Fallbacks
+  if (!imageUrl) {
+    imageUrl = tour.ImageUrl || tour.imageUrl || getDefaultTourImage(tourId) || 'https://via.placeholder.com/400x220?text=Tour+Image';
+  }
   
   const availability = (availableSpots ?? 0) > 0 ? 'Disponible' : 'Agotado';
   const availabilityClass = (availableSpots ?? 0) > 0 ? 'success' : 'danger';
@@ -506,10 +536,10 @@ function createTourCard(tour) {
   const priceText = price > 0 ? `$${formattedPrice}` : 'Consultar precio';
   console.log('4️⃣ [createTourCard] priceText final:', priceText);
   
-  // Validar otros campos con valores normalizados
+  // Validar otros campos con valores normalizados (priorizar PascalCase del backend)
   const finalTourName = tourName || 'Tour sin nombre';
   const finalTourDescription = tourDescription || 'Sin descripción disponible';
-  const durationHours = tour.durationHours || tour.DurationHours || 0;
+  const durationHours = tour.DurationHours || tour.durationHours || 0;
   const finalLocation = tourLocation || 'Ubicación no especificada';
 
   console.log('🎨 [createTourCard] Generando HTML para card:', {

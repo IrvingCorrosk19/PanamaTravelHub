@@ -274,7 +274,33 @@ public class AdminController : ControllerBase
                 }
             }
 
-            await _tourRepository.UpdateAsync(tour);
+            // Asegurar que CreatedAt tenga Kind UTC si existe (no lo modificamos, solo aseguramos su Kind)
+            if (tour.CreatedAt != default && tour.CreatedAt.Kind == DateTimeKind.Unspecified)
+            {
+                tour.CreatedAt = DateTime.SpecifyKind(tour.CreatedAt, DateTimeKind.Utc);
+            }
+            
+            // Actualizar UpdatedAt explícitamente con UTC
+            tour.UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+
+            // Usar Entry para actualizar solo los campos específicos y evitar problemas con DateTime.Kind
+            var entry = _context.Entry(tour);
+            
+            // Solo marcar como modificados los campos que realmente cambiamos
+            entry.Property(t => t.Name).IsModified = !string.IsNullOrWhiteSpace(request.Name);
+            entry.Property(t => t.Description).IsModified = !string.IsNullOrWhiteSpace(request.Description);
+            entry.Property(t => t.Itinerary).IsModified = request.Itinerary != null;
+            entry.Property(t => t.Price).IsModified = request.Price.HasValue;
+            entry.Property(t => t.MaxCapacity).IsModified = request.MaxCapacity.HasValue;
+            entry.Property(t => t.AvailableSpots).IsModified = request.MaxCapacity.HasValue; // Se modifica si cambia la capacidad
+            entry.Property(t => t.DurationHours).IsModified = request.DurationHours.HasValue;
+            entry.Property(t => t.Location).IsModified = request.Location != null;
+            entry.Property(t => t.IsActive).IsModified = request.IsActive.HasValue;
+            entry.Property(t => t.UpdatedAt).IsModified = true; // Siempre actualizar UpdatedAt
+            
+            // Asegurar que CreatedAt NO se modifique
+            entry.Property(t => t.CreatedAt).IsModified = false;
+            
             await _context.SaveChangesAsync();
 
             // Recargar imágenes
@@ -329,8 +355,21 @@ public class AdminController : ControllerBase
             if (hasActiveBookings)
                 throw new BusinessException("No se puede eliminar un tour con reservas activas", "TOUR_HAS_ACTIVE_BOOKINGS");
 
+            // Actualizar solo los campos necesarios para evitar problemas con DateTime.Kind
+            // Asegurar que CreatedAt tenga Kind UTC si existe
+            if (tour.CreatedAt != default)
+            {
+                tour.CreatedAt = DateTime.SpecifyKind(tour.CreatedAt, DateTimeKind.Utc);
+            }
+            
             tour.IsActive = false; // Soft delete
-            await _tourRepository.UpdateAsync(tour);
+            tour.UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+            
+            // Usar Entry para actualizar solo los campos específicos
+            var entry = _context.Entry(tour);
+            entry.Property(t => t.IsActive).IsModified = true;
+            entry.Property(t => t.UpdatedAt).IsModified = true;
+            
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Tour desactivado exitosamente" });
@@ -1299,7 +1338,6 @@ public class AdminController : ControllerBase
             var query = _context.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
-                .Include(u => u.Bookings)
                 .AsQueryable();
 
             // Búsqueda por email, nombre o apellido
@@ -1373,7 +1411,6 @@ public class AdminController : ControllerBase
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .Include(u => u.Bookings)
-                    .ThenInclude(b => b.Tour)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)

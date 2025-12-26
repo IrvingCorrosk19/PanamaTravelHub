@@ -67,6 +67,12 @@
         </div>
       </div>
 
+      <!-- Image Gallery Section -->
+      <div id="imageGallerySection" class="image-gallery-section" style="display:none;">
+        <h2 class="gallery-title">Galería de Imágenes</h2>
+        <div id="imageGallery" class="image-gallery"></div>
+      </div>
+
       <!-- Main Content Grid -->
       <div class="tour-detail-grid">
         <!-- Left Column - Information -->
@@ -215,17 +221,19 @@
         // Actualizar UI
         console.log('🎴 [loadTour] === PROCESANDO TOUR ===', { currentTour });
         
-        // Normalizar propiedades (el backend puede retornar con mayúsculas)
-        const tourName = currentTour.name || currentTour.Name || 'Tour sin nombre';
-        const tourLocation = currentTour.location || currentTour.Location || 'Ubicación no especificada';
-        const tourDescription = currentTour.description || currentTour.Description || 'Sin descripción disponible';
-        const durationHours = currentTour.durationHours || currentTour.DurationHours || 0;
-        const availableSpots = currentTour.availableSpots !== undefined ? currentTour.availableSpots : 
-                               (currentTour.AvailableSpots !== undefined ? currentTour.AvailableSpots : 0);
-        const maxCapacity = currentTour.maxCapacity !== undefined ? currentTour.maxCapacity : 
-                            (currentTour.MaxCapacity !== undefined ? currentTour.MaxCapacity : 0);
+        // Normalizar propiedades (el backend ASP.NET Core retorna PascalCase por defecto)
+        // Priorizar PascalCase que es lo que devuelve el backend
+        const tourName = currentTour.Name || currentTour.name || 'Tour sin nombre';
+        const tourLocation = currentTour.Location || currentTour.location || 'Ubicación no especificada';
+        const tourDescription = currentTour.Description || currentTour.description || 'Sin descripción disponible';
+        const durationHours = currentTour.DurationHours || currentTour.durationHours || 0;
+        const availableSpots = currentTour.AvailableSpots !== undefined ? currentTour.AvailableSpots : 
+                               (currentTour.availableSpots !== undefined ? currentTour.availableSpots : 0);
+        const maxCapacity = currentTour.MaxCapacity !== undefined ? currentTour.MaxCapacity : 
+                            (currentTour.maxCapacity !== undefined ? currentTour.maxCapacity : 0);
         
         // ✅ SOLUCIÓN ROBUSTA: Normalizar precio de forma segura
+        // Priorizar PascalCase (backend ASP.NET Core)
         console.log('💰 [loadTour] === PROCESANDO PRECIO ===');
         const rawPrice = currentTour.Price ?? currentTour.price ?? null;
         console.log('1️⃣ [loadTour] Raw price obtenido:', {
@@ -309,18 +317,60 @@
           return DEFAULT_TOUR_IMAGES[hash % DEFAULT_TOUR_IMAGES.length];
         }
         
-        const imageUrl = currentTour.tourImages?.[0]?.imageUrl || getDefaultTourImage(currentTour.id);
+        // Normalizar imágenes: el backend ASP.NET Core retorna TourImages (PascalCase) por defecto
+        const tourImages = currentTour.TourImages || currentTour.tourImages || [];
+        
+        // Obtener la imagen principal (IsPrimary = true) o la primera disponible
+        // Priorizar PascalCase que es lo que devuelve el backend
+        let primaryImage = null;
+        if (tourImages && tourImages.length > 0) {
+          primaryImage = tourImages.find(img => img.IsPrimary === true || img.isPrimary === true) || tourImages[0];
+        }
+        const imageUrl = primaryImage?.ImageUrl || primaryImage?.imageUrl || getDefaultTourImage(currentTour.Id || currentTour.id);
+        
         const img = document.getElementById('tourImage');
         img.src = imageUrl;
         img.onerror = function() {
           this.src = getDefaultTourImage(currentTour.id);
         };
 
-        // Itinerario
-        if (currentTour.itinerary) {
+        // Mostrar galería si hay más de una imagen
+        if (tourImages.length > 1) {
+          const gallerySection = document.getElementById('imageGallerySection');
+          const gallery = document.getElementById('imageGallery');
+          
+          // Limpiar galería anterior
+          gallery.innerHTML = '';
+          
+          // Agregar todas las imágenes a la galería
+          // Priorizar PascalCase (ImageUrl) que es lo que devuelve el backend
+          tourImages.forEach((image, index) => {
+            const imgUrl = image.ImageUrl || image.imageUrl;
+            if (imgUrl) {
+              const galleryItem = document.createElement('div');
+              galleryItem.className = 'gallery-item';
+              galleryItem.innerHTML = `
+                <img src="${imgUrl}" alt="${tourName} - Imagen ${index + 1}" class="gallery-image" />
+              `;
+              galleryItem.onclick = () => {
+                // Al hacer clic, cambiar la imagen del hero
+                img.src = imgUrl;
+                // Scroll suave al hero
+                document.querySelector('.tour-hero').scrollIntoView({ behavior: 'smooth', block: 'start' });
+              };
+              gallery.appendChild(galleryItem);
+            }
+          });
+          
+          gallerySection.style.display = 'block';
+        }
+
+        // Itinerario (priorizar PascalCase del backend)
+        const itinerary = currentTour.Itinerary || currentTour.itinerary;
+        if (itinerary) {
           const itinerarySection = document.getElementById('itinerarySection');
           const itineraryList = document.getElementById('tourItinerary');
-          const items = currentTour.itinerary.split('\n').filter(item => item.trim());
+          const items = itinerary.split('\n').filter(item => item.trim());
           itineraryList.innerHTML = items.map((item, index) => `
             <div class="itinerary-item">
               <div class="itinerary-number">${index + 1}</div>
@@ -366,8 +416,9 @@
         window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
         return;
       }
-      // Redirigir a checkout
-      window.location.href = `/checkout.html?tourId=${currentTour.id}`;
+      // Redirigir a checkout (priorizar PascalCase del backend)
+      const tourId = currentTour.Id || currentTour.id;
+      window.location.href = `/checkout.html?tourId=${tourId}`;
     }
 
     document.addEventListener('DOMContentLoaded', loadTour);

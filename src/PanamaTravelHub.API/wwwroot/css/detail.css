@@ -436,6 +436,56 @@
   line-height: 1.4;
 }
 
+/* Image Gallery Section */
+.image-gallery-section {
+  margin: var(--space-2xl) 0;
+  padding: var(--space-xl) 0;
+}
+
+.gallery-title {
+  font-size: 2rem;
+  font-weight: var(--font-weight-extrabold);
+  margin: 0 0 var(--space-xl);
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.image-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+.gallery-item {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow);
+  background: var(--bg-secondary);
+}
+
+.gallery-item:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+}
+
+.gallery-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-slow);
+  display: block;
+}
+
+.gallery-item:hover .gallery-image {
+  transform: scale(1.1);
+}
+
 /* Loading State */
 .loading {
   text-align: center;
@@ -504,6 +554,15 @@
 
   .booking-info-grid {
     grid-template-columns: 1fr;
+  }
+
+  .image-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .gallery-title {
+    font-size: 1.5rem;
   }
 }
 

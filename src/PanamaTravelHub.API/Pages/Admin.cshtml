@@ -181,6 +181,7 @@
   <script src="/js/loading.js"></script>
   <script src="/js/logger.js"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/notifications.js"></script>
   <script>
     // Helper function para formatear precios
     function formatPrice(value, fallbackText = '$0.00') {
@@ -198,6 +199,20 @@
 
     let currentTourId = null;
     let tourImages = [];
+
+    // Utility functions
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatPrice(price) {
+      if (price === null || price === undefined) return '$0.00';
+      const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+      return '$' + numPrice.toFixed(2);
+    }
 
     // Switch tabs
     function switchTab(tabName, e) {
@@ -226,18 +241,22 @@
 
     // Load Users
     async function loadUsers() {
+      const tbody = document.getElementById('usersTableBody');
+      const loaderId = loadingManager.showInline(tbody, 'Cargando usuarios...');
+      
       try {
         const users = await api.getAdminUsers();
-        const tbody = document.getElementById('usersTableBody');
+        loadingManager.hideInline(tbody);
         
         if (!users || users.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No hay usuarios disponibles</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 40px;">No hay usuarios disponibles</td></tr>';
           return;
         }
 
         tbody.innerHTML = users.map(user => {
-          const rolesBadges = user.roles.map(role => 
-            `<span class="badge ${role === 'Admin' ? 'active' : 'inactive'}" style="margin-right: 4px;">${role}</span>`
+          const roles = user.roles || [];
+          const rolesBadges = roles.map(role => 
+            `<span class="badge ${role === 'Admin' || role === 'admin' ? 'active' : 'inactive'}" style="margin-right: 4px;">${escapeHtml(role)}</span>`
           ).join('');
           
           const isLocked = user.lockedUntil && new Date(user.lockedUntil) > new Date();
@@ -251,18 +270,18 @@
 
           return `
             <tr>
-              <td>${user.email}</td>
-              <td>${user.firstName} ${user.lastName}</td>
-              <td>${user.phone || '—'}</td>
-              <td>${rolesBadges}</td>
+              <td>${escapeHtml(user.email || 'N/A')}</td>
+              <td>${escapeHtml((user.firstName || '') + ' ' + (user.lastName || ''))}</td>
+              <td>${escapeHtml(user.phone || '—')}</td>
+              <td>${rolesBadges || '<span class="badge inactive">Sin roles</span>'}</td>
               <td>${statusBadge}${lockedBadge}</td>
-              <td>${user.totalBookings}</td>
+              <td>${user.totalBookings || 0}</td>
               <td>${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('es-PA') : 'Nunca'}</td>
               <td>
                 <div class="action-buttons">
-                  <button class="btn-sm btn-primary" onclick="viewUser('${user.id}')">Ver</button>
-                  <button class="btn-sm btn-secondary" onclick="editUser('${user.id}')">Editar</button>
-                  ${isLocked ? `<button class="btn-sm" style="background: #10b981;" onclick="unlockUser('${user.id}')">Desbloquear</button>` : ''}
+                  <button class="btn-sm btn-primary" onclick="viewUser('${user.id || ''}')">Ver</button>
+                  <button class="btn-sm btn-secondary" onclick="editUser('${user.id || ''}')">Editar</button>
+                  ${isLocked ? `<button class="btn-sm" style="background: #10b981; color: white;" onclick="unlockUser('${user.id || ''}')">Desbloquear</button>` : ''}
                 </div>
               </td>
             </tr>
@@ -270,8 +289,17 @@
         }).join('');
       } catch (error) {
         console.error('Error loading users:', error);
-        document.getElementById('usersTableBody').innerHTML = 
-          '<tr><td colspan="8" style="text-align: center; color: var(--error);">Error al cargar usuarios</td></tr>';
+        loadingManager.hideInline(tbody);
+        const errorMessage = error.message || error.detail || 'Error desconocido al cargar usuarios';
+        const errorMsg = 'Error al cargar usuarios: ' + errorMessage;
+        if (typeof notificationManager !== 'undefined' && notificationManager) {
+          notificationManager.error(errorMsg);
+        } else if (typeof window !== 'undefined' && window.notificationManager) {
+          window.notificationManager.error(errorMsg);
+        } else {
+          console.error(errorMsg);
+        }
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger); padding: 40px;">Error al cargar usuarios. Por favor, intenta de nuevo.</td></tr>';
       }
     }
 
@@ -289,29 +317,36 @@
           return;
         }
 
-        tbody.innerHTML = tours.map(tour => `
+        tbody.innerHTML = tours.map(tour => {
+          const tourId = tour.id || tour.Id || '';
+          if (!tourId) {
+            console.warn('Tour sin ID válido:', tour);
+            return '';
+          }
+          return `
           <tr>
             <td>
-              ${tour.imageUrl ? `<img src="${tour.imageUrl}" class="tour-image-preview" alt="${tour.name}" />` : '—'}
+              ${tour.imageUrl || tour.image_url ? `<img src="${tour.imageUrl || tour.image_url}" class="tour-image-preview" alt="${tour.name || tour.Name || ''}" />` : '—'}
             </td>
-            <td>${tour.name}</td>
+            <td>${tour.name || tour.Name || ''}</td>
             <td>${formatPrice(tour.price ?? tour.Price)}</td>
-            <td>${tour.maxCapacity}</td>
-            <td>${tour.availableSpots}</td>
+            <td>${tour.maxCapacity ?? tour.MaxCapacity ?? ''}</td>
+            <td>${tour.availableSpots ?? tour.AvailableSpots ?? ''}</td>
             <td>
-              <span class="badge ${tour.isActive ? 'active' : 'inactive'}">
-                ${tour.isActive ? 'Activo' : 'Inactivo'}
+              <span class="badge ${(tour.isActive ?? tour.IsActive ?? true) ? 'active' : 'inactive'}">
+                ${(tour.isActive ?? tour.IsActive ?? true) ? 'Activo' : 'Inactivo'}
               </span>
             </td>
             <td>
               <div class="action-buttons">
-                <button class="btn-sm btn-primary" onclick="editTour('${tour.id}')">Editar</button>
-                <button class="btn-sm" style="background: var(--primary-light);" onclick="manageTourDates('${tour.id}')">Fechas</button>
-                <button class="btn-sm btn-secondary" onclick="deleteTour('${tour.id}')">Eliminar</button>
+                <button class="btn-sm btn-primary" onclick="editTour('${tourId}')">Editar</button>
+                <button class="btn-sm" style="background: var(--primary-light);" onclick="manageTourDates('${tourId}')">Fechas</button>
+                <button class="btn-sm btn-secondary" onclick="deleteTour('${tourId}')">Eliminar</button>
               </div>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).filter(row => row !== '').join('');
       } catch (error) {
         console.error('Error loading tours:', error);
         loadingManager.hideInline(tbody);
@@ -322,34 +357,49 @@
 
     // Load Bookings
     async function loadBookings() {
+      const tbody = document.getElementById('bookingsTableBody');
+      const loaderId = loadingManager.showInline(tbody, 'Cargando reservas...');
+      
       try {
         const bookings = await api.getAdminBookings();
-        const tbody = document.getElementById('bookingsTableBody');
+        loadingManager.hideInline(tbody);
         
         if (!bookings || bookings.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay reservas disponibles</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">No hay reservas disponibles</td></tr>';
           return;
         }
 
-        tbody.innerHTML = bookings.map(booking => `
+        tbody.innerHTML = bookings.map(booking => {
+          const statusClass = booking.status === 'Confirmed' || booking.status === 2 ? 'active' : 
+                            booking.status === 'Pending' || booking.status === 1 ? 'warning' : 'inactive';
+          const statusText = booking.status === 1 ? 'Pendiente' :
+                           booking.status === 2 ? 'Confirmada' :
+                           booking.status === 3 ? 'Cancelada' :
+                           booking.status === 4 ? 'Expirada' :
+                           booking.status === 5 ? 'Completada' : booking.status;
+          
+          return `
           <tr>
-            <td>${booking.tourName || 'N/A'}</td>
-            <td>${booking.userName || 'N/A'}</td>
-            <td>${booking.userEmail || 'N/A'}</td>
-            <td>${booking.numberOfParticipants}</td>
-            <td>${formatPrice(booking.totalAmount)}</td>
+            <td>${escapeHtml(booking.tourName || booking.tour?.name || 'N/A')}</td>
+            <td>${escapeHtml(booking.userName || booking.user?.firstName + ' ' + booking.user?.lastName || 'N/A')}</td>
+            <td>${escapeHtml(booking.userEmail || booking.user?.email || 'N/A')}</td>
+            <td>${booking.numberOfParticipants || 0}</td>
+            <td>${formatPrice(booking.totalAmount || 0)}</td>
             <td>
-              <span class="badge ${booking.status === 'Confirmed' ? 'active' : 'inactive'}">
-                ${booking.status}
+              <span class="badge ${statusClass}">
+                ${statusText}
               </span>
             </td>
-            <td>${new Date(booking.createdAt).toLocaleDateString('es-PA')}</td>
+            <td>${booking.createdAt ? new Date(booking.createdAt).toLocaleDateString('es-PA') : 'N/A'}</td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       } catch (error) {
         console.error('Error loading bookings:', error);
-        document.getElementById('bookingsTableBody').innerHTML = 
-          '<tr><td colspan="7" style="text-align: center; color: var(--error);">Error al cargar reservas</td></tr>';
+        loadingManager.hideInline(tbody);
+        const errorMessage = error.message || error.detail || 'Error desconocido al cargar reservas';
+        notificationManager.error('Error al cargar reservas: ' + errorMessage);
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--danger); padding: 40px;">Error al cargar reservas. Por favor, intenta de nuevo.</td></tr>';
       }
     }
 
@@ -392,7 +442,7 @@
       const modal = document.createElement('div');
       modal.className = 'modal active';
       modal.innerHTML = `
-        <div class="modal-content tour-form-modal" style="max-width: 1100px;">
+        <div class="modal-content tour-form-modal">
           <div class="modal-header">
             <div class="modal-header-content">
               <h2>Nuevo Tour</h2>
@@ -464,9 +514,9 @@
                         <polyline points="17 8 12 3 7 8"></polyline>
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                       </svg>
-                      <p class="drop-zone-text">Arrastra y suelta imágenes aquí</p>
+                      <p class="drop-zone-text">📸 Arrastra y suelta imágenes aquí</p>
                       <p class="drop-zone-hint">o haz clic para seleccionar archivos</p>
-                      <p class="drop-zone-info">Formatos: JPG, PNG, WEBP | Tamaño recomendado: 1200x800px | Máximo 5 imágenes</p>
+                      <p class="drop-zone-info">✅ Formatos: JPG, PNG, WEBP | 📏 Tamaño máximo: 5MB | 🖼️ Máximo 5 imágenes | ⚠️ Requerido: al menos 1 imagen</p>
                     </div>
                   </div>
                   <input type="file" id="tourImageFileInput" accept="image/jpeg,image/png,image/webp" multiple style="display: none;" onchange="handleTourImageFiles(event)" />
@@ -531,17 +581,17 @@
                 </div>
               </div>
             </div>
-
             <div class="form-actions">
               <button type="button" class="btn-cancel" onclick="closeTourModal()">Cancelar</button>
               <button type="submit" class="btn-save" id="tourFormSubmitBtn">
                 Guardar Tour
               </button>
             </div>
-          </form>
+            </form>
         </div>
       `;
       document.body.appendChild(modal);
+      document.body.style.overflow = 'hidden'; // Prevenir scroll del body
       document.getElementById('tourForm').dataset.mode = 'create';
       
       // Inicializar drag & drop
@@ -633,23 +683,81 @@
       const submitBtn = document.getElementById('tourFormSubmitBtn');
       if (submitBtn) submitBtn.disabled = true;
       
+      // Mostrar indicador de progreso
+      const dropZone = document.getElementById('tourImageDropZone');
+      const originalDropZoneContent = dropZone ? dropZone.innerHTML : '';
+      if (dropZone) {
+        dropZone.innerHTML = `
+          <div style="text-align: center; padding: 20px;">
+            <div style="margin-bottom: 12px;">📤 Subiendo ${imageFiles.length} imagen(es)...</div>
+            <div style="background: rgba(0,0,0,0.1); border-radius: 8px; height: 8px; overflow: hidden;">
+              <div id="uploadProgress" style="background: linear-gradient(135deg, #0ea5e9 0%, #0891b2 100%); height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+          </div>
+        `;
+      }
+      
       try {
-        // Subir todas las imágenes
-        const uploadPromises = imageFiles.map(file => api.uploadTourImage(file));
-        const results = await Promise.all(uploadPromises);
+        // Subir todas las imágenes con progreso
+        const totalFiles = imageFiles.length;
+        let uploadedCount = 0;
         
-        // Agregar URLs a la lista
-        results.forEach(result => {
-          if (!tourImages.includes(result.url)) {
-            tourImages.push(result.url);
+        const uploadPromises = imageFiles.map(async (file, index) => {
+          try {
+            const result = await api.uploadTourImage(file);
+            uploadedCount++;
+            
+            // Actualizar progreso
+            if (dropZone) {
+              const progressBar = document.getElementById('uploadProgress');
+              if (progressBar) {
+                progressBar.style.width = ((uploadedCount / totalFiles) * 100) + '%';
+              }
+            }
+            
+            return result;
+          } catch (error) {
+            console.error(`Error uploading file ${index + 1}:`, error);
+            throw error;
           }
         });
         
+        const results = await Promise.all(uploadPromises);
+        
+        // Agregar URLs a la lista (manejar tanto url como Url por compatibilidad)
+        let addedCount = 0;
+        results.forEach(result => {
+          const imageUrl = result.url || result.Url;
+          if (imageUrl && !tourImages.includes(imageUrl)) {
+            tourImages.push(imageUrl);
+            addedCount++;
+          }
+        });
+        
+        // Mostrar éxito
+        if (addedCount > 0) {
+          notificationManager.success(`${addedCount} imagen(es) subida(s) exitosamente`);
+        }
+        
         updateTourImagesDisplay();
         clearImageError();
+        
+        // Restaurar drop zone
+        if (dropZone && originalDropZoneContent) {
+          setTimeout(() => {
+            dropZone.innerHTML = originalDropZoneContent;
+          }, 500);
+        }
       } catch (error) {
         console.error('Error uploading images:', error);
-        showImageError('Error al subir las imágenes: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error(`Error al subir las imágenes: ${errorMessage}. Por favor, verifica que el archivo sea una imagen válida (JPG, PNG, WEBP) y que no exceda 5MB.`);
+        showImageError(`Error al subir las imágenes: ${errorMessage}`);
+        
+        // Restaurar drop zone en caso de error
+        if (dropZone && originalDropZoneContent) {
+          dropZone.innerHTML = originalDropZoneContent;
+        }
       } finally {
         if (submitBtn) submitBtn.disabled = false;
         // Limpiar input
@@ -729,7 +837,7 @@
         const mediaFiles = await api.getAdminMedia(null, true, 1, 50);
         
         if (mediaFiles.length === 0) {
-          alert('No hay imágenes en la biblioteca de medios. Por favor, sube una imagen primero en la pestaña Media.');
+          notificationManager.warning('No hay imágenes en la biblioteca de medios. Por favor, sube una imagen primero en la pestaña Media.');
           return;
         }
         
@@ -761,13 +869,13 @@
         document.body.appendChild(modal);
       } catch (error) {
         console.error('Error loading media files:', error);
-        alert('❌ Error al cargar la biblioteca de medios');
+        notificationManager.error('Error al cargar la biblioteca de medios');
       }
     }
     
     function selectTourImageFromLibrary(imageUrl) {
       if (tourImages.length >= 5) {
-        alert('❌ Solo puedes tener máximo 5 imágenes. Elimina una imagen primero.');
+        notificationManager.warning('Solo puedes tener máximo 5 imágenes. Elimina una imagen primero.');
         return;
       }
       
@@ -779,10 +887,22 @@
 
     async function editTour(id) {
       try {
+        // Validar que el ID existe y no está vacío
+        if (!id || id === 'undefined' || id === 'null' || (typeof id === 'string' && id.trim() === '')) {
+          throw new Error('ID de tour no válido');
+        }
+        
         const tour = await api.getAdminTour(id);
-        currentTourId = id;
+        if (!tour || (!tour.id && !tour.Id)) {
+          throw new Error('Tour no encontrado');
+        }
+        
+        // Usar el ID del tour obtenido (puede estar en diferentes formatos)
+        const tourId = tour.id || tour.Id || id;
+        currentTourId = tourId;
+        
         // Inicializar array de imágenes
-        tourImages = tour.images || [];
+        tourImages = tour.images || tour.Images || [];
         const modal = document.createElement('div');
         modal.className = 'modal active';
         modal.innerHTML = `
@@ -794,7 +914,7 @@
               </div>
               <button class="modal-close" onclick="closeTourModal()" aria-label="Cerrar">×</button>
             </div>
-            <form id="tourForm" class="tour-form" onsubmit="saveTour(event)">
+            <form id="tourForm" class="tour-form" onsubmit="saveTour(event)" data-mode="edit" data-tour-id="${tourId}">
               <div class="modal-body">
                 <!-- Sección: Información General -->
                 <div class="form-section">
@@ -807,7 +927,7 @@
                         <span class="label-text">Nombre del Tour</span>
                         <span class="label-required">*</span>
                       </label>
-                      <input type="text" id="tourName" class="form-input" value="${tour.name || ''}" placeholder="Ej: Tour al Canal de Panamá" required />
+                      <input type="text" id="tourName" class="form-input" value="${(tour.name || tour.Name || '').replace(/"/g, '&quot;')}" placeholder="Ej: Tour al Canal de Panamá" required />
                       <div class="field-error" id="tourNameError" style="display: none;"></div>
                     </div>
                     <div class="form-group">
@@ -817,7 +937,7 @@
                       </label>
                       <div class="input-with-icon">
                         <span class="input-icon">$</span>
-                        <input type="number" id="tourPrice" class="form-input" step="0.01" min="0" value="${tour.price || ''}" placeholder="0.00" required />
+                        <input type="number" id="tourPrice" class="form-input" step="0.01" min="0" value="${tour.price ?? tour.Price ?? ''}" placeholder="0.00" required />
                       </div>
                       <div class="field-error" id="tourPriceError" style="display: none;"></div>
                     </div>
@@ -827,7 +947,7 @@
                         <span class="label-required">*</span>
                         <span class="label-optional">(horas)</span>
                       </label>
-                      <input type="number" id="tourDurationHours" class="form-input" min="1" value="${tour.durationHours || ''}" placeholder="Ej: 4" required />
+                      <input type="number" id="tourDurationHours" class="form-input" min="1" max="48" value="${tour.durationHours ?? tour.DurationHours ?? ''}" placeholder="Ej: 4" required />
                       <div class="field-error" id="tourDurationHoursError" style="display: none;"></div>
                     </div>
                     <div class="form-group">
@@ -835,7 +955,7 @@
                         <span class="label-text">Capacidad Máxima</span>
                         <span class="label-required">*</span>
                       </label>
-                      <input type="number" id="tourMaxCapacity" class="form-input" min="1" value="${tour.maxCapacity || ''}" placeholder="Ej: 20" required />
+                      <input type="number" id="tourMaxCapacity" class="form-input" min="1" value="${tour.maxCapacity ?? tour.MaxCapacity ?? ''}" placeholder="Ej: 20" required />
                       <div class="field-error" id="tourMaxCapacityError" style="display: none;"></div>
                     </div>
                   </div>
@@ -872,7 +992,7 @@
                     </div>
                     <div class="field-error" id="tourImagesError" style="display: none;"></div>
                   </div>
-                  <textarea id="tourImages" class="form-input" style="display: none;" rows="1">${(tour.images || []).join('\n')}</textarea>
+                  <textarea id="tourImages" class="form-input" style="display: none;" rows="1">${(tour.images || tour.Images || []).join('\n')}</textarea>
                 </div>
 
                 <!-- Sección: Ubicación -->
@@ -886,7 +1006,7 @@
                         <span class="label-text">Ubicación</span>
                         <span class="label-optional">(Opcional)</span>
                       </label>
-                      <input type="text" id="tourLocation" class="form-input" value="${tour.location || ''}" placeholder="Ej: Ciudad de Panamá" />
+                      <input type="text" id="tourLocation" class="form-input" value="${(tour.location || tour.Location || '').replace(/"/g, '&quot;')}" placeholder="Ej: Ciudad de Panamá" />
                     </div>
                   </div>
                 </div>
@@ -901,9 +1021,9 @@
                       <span class="label-text">Descripción del Tour</span>
                       <span class="label-required">*</span>
                     </label>
-                    <textarea id="tourDescription" class="form-input form-textarea" rows="6" minlength="50" placeholder="Describe los detalles del tour, qué incluye, qué verás, etc..." required>${tour.description || ''}</textarea>
+                    <textarea id="tourDescription" class="form-input form-textarea" rows="6" minlength="50" placeholder="Describe los detalles del tour, qué incluye, qué verás, etc..." required>${(tour.description || tour.Description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
                     <div class="form-hint">
-                      <span id="tourDescriptionCharCount">${(tour.description || '').length}</span> caracteres (mínimo 50)
+                      <span id="tourDescriptionCharCount">${(tour.description || tour.Description || '').length}</span> caracteres (mínimo 50)
                     </div>
                     <div class="field-error" id="tourDescriptionError" style="display: none;"></div>
                   </div>
@@ -912,7 +1032,7 @@
                       <span class="label-text">Itinerario</span>
                       <span class="label-optional">(Opcional)</span>
                     </label>
-                    <textarea id="tourItinerary" class="form-input form-textarea" rows="5" placeholder="Detalla el itinerario del tour, horarios, actividades, etc...">${tour.itinerary || ''}</textarea>
+                    <textarea id="tourItinerary" class="form-input form-textarea" rows="5" placeholder="Detalla el itinerario del tour, horarios, actividades, etc...">${(tour.itinerary || tour.Itinerary || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
                   </div>
                 </div>
 
@@ -920,26 +1040,31 @@
                 <div class="form-section">
                   <div class="form-group">
                     <label class="form-label">
-                      <input type="checkbox" id="tourIsActive" ${tour.isActive ? 'checked' : ''} style="margin-right: 8px;" />
+                      <input type="checkbox" id="tourIsActive" ${(tour.isActive ?? tour.IsActive ?? true) ? 'checked' : ''} style="margin-right: 8px;" />
                       <span class="label-text">Tour Activo</span>
                     </label>
                     <p class="form-hint">Los tours inactivos no se mostrarán en el sitio público</p>
                   </div>
                 </div>
               </div>
-
               <div class="form-actions">
                 <button type="button" class="btn-cancel" onclick="closeTourModal()">Cancelar</button>
                 <button type="submit" class="btn-save" id="tourFormSubmitBtn">
                   Guardar Cambios
                 </button>
               </div>
-            </form>
+              </form>
           </div>
         `;
         document.body.appendChild(modal);
-        document.getElementById('tourForm').dataset.mode = 'edit';
-        document.getElementById('tourForm').dataset.tourId = id;
+        document.body.style.overflow = 'hidden'; // Prevenir scroll del body
+        
+        // Asegurar que los atributos data estén establecidos correctamente
+        const form = document.getElementById('tourForm');
+        if (form) {
+          form.dataset.mode = 'edit';
+          form.dataset.tourId = tourId;
+        }
         
         // Inicializar drag & drop
         initializeTourImageDropZone();
@@ -957,15 +1082,25 @@
         setTimeout(() => updateTourImagesDisplay(), 100);
       } catch (error) {
         console.error('Error loading tour:', error);
-        alert('❌ Error al cargar el tour: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al cargar el tour: ' + errorMessage);
       }
     }
 
     function closeTourModal() {
-      const modal = document.querySelector('.modal');
-      if (modal) modal.remove();
+      const modals = document.querySelectorAll('.modal.active, .modal');
+      modals.forEach(modal => {
+        if (modal) {
+          modal.classList.remove('active');
+          modal.style.display = 'none';
+          setTimeout(() => {
+            modal.remove();
+          }, 300);
+        }
+      });
       currentTourId = null;
       tourImages = []; // Limpiar imágenes al cerrar
+      document.body.style.overflow = ''; // Restaurar scroll del body
     }
 
     async function saveTour(event) {
@@ -979,11 +1114,11 @@
         return;
       }
       
+      const form = event.target;
+      const mode = form.dataset.mode || 'create';
+      const submitBtn = document.getElementById('tourFormSubmitBtn');
+      
       try {
-        const form = event.target;
-        const mode = form.dataset.mode;
-        const submitBtn = document.getElementById('tourFormSubmitBtn');
-        
         // Deshabilitar botón mientras se guarda
         if (submitBtn) {
           submitBtn.disabled = true;
@@ -992,8 +1127,54 @@
         }
         
         // Obtener imágenes del array tourImages o del textarea como fallback
-        const images = tourImages.length > 0 ? tourImages : 
-          (document.getElementById('tourImages').value.split('\n').map(url => url.trim()).filter(url => url));
+        let images = [];
+        if (tourImages && tourImages.length > 0) {
+          // Si tourImages contiene objetos, extraer las URLs; si son strings, usarlos directamente
+          images = tourImages.map(img => {
+            if (typeof img === 'string') {
+              return img;
+            } else if (img && (img.url || img.imageUrl || img.ImageUrl)) {
+              return img.url || img.imageUrl || img.ImageUrl;
+            }
+            return null;
+          }).filter(url => url && typeof url === 'string' && url.trim().length > 0);
+        } else {
+          const tourImagesTextarea = document.getElementById('tourImages');
+          if (tourImagesTextarea && tourImagesTextarea.value) {
+            images = tourImagesTextarea.value.split('\n')
+              .map(url => url.trim())
+              .filter(url => url && url.length > 0);
+          }
+        }
+        
+        // Convertir URLs relativas a absolutas para que pasen la validación
+        const baseUrl = window.location.origin;
+        images = images.map(url => {
+          // Si ya es una URL absoluta, devolverla tal cual
+          if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+          }
+          // Si es una ruta relativa que empieza con /, convertirla a absoluta
+          if (url.startsWith('/')) {
+            return baseUrl + url;
+          }
+          // Si es una ruta relativa sin /, agregar /
+          return baseUrl + '/' + url;
+        });
+        
+        // Validar que todas las URLs sean válidas
+        const invalidUrls = images.filter(url => {
+          try {
+            const urlObj = new URL(url);
+            return !urlObj.protocol || (!urlObj.protocol.startsWith('http') && !urlObj.protocol.startsWith('https'));
+          } catch {
+            return true; // Si no se puede parsear, es inválida
+          }
+        });
+        
+        if (invalidUrls.length > 0) {
+          throw new Error('Algunas URLs de imágenes no son válidas. Por favor, asegúrate de que todas las imágenes estén subidas correctamente.');
+        }
 
         const tourData = {
           name: document.getElementById('tourName').value.trim(),
@@ -1004,24 +1185,37 @@
           durationHours: parseInt(document.getElementById('tourDurationHours').value),
           location: document.getElementById('tourLocation').value.trim() || null,
           isActive: document.getElementById('tourIsActive').checked,
-          images: images.length > 0 ? images : null
+          images: images.length > 0 ? images : []
         };
 
         if (mode === 'edit') {
           const tourId = form.dataset.tourId;
+          if (!tourId) {
+            throw new Error('ID de tour no encontrado');
+          }
           await api.updateTour(tourId, tourData);
         } else {
           await api.createTour(tourData);
         }
         
-        alert('✅ Tour guardado exitosamente');
+        if (typeof notificationManager !== 'undefined' && notificationManager) {
+          notificationManager.success('Tour guardado exitosamente');
+        } else if (typeof window !== 'undefined' && window.notificationManager) {
+          window.notificationManager.success('Tour guardado exitosamente');
+        }
         closeTourModal();
         loadTours();
       } catch (error) {
         console.error('Error saving tour:', error);
-        alert('❌ Error al guardar el tour: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        if (typeof notificationManager !== 'undefined' && notificationManager) {
+          notificationManager.error('Error al guardar el tour: ' + errorMessage);
+        } else if (typeof window !== 'undefined' && window.notificationManager) {
+          window.notificationManager.error('Error al guardar el tour: ' + errorMessage);
+        } else {
+          alert('Error al guardar el tour: ' + errorMessage);
+        }
       } finally {
-        const submitBtn = document.getElementById('tourFormSubmitBtn');
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.classList.remove('btn-loading');
@@ -1070,7 +1264,7 @@
       
       // Validar imágenes (obligatorio al menos 1)
       if (tourImages.length === 0) {
-        showImageError('Debes agregar al menos una imagen al tour');
+        showImageError('⚠️ Debes agregar al menos una imagen al tour. Puedes arrastrar y soltar imágenes o hacer clic en el área de carga.');
         isValid = false;
       }
       
@@ -1109,14 +1303,34 @@
     }
 
     async function deleteTour(id) {
+      // Validar que el ID existe y no está vacío
+      if (!id || id === 'undefined' || id === 'null' || (typeof id === 'string' && id.trim() === '')) {
+        notificationManager.error('ID de tour no válido');
+        return;
+      }
+      
       if (!confirm('¿Estás seguro de eliminar este tour? Se desactivará si tiene reservas activas.')) return;
+      
       try {
         await api.deleteTour(id);
-        alert('✅ Tour eliminado/desactivado exitosamente');
+        if (typeof notificationManager !== 'undefined' && notificationManager) {
+          notificationManager.success('Tour eliminado/desactivado exitosamente');
+        } else if (typeof window !== 'undefined' && window.notificationManager) {
+          window.notificationManager.success('Tour eliminado/desactivado exitosamente');
+        } else {
+          alert('Tour eliminado/desactivado exitosamente');
+        }
         loadTours();
       } catch (error) {
         console.error('Error deleting tour:', error);
-        alert('❌ Error al eliminar el tour: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        if (typeof notificationManager !== 'undefined' && notificationManager) {
+          notificationManager.error('Error al eliminar el tour: ' + errorMessage);
+        } else if (typeof window !== 'undefined' && window.notificationManager) {
+          window.notificationManager.error('Error al eliminar el tour: ' + errorMessage);
+        } else {
+          alert('Error al eliminar el tour: ' + errorMessage);
+        }
       }
     }
 
@@ -1154,11 +1368,16 @@
         document.body.appendChild(modal);
       } catch (error) {
         console.error('Error loading user:', error);
-        alert('❌ Error al cargar el usuario: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al cargar el usuario: ' + errorMessage);
       }
     }
 
     async function editUser(id) {
+      if (!id || id === 'undefined') {
+        console.error('ID de usuario inválido:', id);
+        return;
+      }
       try {
         const user = await api.getAdminUser(id);
         const roles = await api.getAdminRoles();
@@ -1211,7 +1430,8 @@
         document.body.appendChild(modal);
       } catch (error) {
         console.error('Error loading user:', error);
-        alert('❌ Error al cargar el usuario: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al cargar el usuario: ' + errorMessage);
       }
     }
 
@@ -1229,12 +1449,13 @@
         };
         
         await api.updateAdminUser(userId, userData);
-        alert('✅ Usuario actualizado exitosamente');
+        notificationManager.success('Usuario actualizado exitosamente');
         document.querySelector('.modal').remove();
         loadUsers();
       } catch (error) {
         console.error('Error saving user:', error);
-        alert('❌ Error al guardar el usuario: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al guardar el usuario: ' + errorMessage);
       }
     }
 
@@ -1242,11 +1463,12 @@
       if (!confirm('¿Estás seguro de desbloquear este usuario?')) return;
       try {
         await api.unlockAdminUser(id);
-        alert('✅ Usuario desbloqueado exitosamente');
+        notificationManager.success('Usuario desbloqueado exitosamente');
         loadUsers();
       } catch (error) {
         console.error('Error unlocking user:', error);
-        alert('❌ Error al desbloquear el usuario: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al desbloquear el usuario: ' + errorMessage);
       }
     }
 
@@ -1307,7 +1529,8 @@
         }
       } catch (error) {
         console.error('Error loading tour dates:', error);
-        alert('❌ Error al cargar las fechas: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al cargar las fechas: ' + errorMessage);
       }
     }
 
@@ -1356,7 +1579,7 @@
         const dates = await api.getAdminTourDates(tourId);
         const date = dates.find(d => d.id === dateId);
         if (!date) {
-          alert('Fecha no encontrada');
+          notificationManager.warning('Fecha no encontrada');
           return;
         }
         
@@ -1397,7 +1620,8 @@
         document.body.appendChild(modal);
       } catch (error) {
         console.error('Error loading tour date:', error);
-        alert('❌ Error al cargar la fecha: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al cargar la fecha: ' + errorMessage);
       }
     }
 
@@ -1419,7 +1643,7 @@
           await api.createTourDate(tourId, dateData);
         }
         
-        alert('✅ Fecha guardada exitosamente');
+        notificationManager.success('Fecha guardada exitosamente');
         // Cerrar modal de formulario
         document.querySelector('.modal').remove();
         // Recargar modal de fechas si existe, sino cerrar todo
@@ -1437,7 +1661,8 @@
         }
       } catch (error) {
         console.error('Error saving tour date:', error);
-        alert('❌ Error al guardar la fecha: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al guardar la fecha: ' + errorMessage);
       }
     }
 
@@ -1445,7 +1670,7 @@
       if (!confirm('¿Estás seguro de eliminar esta fecha? Se desactivará si tiene reservas confirmadas.')) return;
       try {
         await api.deleteTourDate(dateId);
-        alert('✅ Fecha eliminada/desactivada exitosamente');
+        notificationManager.success('Fecha eliminada/desactivada exitosamente');
         // Recargar modal de fechas
         const modalContent = document.querySelector('.modal-content[data-tour-id]');
         const tourId = modalContent?.dataset.tourId;
@@ -1457,7 +1682,8 @@
         }
       } catch (error) {
         console.error('Error deleting tour date:', error);
-        alert('❌ Error al eliminar la fecha: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al eliminar la fecha: ' + errorMessage);
       }
     }
 
@@ -1699,11 +1925,12 @@
         };
         
         await api.updateAdminHomePageContent(contentData);
-        alert('✅ Contenido guardado exitosamente');
+        notificationManager.success('Contenido guardado exitosamente');
         loadHomePageContent(); // Recargar para mostrar datos actualizados
       } catch (error) {
         console.error('Error saving CMS content:', error);
-        alert('❌ Error al guardar el contenido: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al guardar el contenido: ' + errorMessage);
       }
     }
 
@@ -1734,10 +1961,11 @@
           `;
         }
         
-        alert('✅ Imagen subida exitosamente');
+        notificationManager.success('Imagen subida exitosamente');
       } catch (error) {
         console.error('Error uploading CMS image:', error);
-        alert('❌ Error al subir la imagen: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al subir la imagen: ' + errorMessage);
       }
       
       // Limpiar input file
@@ -1765,7 +1993,7 @@
         const mediaFiles = await api.getAdminMedia(null, true, 1, 50); // Solo imágenes, primera página
         
         if (mediaFiles.length === 0) {
-          alert('No hay imágenes en la biblioteca de medios. Por favor, sube una imagen primero en la pestaña Media.');
+          notificationManager.warning('No hay imágenes en la biblioteca de medios. Por favor, sube una imagen primero en la pestaña Media.');
           return;
         }
         
@@ -1793,7 +2021,7 @@
         document.body.appendChild(modal);
       } catch (error) {
         console.error('Error loading media files:', error);
-        alert('❌ Error al cargar la biblioteca de medios');
+        notificationManager.error('Error al cargar la biblioteca de medios');
       }
     }
     
@@ -1903,7 +2131,7 @@
       const fileInput = document.getElementById('mediaFileInput');
         const file = fileInput.files[0];
       if (!file) {
-        alert('Por favor selecciona un archivo');
+        notificationManager.warning('Por favor selecciona un archivo');
         return;
       }
 
@@ -1912,30 +2140,32 @@
         const category = document.getElementById('mediaCategory').value || null;
         
         await api.uploadMediaFile(file, altText, description, category);
-        alert('✅ Archivo subido exitosamente');
+        notificationManager.success('Archivo subido exitosamente');
         document.querySelector('.modal').remove();
         loadMediaFiles();
       } catch (error) {
         console.error('Error uploading media file:', error);
-        alert('❌ Error al subir el archivo: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al subir el archivo: ' + errorMessage);
       }
     }
 
     function selectMediaFile(url) {
       // Esta función puede usarse para seleccionar archivos en otros formularios
       console.log('Archivo seleccionado:', url);
-      alert('URL copiada: ' + url);
+      notificationManager.success('URL copiada al portapapeles: ' + url);
     }
 
     async function deleteMediaFile(mediaId) {
       if (!confirm('¿Estás seguro de eliminar este archivo?')) return;
       try {
         await api.deleteMediaFile(mediaId);
-        alert('✅ Archivo eliminado exitosamente');
+        notificationManager.success('Archivo eliminado exitosamente');
         loadMediaFiles();
       } catch (error) {
         console.error('Error deleting media file:', error);
-        alert('❌ Error al eliminar el archivo: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al eliminar el archivo: ' + errorMessage);
       }
     }
 
@@ -2106,7 +2336,8 @@
         document.getElementById('pageForm').dataset.pageId = pageId;
       } catch (error) {
         console.error('Error loading page:', error);
-        alert('❌ Error al cargar la página: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al cargar la página: ' + errorMessage);
       }
     }
 
@@ -2132,12 +2363,13 @@
           await api.createPage(pageData);
         }
         
-        alert('✅ Página guardada exitosamente');
+        notificationManager.success('Página guardada exitosamente');
         closePageModal();
         loadPages();
       } catch (error) {
         console.error('Error saving page:', error);
-        alert('❌ Error al guardar la página: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al guardar la página: ' + errorMessage);
       }
     }
 
@@ -2145,11 +2377,12 @@
       if (!confirm('¿Estás seguro de eliminar esta página?')) return;
       try {
         await api.deletePage(pageId);
-        alert('✅ Página eliminada exitosamente');
+        notificationManager.success('Página eliminada exitosamente');
         loadPages();
       } catch (error) {
         console.error('Error deleting page:', error);
-        alert('❌ Error al eliminar la página: ' + (error.message || 'Error desconocido'));
+        const errorMessage = error.message || error.detail || 'Error desconocido';
+        notificationManager.error('Error al eliminar la página: ' + errorMessage);
       }
     }
 

@@ -339,6 +339,8 @@ public class BookingService : IBookingService
             .Include(b => b.Tour)
             .Include(b => b.User)
             .Include(b => b.TourDate)
+            .Include(b => b.Country)
+            .AsSplitQuery() // Mejorar performance con múltiples relaciones
             .OrderByDescending(b => b.CreatedAt)
             .ToListAsync(cancellationToken);
     }
