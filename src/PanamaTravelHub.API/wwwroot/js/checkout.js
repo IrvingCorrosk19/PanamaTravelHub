@@ -1,5 +1,17 @@
 // Checkout JavaScript para ToursPanama
 
+// ✅ Función helper para mostrar errores de notificación
+function showNotificationError(message) {
+  if (typeof notificationManager !== 'undefined' && notificationManager) {
+    notificationManager.error(message);
+  } else if (typeof window !== 'undefined' && window.notificationManager) {
+    window.notificationManager.error(message);
+  } else {
+    // Fallback a alert si no hay notificationManager disponible
+    alert(message);
+  }
+}
+
 // ✅ Función helper para formatear precios de forma segura
 function formatPrice(value, fallbackText = 'Consultar precio') {
   const rawPrice = value ?? null;
@@ -770,13 +782,7 @@ function validateParticipants() {
 
   if (!isValid) {
     const errorMessage = 'Por favor corrige los siguientes errores:\n\n' + errors.join('\n');
-    if (typeof notificationManager !== 'undefined' && notificationManager) {
-      notificationManager.error(errorMessage.replace(/\n/g, '<br>'));
-    } else if (typeof window !== 'undefined' && window.notificationManager) {
-      window.notificationManager.error(errorMessage.replace(/\n/g, '<br>'));
-    } else {
-      showNotificationError(errorMessage);
-    }
+    showNotificationError(errorMessage.replace(/\n/g, '<br>'));
     // Scroll al primer error
     const firstError = document.querySelector('.input-error');
     if (firstError) {
