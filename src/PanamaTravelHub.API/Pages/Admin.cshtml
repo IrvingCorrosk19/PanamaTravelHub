@@ -1999,35 +1999,35 @@
                 </div>
                 <div class="form-group full-width">
                   <label>Subtítulo del Hero</label>
-                  <textarea id="cmsHeroSubtitle" class="form-input" rows="3" placeholder="Subtítulo del hero">${cmsContent.heroSubtitle || ''}</textarea>
+                  <textarea id="cmsHeroSubtitle" class="form-input" rows="3" placeholder="Subtítulo del hero">${getValue(cmsContent, 'HeroSubtitle', 'heroSubtitle', '')}</textarea>
                 </div>
                 <div class="form-group">
                   <label>Placeholder de Búsqueda</label>
-                  <input type="text" id="cmsHeroSearchPlaceholder" class="form-input" value="${cmsContent.heroSearchPlaceholder || ''}" placeholder="Buscar tours..." />
+                  <input type="text" id="cmsHeroSearchPlaceholder" class="form-input" value="${getValue(cmsContent, 'HeroSearchPlaceholder', 'heroSearchPlaceholder', '')}" placeholder="Buscar tours..." />
                 </div>
                 <div class="form-group">
                   <label>Texto del Botón de Búsqueda</label>
-                  <input type="text" id="cmsHeroSearchButton" class="form-input" value="${cmsContent.heroSearchButton || ''}" placeholder="Buscar" />
+                  <input type="text" id="cmsHeroSearchButton" class="form-input" value="${getValue(cmsContent, 'HeroSearchButton', 'heroSearchButton', '')}" placeholder="Buscar" />
                 </div>
                 <div class="form-group full-width">
                   <label>Título de la Sección de Tours</label>
-                  <input type="text" id="cmsToursSectionTitle" class="form-input" value="${cmsContent.toursSectionTitle || ''}" placeholder="Nuestros Tours" />
+                  <input type="text" id="cmsToursSectionTitle" class="form-input" value="${getValue(cmsContent, 'ToursSectionTitle', 'toursSectionTitle', '')}" placeholder="Nuestros Tours" />
                 </div>
                 <div class="form-group full-width">
                   <label>Subtítulo de la Sección de Tours</label>
-                  <textarea id="cmsToursSectionSubtitle" class="form-input" rows="2" placeholder="Descubre nuestras ofertas">${cmsContent.toursSectionSubtitle || ''}</textarea>
+                  <textarea id="cmsToursSectionSubtitle" class="form-input" rows="2" placeholder="Descubre nuestras ofertas">${getValue(cmsContent, 'ToursSectionSubtitle', 'toursSectionSubtitle', '')}</textarea>
                 </div>
                 <div class="form-group">
                   <label>Texto: Cargando Tours</label>
-                  <input type="text" id="cmsLoadingToursText" class="form-input" value="${cmsContent.loadingToursText || ''}" placeholder="Cargando tours..." />
+                  <input type="text" id="cmsLoadingToursText" class="form-input" value="${getValue(cmsContent, 'LoadingToursText', 'loadingToursText', '')}" placeholder="Cargando tours..." />
                 </div>
                 <div class="form-group">
                   <label>Texto: Error Cargando Tours</label>
-                  <input type="text" id="cmsErrorLoadingToursText" class="form-input" value="${cmsContent.errorLoadingToursText || ''}" placeholder="Error al cargar tours" />
+                  <input type="text" id="cmsErrorLoadingToursText" class="form-input" value="${getValue(cmsContent, 'ErrorLoadingToursText', 'errorLoadingToursText', '')}" placeholder="Error al cargar tours" />
                 </div>
                 <div class="form-group">
                   <label>Texto: No Hay Tours</label>
-                  <input type="text" id="cmsNoToursFoundText" class="form-input" value="${cmsContent.noToursFoundText || ''}" placeholder="No se encontraron tours" />
+                  <input type="text" id="cmsNoToursFoundText" class="form-input" value="${getValue(cmsContent, 'NoToursFoundText', 'noToursFoundText', '')}" placeholder="No se encontraron tours" />
                 </div>
                 </div>
               </div>
@@ -2038,23 +2038,23 @@
                 <div class="form-grid">
                 <div class="form-group">
                   <label>Texto de la Marca en Nav</label>
-                  <input type="text" id="cmsNavBrandText" class="form-input" value="${cmsContent.navBrandText || ''}" placeholder="ToursPanama" />
+                  <input type="text" id="cmsNavBrandText" class="form-input" value="${getValue(cmsContent, 'NavBrandText', 'navBrandText', '')}" placeholder="ToursPanama" />
                 </div>
                 <div class="form-group">
                   <label>Link Nav: Tours</label>
-                  <input type="text" id="cmsNavToursLink" class="form-input" value="${cmsContent.navToursLink || ''}" placeholder="Tours" />
+                  <input type="text" id="cmsNavToursLink" class="form-input" value="${getValue(cmsContent, 'NavToursLink', 'navToursLink', '')}" placeholder="Tours" />
                 </div>
                 <div class="form-group">
                   <label>Link Nav: Reservas</label>
-                  <input type="text" id="cmsNavBookingsLink" class="form-input" value="${cmsContent.navBookingsLink || ''}" placeholder="Mis Reservas" />
+                  <input type="text" id="cmsNavBookingsLink" class="form-input" value="${getValue(cmsContent, 'NavBookingsLink', 'navBookingsLink', '')}" placeholder="Mis Reservas" />
                 </div>
                 <div class="form-group">
                   <label>Link Nav: Login</label>
-                  <input type="text" id="cmsNavLoginLink" class="form-input" value="${cmsContent.navLoginLink || ''}" placeholder="Iniciar Sesión" />
+                  <input type="text" id="cmsNavLoginLink" class="form-input" value="${getValue(cmsContent, 'NavLoginLink', 'navLoginLink', '')}" placeholder="Iniciar Sesión" />
                 </div>
                 <div class="form-group">
                   <label>Botón Nav: Logout</label>
-                  <input type="text" id="cmsNavLogoutButton" class="form-input" value="${cmsContent.navLogoutButton || ''}" placeholder="Cerrar Sesión" />
+                  <input type="text" id="cmsNavLogoutButton" class="form-input" value="${getValue(cmsContent, 'NavLogoutButton', 'navLogoutButton', '')}" placeholder="Cerrar Sesión" />
                 </div>
                 </div>
               </div>
@@ -2065,15 +2065,15 @@
                 <div class="form-grid">
                 <div class="form-group full-width">
                   <label>Texto de la Marca del Footer</label>
-                  <input type="text" id="cmsFooterBrandText" class="form-input" value="${cmsContent.footerBrandText || ''}" placeholder="ToursPanama" />
+                  <input type="text" id="cmsFooterBrandText" class="form-input" value="${getValue(cmsContent, 'FooterBrandText', 'footerBrandText', '')}" placeholder="ToursPanama" />
                 </div>
                 <div class="form-group full-width">
                   <label>Descripción del Footer</label>
-                  <textarea id="cmsFooterDescription" class="form-input" rows="3" placeholder="Descripción del footer">${cmsContent.footerDescription || ''}</textarea>
+                  <textarea id="cmsFooterDescription" class="form-input" rows="3" placeholder="Descripción del footer">${getValue(cmsContent, 'FooterDescription', 'footerDescription', '')}</textarea>
                 </div>
                 <div class="form-group full-width">
                   <label>Copyright del Footer</label>
-                  <input type="text" id="cmsFooterCopyright" class="form-input" value="${cmsContent.footerCopyright || ''}" placeholder="© 2024 ToursPanama" />
+                  <input type="text" id="cmsFooterCopyright" class="form-input" value="${getValue(cmsContent, 'FooterCopyright', 'footerCopyright', '')}" placeholder="© 2024 ToursPanama" />
                 </div>
                 </div>
               </div>
@@ -2084,12 +2084,12 @@
                 <div class="form-grid">
                 <div class="form-group full-width">
                   <label>Título de la Página (SEO)</label>
-                  <input type="text" id="cmsPageTitle" class="form-input" value="${cmsContent.pageTitle || ''}" placeholder="ToursPanama — Descubre los Mejores Tours" />
+                  <input type="text" id="cmsPageTitle" class="form-input" value="${getValue(cmsContent, 'PageTitle', 'pageTitle', '')}" placeholder="ToursPanama — Descubre los Mejores Tours" />
                   <small style="color: var(--text-muted); margin-top: 4px; display: block;">Aparece en la pestaña del navegador y en los resultados de búsqueda</small>
                 </div>
                 <div class="form-group full-width">
                   <label>Meta Description (SEO)</label>
-                  <textarea id="cmsMetaDescription" class="form-input" rows="2" placeholder="Meta descripción para SEO">${cmsContent.metaDescription || ''}</textarea>
+                  <textarea id="cmsMetaDescription" class="form-input" rows="2" placeholder="Meta descripción para SEO">${getValue(cmsContent, 'MetaDescription', 'metaDescription', '')}</textarea>
                   <small style="color: var(--text-muted); margin-top: 4px; display: block;">Descripción que aparece en los resultados de búsqueda (máx. 160 caracteres)</small>
                 </div>
                 </div>
