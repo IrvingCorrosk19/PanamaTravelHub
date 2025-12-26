@@ -334,8 +334,19 @@ public class BookingService : IBookingService
             {
                 // Cuando tourDateId es NULL, usar NULL explícitamente en SQL
                 var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, NULL::uuid, {1}::integer) THEN 1 ELSE 0 END AS Result";
-                _logger.LogInformation("Ejecutando SQL sin tourDateId (NULL): {Sql}",
-                    sql);
+                _logger.LogInformation("Ejecutando SQL sin tourDateId (NULL): {Sql} con tourId={TourId}, participants={Participants}",
+                    sql, tourId, participants);
+                
+                // Verificar cupos ANTES de ejecutar la función
+                var tourBefore = await _context.Tours
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == tourId, cancellationToken);
+                if (tourBefore != null)
+                {
+                    _logger.LogInformation(
+                        "Cupos disponibles ANTES de ReserveSpotsAsync: {AvailableSpots}",
+                        tourBefore.AvailableSpots);
+                }
                 
                 var sqlResult = await _context.Database
                     .SqlQueryRaw<SqlResult>(
@@ -344,12 +355,24 @@ public class BookingService : IBookingService
                         participants)
                     .FirstOrDefaultAsync(cancellationToken);
                 
+                _logger.LogInformation(
+                    "SqlResult obtenido: {SqlResult}, Result property: {Result}",
+                    sqlResult != null ? "not null" : "null",
+                    sqlResult?.Result ?? -1);
+                
                 result = sqlResult?.Result ?? 0;
                 
-                _logger.LogInformation(
-                    "SqlResult obtenido: {SqlResult}, Result: {Result}",
-                    sqlResult != null ? "not null" : "null",
-                    result);
+                // Verificar cupos DESPUÉS de ejecutar la función
+                var tourAfter = await _context.Tours
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == tourId, cancellationToken);
+                if (tourAfter != null)
+                {
+                    _logger.LogInformation(
+                        "Cupos disponibles DESPUÉS de ReserveSpotsAsync: {AvailableSpots} (cambió: {Changed})",
+                        tourAfter.AvailableSpots,
+                        tourBefore != null ? (tourBefore.AvailableSpots != tourAfter.AvailableSpots) : false);
+                }
             }
 
             _logger.LogInformation(
