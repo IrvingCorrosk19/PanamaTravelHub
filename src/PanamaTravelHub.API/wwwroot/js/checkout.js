@@ -1451,12 +1451,28 @@ async function processPayment() {
         // Crear el payment intent (el backend simulará)
         const paymentResponse = await api.createPayment(bookingId, 'USD', 'stripe');
         
+        // Extraer paymentIntentId (manejar tanto PascalCase como camelCase)
+        const paymentIntentId = paymentResponse.PaymentIntentId || paymentResponse.paymentIntentId;
+        
+        console.log('🔍 [processPayment] Respuesta de pago:', {
+          paymentResponse,
+          paymentIntentId,
+          hasPaymentIntentId: !!paymentResponse.PaymentIntentId,
+          haspaymentIntentId: !!paymentResponse.paymentIntentId
+        });
+        
+        if (!paymentIntentId) {
+          const errorMsg = 'Error: No se recibió el PaymentIntentId desde el servidor. Por favor, intenta de nuevo.';
+          console.error('❌ [processPayment]', errorMsg, { paymentResponse });
+          throw new Error(errorMsg);
+        }
+        
         // Simular delay para hacerlo más realista
         await sleep(1500);
         statusText.textContent = 'Confirmando pago simulado...';
         
         // Confirmar el pago en el backend (también simulado)
-        await api.confirmPayment(paymentResponse.paymentIntentId);
+        await api.confirmPayment(paymentIntentId);
         
         // Redirigir a página de éxito
         const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
@@ -1517,9 +1533,16 @@ async function processPayment() {
         throw new Error(confirmError.message);
       }
 
+      // Extraer paymentIntentId (manejar tanto PascalCase como camelCase)
+      const paymentIntentId = paymentResponse.PaymentIntentId || paymentResponse.paymentIntentId;
+      
+      if (!paymentIntentId) {
+        throw new Error('No se recibió el PaymentIntentId desde el servidor');
+      }
+      
       // Confirmar el pago en el backend
       statusText.textContent = 'Confirmando pago...';
-      await api.confirmPayment(paymentResponse.paymentIntentId);
+      await api.confirmPayment(paymentIntentId);
 
       // Redirigir a página de éxito
       const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
@@ -1551,7 +1574,14 @@ async function processPayment() {
         // Modo simulación - confirmar directamente
         await sleep(1500);
         statusText.textContent = 'Simulando pago de PayPal...';
-        await api.confirmPayment(paymentResponse.paymentIntentId);
+        
+        // Extraer paymentIntentId (manejar tanto PascalCase como camelCase)
+        const paymentIntentId = paymentResponse.PaymentIntentId || paymentResponse.paymentIntentId;
+        if (!paymentIntentId) {
+          throw new Error('No se recibió el PaymentIntentId desde el servidor');
+        }
+        
+        await api.confirmPayment(paymentIntentId);
         
         const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
         loadingManager.hideGlobal();
@@ -1593,7 +1623,13 @@ async function processPayment() {
       statusText.textContent = 'Simulando escaneo de QR...';
       await sleep(1500);
       
-      await api.confirmPayment(paymentResponse.paymentIntentId);
+      // Extraer paymentIntentId (manejar tanto PascalCase como camelCase)
+      const paymentIntentId = paymentResponse.PaymentIntentId || paymentResponse.paymentIntentId;
+      if (!paymentIntentId) {
+        throw new Error('No se recibió el PaymentIntentId desde el servidor');
+      }
+      
+      await api.confirmPayment(paymentIntentId);
       
       const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
       loadingManager.hideGlobal();
