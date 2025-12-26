@@ -1065,6 +1065,70 @@ async function processPayment() {
       return;
     }
 
+    // Validación final: Recargar el tour para verificar cupos actualizados justo antes de crear la reserva
+    statusText.textContent = 'Verificando disponibilidad...';
+    try {
+      const updatedTour = await api.getTour(currentTour.Id || currentTour.id);
+      if (updatedTour) {
+        // Actualizar currentTour con datos frescos
+        currentTour = updatedTour;
+        
+        // Verificar cupos una vez más con datos actualizados
+        let finalAvailableSpots = 0;
+        if (selectedTourDateId && selectedTourDateId !== 'tour-main-date') {
+          // Si hay fecha específica, verificar cupos de esa fecha
+          try {
+            const updatedDates = await api.getTourDates(currentTour.Id || currentTour.id);
+            if (Array.isArray(updatedDates) && updatedDates.length > 0) {
+              const updatedDate = updatedDates.find(d => {
+                const dateId = d.Id || d.id;
+                return dateId === selectedTourDateId;
+              });
+              if (updatedDate) {
+                finalAvailableSpots = Number(updatedDate.AvailableSpots ?? updatedDate.availableSpots ?? 0);
+              } else {
+                // Si no se encuentra la fecha, usar cupos del tour
+                finalAvailableSpots = Number(currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0);
+              }
+            } else {
+              // Si no hay fechas específicas, usar cupos del tour
+              finalAvailableSpots = Number(currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0);
+            }
+          } catch (dateError) {
+            console.warn('⚠️ [processPayment] Error al obtener fechas actualizadas, usando cupos del tour:', dateError);
+            finalAvailableSpots = Number(currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0);
+          }
+        } else {
+          // Usar cupos del tour general
+          finalAvailableSpots = Number(currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0);
+        }
+        
+        console.log('🔍 [processPayment] Validación final con datos actualizados:', {
+          available: finalAvailableSpots,
+          required: numberOfParticipants
+        });
+        
+        if (finalAvailableSpots < numberOfParticipants) {
+          // Cerrar modal de pago
+          modal.style.display = 'none';
+          btn.disabled = false;
+          loadingManager.hideGlobal();
+          
+          // Mostrar mensaje claro y amigable
+          showNotificationError(
+            `Lo sentimos, este tour ya no tiene cupos disponibles. Solo quedan ${finalAvailableSpots} cupo(s) disponible(s) y necesitas ${numberOfParticipants}. Por favor, selecciona otra fecha o reduce el número de participantes.`
+          );
+          
+          // Recargar fechas disponibles para actualizar la UI
+          await loadAvailableDates();
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ [processPayment] No se pudo verificar disponibilidad actualizada, continuando...', error);
+      // Continuar con la reserva si no se puede verificar (no bloquear el flujo)
+    }
+
     // Mostrar loading global
     loadingManager.showGlobal('Procesando tu reserva...');
 
@@ -1085,7 +1149,34 @@ async function processPayment() {
       participants: participants
     };
 
-    const bookingResponse = await api.createBooking(bookingData);
+    let bookingResponse;
+    try {
+      bookingResponse = await api.createBooking(bookingData);
+    } catch (bookingError) {
+      // Manejar específicamente el error de cupos insuficientes
+      if (bookingError.message && (
+        bookingError.message.includes('cupos') || 
+        bookingError.message.includes('cupo') ||
+        bookingError.message.includes('disponibles') ||
+        bookingError.message.includes('INSUFFICIENT_SPOTS')
+      )) {
+        // Cerrar modal de pago
+        modal.style.display = 'none';
+        btn.disabled = false;
+        loadingManager.hideGlobal();
+        
+        // Mostrar mensaje claro y amigable
+        showNotificationError(
+          'Lo sentimos, este tour ya no tiene cupos disponibles en este momento. Por favor, selecciona otra fecha o intenta más tarde.'
+        );
+        
+        // Recargar fechas disponibles para actualizar la UI
+        await loadAvailableDates();
+        return;
+      }
+      // Si es otro error, relanzarlo para que se maneje en el catch general
+      throw bookingError;
+    }
     const bookingId = bookingResponse.id;
 
     // Procesar pago según el método seleccionado
@@ -1215,10 +1306,36 @@ async function processPayment() {
   } catch (error) {
     console.error('Error processing payment:', error);
     loadingManager.hideGlobal();
-    statusText.textContent = error.message || 'Error al procesar el pago. Por favor intenta de nuevo.';
-    await sleep(3000);
-    modal.style.display = 'none';
-    btn.disabled = false;
+    
+    // Manejar específicamente errores de cupos
+    if (error.message && (
+      error.message.includes('cupos') || 
+      error.message.includes('cupo') ||
+      error.message.includes('disponibles') ||
+      error.message.includes('INSUFFICIENT_SPOTS')
+    )) {
+      // Cerrar modal de pago
+      modal.style.display = 'none';
+      btn.disabled = false;
+      
+      // Mostrar mensaje claro y amigable
+      showNotificationError(
+        'Lo sentimos, este tour ya no tiene cupos disponibles en este momento. Por favor, selecciona otra fecha o intenta más tarde.'
+      );
+      
+      // Recargar fechas disponibles para actualizar la UI
+      try {
+        await loadAvailableDates();
+      } catch (reloadError) {
+        console.warn('Error al recargar fechas:', reloadError);
+      }
+    } else {
+      // Para otros errores, mostrar mensaje genérico
+      statusText.textContent = error.message || 'Error al procesar el pago. Por favor intenta de nuevo.';
+      await sleep(3000);
+      modal.style.display = 'none';
+      btn.disabled = false;
+    }
   }
 }
 
