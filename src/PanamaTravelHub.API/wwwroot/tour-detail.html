@@ -20,6 +20,7 @@
       <div class="nav-links">
         <a href="/" class="nav-link">Tours</a>
         <a href="/reservas.html" class="nav-link">Mis Reservas</a>
+        <span class="nav-user-greeting" id="userGreeting" style="display:none;"></span>
         <a href="/login.html" class="nav-link" id="loginLink">Iniciar Sesión</a>
       </div>
     </div>
@@ -512,7 +513,59 @@
       window.location.href = `/checkout.html?tourId=${tourId}`;
     }
 
-    document.addEventListener('DOMContentLoaded', loadTour);
+    // Cargar información del usuario autenticado
+    async function loadUserInfo() {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      const userGreeting = document.getElementById('userGreeting');
+      const loginLink = document.getElementById('loginLink');
+      
+      if (!token || !userGreeting) {
+        if (userGreeting) userGreeting.style.display = 'none';
+        if (loginLink) loginLink.style.display = 'block';
+        return;
+      }
+
+      try {
+        // Ocultar link de login si está autenticado
+        if (loginLink) loginLink.style.display = 'none';
+        
+        // Intentar obtener el nombre desde localStorage primero
+        let userName = localStorage.getItem('userName');
+        
+        // Si no hay nombre guardado, obtenerlo de la API
+        if (!userName) {
+          const currentUser = await api.getCurrentUser();
+          if (currentUser) {
+            const firstName = currentUser.FirstName || currentUser.firstName || '';
+            const lastName = currentUser.LastName || currentUser.lastName || '';
+            userName = `${firstName} ${lastName}`.trim();
+            
+            // Guardar en localStorage para futuras cargas
+            if (userName) {
+              localStorage.setItem('userName', userName);
+            }
+          }
+        }
+        
+        // Mostrar el saludo si hay nombre
+        if (userName) {
+          userGreeting.textContent = `Hola, ${userName}`;
+          userGreeting.style.display = 'inline-flex';
+        } else {
+          userGreeting.style.display = 'none';
+        }
+      } catch (error) {
+        console.warn('No se pudo cargar la información del usuario:', error);
+        if (userGreeting) userGreeting.style.display = 'none';
+        if (loginLink) loginLink.style.display = 'block';
+        localStorage.removeItem('userName');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTour();
+      loadUserInfo();
+    });
   </script>
 </body>
 </html>

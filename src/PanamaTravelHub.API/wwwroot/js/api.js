@@ -263,6 +263,15 @@ class ApiClient {
         logger.warn('No se encontró userId en la respuesta del login', { user: response.user });
       }
       
+      // Guardar nombre del usuario (manejar tanto PascalCase como camelCase)
+      const firstName = response.user?.FirstName || response.user?.firstName || '';
+      const lastName = response.user?.LastName || response.user?.lastName || '';
+      const userName = `${firstName} ${lastName}`.trim();
+      if (userName) {
+        localStorage.setItem('userName', userName);
+        logger.debug('Nombre de usuario guardado', { userName });
+      }
+      
       // Guardar roles del usuario (manejar tanto PascalCase como camelCase)
       const userRoles = response.user?.Roles || response.user?.roles;
       if (userRoles) {
@@ -388,6 +397,15 @@ class ApiClient {
         logger.warn('No se encontró userId en la respuesta del registro', { user: response.user });
       }
       
+      // Guardar nombre del usuario (manejar tanto PascalCase como camelCase)
+      const firstName = response.user?.FirstName || response.user?.firstName || '';
+      const lastName = response.user?.LastName || response.user?.lastName || '';
+      const userName = `${firstName} ${lastName}`.trim();
+      if (userName) {
+        localStorage.setItem('userName', userName);
+        logger.debug('Nombre de usuario guardado', { userName });
+      }
+      
       // Guardar roles del usuario (manejar tanto PascalCase como camelCase)
       const userRoles = response.user?.Roles || response.user?.roles;
       if (userRoles) {
@@ -428,6 +446,7 @@ class ApiClient {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('userRoles');
+    localStorage.removeItem('userName'); // Limpiar nombre del usuario
     logger.debug('Tokens eliminados de localStorage');
   }
 

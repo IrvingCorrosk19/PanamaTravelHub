@@ -22,6 +22,7 @@
       <div class="nav-links">
         <a href="/" class="nav-link">Tours</a>
         <a href="/reservas.html" class="nav-link active">Mis Reservas</a>
+        <span class="nav-user-greeting" id="userGreeting" style="display:none;"></span>
         <a href="/login.html" class="nav-link" id="loginLink">Iniciar Sesión</a>
         <button class="btn-primary" id="logoutBtn" style="display:none;">Cerrar Sesión</button>
       </div>
@@ -101,12 +102,56 @@
       }
     });
 
+    // Cargar información del usuario autenticado
+    async function loadUserInfo() {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      const userGreeting = document.getElementById('userGreeting');
+      
+      if (!token || !userGreeting) {
+        if (userGreeting) userGreeting.style.display = 'none';
+        return;
+      }
+
+      try {
+        // Intentar obtener el nombre desde localStorage primero
+        let userName = localStorage.getItem('userName');
+        
+        // Si no hay nombre guardado, obtenerlo de la API
+        if (!userName) {
+          const currentUser = await api.getCurrentUser();
+          if (currentUser) {
+            const firstName = currentUser.FirstName || currentUser.firstName || '';
+            const lastName = currentUser.LastName || currentUser.lastName || '';
+            userName = `${firstName} ${lastName}`.trim();
+            
+            // Guardar en localStorage para futuras cargas
+            if (userName) {
+              localStorage.setItem('userName', userName);
+            }
+          }
+        }
+        
+        // Mostrar el saludo si hay nombre
+        if (userName) {
+          userGreeting.textContent = `Hola, ${userName}`;
+          userGreeting.style.display = 'inline-flex';
+        } else {
+          userGreeting.style.display = 'none';
+        }
+      } catch (error) {
+        console.warn('No se pudo cargar la información del usuario:', error);
+        if (userGreeting) userGreeting.style.display = 'none';
+        localStorage.removeItem('userName');
+      }
+    }
+
     function checkAuth() {
       const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
       const loginLink = document.getElementById('loginLink');
       const logoutBtn = document.getElementById('logoutBtn');
       const authRequired = document.getElementById('authRequired');
       const authenticatedContent = document.getElementById('authenticatedContent');
+      const userGreeting = document.getElementById('userGreeting');
 
       if (!token) {
         // No autenticado: mostrar mensaje de login
@@ -114,6 +159,8 @@
         authenticatedContent.style.display = 'none';
         if (loginLink) loginLink.style.display = 'block';
         if (logoutBtn) logoutBtn.style.display = 'none';
+        if (userGreeting) userGreeting.style.display = 'none';
+        localStorage.removeItem('userName');
         return false;
       }
 
@@ -134,6 +181,10 @@
       authenticatedContent.style.display = 'block';
       if (loginLink) loginLink.style.display = 'none';
       if (logoutBtn) logoutBtn.style.display = 'block';
+      
+      // Cargar información del usuario para mostrar su nombre
+      loadUserInfo();
+      
       return true;
     }
 

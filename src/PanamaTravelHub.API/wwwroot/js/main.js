@@ -162,6 +162,51 @@ async function loadHomePageContent() {
   }
 }
 
+// Cargar información del usuario autenticado
+async function loadUserInfo() {
+  const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+  const userGreeting = document.getElementById('userGreeting');
+  
+  if (!accessToken || !userGreeting) {
+    if (userGreeting) userGreeting.style.display = 'none';
+    return;
+  }
+
+  try {
+    // Intentar obtener el nombre desde localStorage primero (para evitar llamadas innecesarias)
+    let userName = localStorage.getItem('userName');
+    
+    // Si no hay nombre guardado, obtenerlo de la API
+    if (!userName) {
+      const currentUser = await api.getCurrentUser();
+      if (currentUser) {
+        const firstName = currentUser.FirstName || currentUser.firstName || '';
+        const lastName = currentUser.LastName || currentUser.lastName || '';
+        userName = `${firstName} ${lastName}`.trim();
+        
+        // Guardar en localStorage para futuras cargas
+        if (userName) {
+          localStorage.setItem('userName', userName);
+        }
+      }
+    }
+    
+    // Mostrar el saludo si hay nombre
+    if (userName) {
+      userGreeting.textContent = `Hola, ${userName}`;
+      userGreeting.style.display = 'inline-flex';
+    } else {
+      userGreeting.style.display = 'none';
+    }
+  } catch (error) {
+    console.warn('No se pudo cargar la información del usuario:', error);
+    // Si falla, ocultar el saludo
+    if (userGreeting) userGreeting.style.display = 'none';
+    // Limpiar nombre guardado si hay error de autenticación
+    localStorage.removeItem('userName');
+  }
+}
+
 // Authentication
 function checkAuth() {
   const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
@@ -170,6 +215,7 @@ function checkAuth() {
   const loginLink = document.getElementById('loginLink');
   const adminLink = document.getElementById('adminLink');
   const logoutBtn = document.getElementById('logoutBtn');
+  const userGreeting = document.getElementById('userGreeting');
 
   if (accessToken) {
     if (loginLink) loginLink.style.display = 'none';
@@ -177,10 +223,15 @@ function checkAuth() {
       logoutBtn.style.display = 'block';
       // Agregar event listener para logout
       logoutBtn.onclick = async () => {
+        // Limpiar nombre del usuario al hacer logout
+        localStorage.removeItem('userName');
         await api.logout();
         window.location.href = '/';
       };
     }
+    
+    // Cargar información del usuario para mostrar su nombre
+    loadUserInfo();
     
     // Si es admin, mostrar link de admin y redirigir automáticamente al panel
     if (isAdmin) {
@@ -196,6 +247,9 @@ function checkAuth() {
     if (loginLink) loginLink.style.display = 'block';
     if (logoutBtn) logoutBtn.style.display = 'none';
     if (adminLink) adminLink.style.display = 'none';
+    if (userGreeting) userGreeting.style.display = 'none';
+    // Limpiar nombre del usuario si no está autenticado
+    localStorage.removeItem('userName');
   }
 }
 

@@ -208,6 +208,23 @@ html, body {
   100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
 }
 
+.nav-user-greeting {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  margin-right: 0.5rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nav-user-greeting::before {
+  content: '👤';
+  margin-right: 0.5rem;
+  font-size: 1rem;
+}
+
 .nav-links {
   display: flex;
   align-items: center;
