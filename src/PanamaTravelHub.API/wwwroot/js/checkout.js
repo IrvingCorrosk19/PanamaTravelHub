@@ -389,14 +389,23 @@ function selectDate(dateId) {
   // En ese caso, mantener selectedTourDateId como 'tour-main-date' para identificarlo
   selectedTourDateId = dateId;
   
-  // Actualizar UI
+  console.log('📅 [selectDate] Fecha seleccionada:', dateId);
+  
+  // Actualizar UI - Remover selección de todas las tarjetas
   document.querySelectorAll('.date-card').forEach(card => {
     card.classList.remove('selected');
   });
   
+  // Agregar clase 'selected' a la tarjeta seleccionada
   const selectedCard = document.querySelector(`[data-date-id="${dateId}"]`);
   if (selectedCard) {
     selectedCard.classList.add('selected');
+    console.log('✅ [selectDate] Clase "selected" agregada a la tarjeta');
+    
+    // Scroll suave a la tarjeta seleccionada si está fuera de la vista
+    selectedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  } else {
+    console.warn('⚠️ [selectDate] No se encontró la tarjeta con data-date-id:', dateId);
   }
   
   // Ocultar error si existe
@@ -404,6 +413,9 @@ function selectDate(dateId) {
   if (dateError) {
     dateError.style.display = 'none';
   }
+  
+  // Actualizar resumen de orden con la fecha seleccionada
+  updateOrderSummary();
   
   // Actualizar resumen
   updateOrderSummary();
