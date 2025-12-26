@@ -333,16 +333,15 @@ public class BookingService : IBookingService
             else
             {
                 // Cuando tourDateId es NULL, usar NULL explícitamente en SQL
-                // Usar FormattableString para evitar problemas de interpolación
-                var sql = FormattableStringFactory.Create(
-                    "SELECT CASE WHEN reserve_tour_spots({0}::uuid, NULL::uuid, {1}::integer) THEN 1 ELSE 0 END AS Result",
-                    tourId,
-                    participants);
-                
-                _logger.LogInformation("Ejecutando SQL sin tourDateId (NULL) con FormattableString");
+                var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, NULL::uuid, {1}::integer) THEN 1 ELSE 0 END AS Result";
+                _logger.LogInformation("Ejecutando SQL sin tourDateId (NULL): {Sql}",
+                    sql);
                 
                 var sqlResult = await _context.Database
-                    .SqlQueryRaw<SqlResult>(sql)
+                    .SqlQueryRaw<SqlResult>(
+                        sql,
+                        tourId,
+                        participants)
                     .FirstOrDefaultAsync(cancellationToken);
                 
                 result = sqlResult?.Result ?? 0;
