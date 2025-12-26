@@ -42,10 +42,21 @@ public class PaymentsController : ControllerBase
     [AllowAnonymous]
     public ActionResult<StripeConfigDto> GetStripeConfig()
     {
+        var enabledValue = _configuration["Stripe:Enabled"];
+        var enabled = string.IsNullOrEmpty(enabledValue) || 
+                     enabledValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                     enabledValue.Equals("1", StringComparison.OrdinalIgnoreCase);
         var publishableKey = _configuration["Stripe:PublishableKey"];
-        if (string.IsNullOrEmpty(publishableKey))
+        
+        // Si Stripe está deshabilitado o la clave no está configurada, retornar vacío
+        if (!enabled || string.IsNullOrEmpty(publishableKey) || 
+            publishableKey.Contains("YOUR_STRIPE") || publishableKey.Contains("_KEY"))
         {
-            return BadRequest(new { message = "Stripe no está configurado" });
+            _logger.LogInformation("Stripe deshabilitado o no configurado. Frontend usará modo simulación.");
+            return Ok(new StripeConfigDto
+            {
+                PublishableKey = "" // Vacío indica modo simulación
+            });
         }
 
         return Ok(new StripeConfigDto

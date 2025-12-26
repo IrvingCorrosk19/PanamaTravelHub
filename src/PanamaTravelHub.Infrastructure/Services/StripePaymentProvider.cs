@@ -18,20 +18,46 @@ public class StripePaymentProvider : IPaymentProvider
 
     public PaymentProvider Provider => PaymentProvider.Stripe;
 
+    private readonly bool _isEnabled;
+
     public StripePaymentProvider(ILogger<StripePaymentProvider> logger, IConfiguration configuration)
     {
         _logger = logger;
         _configuration = configuration;
 
+        // Verificar si Stripe está habilitado
+        var enabledValue = _configuration["Stripe:Enabled"];
+        var enabled = string.IsNullOrEmpty(enabledValue) || 
+                     enabledValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                     enabledValue.Equals("1", StringComparison.OrdinalIgnoreCase);
+        _isEnabled = enabled;
+
+        if (!_isEnabled)
+        {
+            _logger.LogInformation("Stripe está deshabilitado. Se usará modo simulación.");
+            return;
+        }
+
         // Configurar la API key de Stripe
         var apiKey = _configuration["Stripe:SecretKey"];
-        if (string.IsNullOrEmpty(apiKey))
+        if (string.IsNullOrEmpty(apiKey) || apiKey.Contains("YOUR_STRIPE") || apiKey.Contains("_KEY"))
         {
-            _logger.LogWarning("Stripe SecretKey no configurada. Los pagos no funcionarán.");
+            _logger.LogWarning("Stripe SecretKey no configurada o inválida. Se usará modo simulación.");
+            _isEnabled = false;
         }
         else
         {
-            StripeConfiguration.ApiKey = apiKey;
+            try
+            {
+                StripeConfiguration.ApiKey = apiKey;
+                _logger.LogInformation("Stripe configurado correctamente (modo: {Mode})", 
+                    apiKey.StartsWith("sk_test_") ? "TEST" : "LIVE");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al configurar Stripe. Se usará modo simulación.");
+                _isEnabled = false;
+            }
         }
     }
 
@@ -41,6 +67,27 @@ public class StripePaymentProvider : IPaymentProvider
         Dictionary<string, string>? metadata = null,
         string? customerEmail = null)
     {
+        // MODO SIMULACIÓN: Si Stripe no está habilitado, simular el pago
+        if (!_isEnabled)
+        {
+            _logger.LogInformation("Simulando creación de PaymentIntent (Stripe deshabilitado): Amount={Amount}, Currency={Currency}", 
+                amount, currency);
+            
+            // Simular un delay para hacerlo más realista
+            await Task.Delay(500);
+            
+            // Generar un ID simulado
+            var simulatedPaymentIntentId = $"pi_simulated_{Guid.NewGuid():N}";
+            var simulatedClientSecret = $"pi_simulated_{Guid.NewGuid():N}_secret_simulated";
+            
+            return new PaymentIntentResult
+            {
+                Success = true,
+                PaymentIntentId = simulatedPaymentIntentId,
+                ClientSecret = simulatedClientSecret
+            };
+        }
+
         try
         {
             // Stripe usa centavos, convertir dólares a centavos
@@ -94,6 +141,27 @@ public class StripePaymentProvider : IPaymentProvider
 
     public async Task<PaymentConfirmationResult> ConfirmPaymentAsync(string paymentIntentId)
     {
+        // MODO SIMULACIÓN: Si Stripe no está habilitado o es un ID simulado, simular confirmación
+        if (!_isEnabled || paymentIntentId.StartsWith("pi_simulated_"))
+        {
+            _logger.LogInformation("Simulando confirmación de pago (Stripe deshabilitado o simulado): PaymentIntentId={PaymentIntentId}", 
+                paymentIntentId);
+            
+            // Simular un delay
+            await Task.Delay(300);
+            
+            // Generar un transaction ID simulado
+            var simulatedTransactionId = $"ch_simulated_{Guid.NewGuid():N}";
+            
+            return new PaymentConfirmationResult
+            {
+                Success = true,
+                TransactionId = simulatedTransactionId,
+                Status = PaymentStatus.Captured,
+                ErrorMessage = null
+            };
+        }
+
         try
         {
             var service = new PaymentIntentService();
