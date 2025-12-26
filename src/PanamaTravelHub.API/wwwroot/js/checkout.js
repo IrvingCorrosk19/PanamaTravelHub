@@ -305,7 +305,7 @@ function renderDateCalendar() {
       // Si no hay ID (fecha principal del tour), usar un identificador especial
       const displayDateId = dateId || 'tour-main-date';
       const tourDateTime = date.TourDateTime || date.tourDateTime;
-      const availableSpots = date.AvailableSpots ?? date.availableSpots ?? 0;
+      const availableSpots = Number(date.AvailableSpots ?? date.availableSpots ?? 0) || 0;
       
       if (!tourDateTime) {
         console.warn('Fecha sin TourDateTime:', date);
@@ -396,7 +396,7 @@ function updateTourSummary() {
   const tourName = currentTour.Name || currentTour.name || 'Tour sin nombre';
   const tourLocation = currentTour.Location || currentTour.location || 'Ubicación no especificada';
   const durationHours = currentTour.DurationHours ?? currentTour.durationHours ?? 0;
-  const availableSpots = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
+  const availableSpots = Number(currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0) || 0;
   
   // Obtener imagen (priorizar PascalCase)
   const tourImages = currentTour.TourImages || currentTour.tourImages || [];
@@ -906,7 +906,7 @@ async function processPayment() {
   // Si es la fecha principal del tour (selectedTourDateId === 'tour-main-date' o null), 
   // los cupos se validarán más adelante usando los del tour
   if (selectedTourDateId && selectedTourDateId !== 'tour-main-date') {
-    const availableSpots = selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0;
+    const availableSpots = Number(selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0) || 0;
     console.log('🔍 [processPayment] Validando cupos de fecha específica:', {
       dateId: selectedTourDateId,
       availableSpots,
@@ -1046,19 +1046,27 @@ async function processPayment() {
     // Validar que el tour tenga cupos disponibles (usar la misma lógica que arriba)
     let availableSpotsForBooking = 0;
     if (selectedTourDateId && selectedDate) {
-      availableSpotsForBooking = selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0;
+      const rawSpots = selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0;
+      availableSpotsForBooking = Number(rawSpots) || 0;
     } else {
-      availableSpotsForBooking = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
+      const rawSpots = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
+      availableSpotsForBooking = Number(rawSpots) || 0;
     }
+    
+    // Asegurar que numberOfParticipants sea un número
+    const numParticipantsFinal = Number(numberOfParticipants) || 1;
     
     console.log('🔍 [processPayment] Validación final de cupos antes de crear reserva:', {
       available: availableSpotsForBooking,
-      required: numberOfParticipants,
-      hasSelectedDate: !!selectedTourDateId
+      availableType: typeof availableSpotsForBooking,
+      required: numParticipantsFinal,
+      requiredType: typeof numParticipantsFinal,
+      hasSelectedDate: !!selectedTourDateId,
+      comparison: `${availableSpotsForBooking} < ${numParticipantsFinal} = ${availableSpotsForBooking < numParticipantsFinal}`
     });
     
-    if (availableSpotsForBooking < numberOfParticipants) {
-      statusText.textContent = `Error: Solo hay ${availableSpotsForBooking} cupo(s) disponible(s)`;
+    if (availableSpotsForBooking < numParticipantsFinal) {
+      statusText.textContent = `Error: Solo hay ${availableSpotsForBooking} cupo(s) disponible(s) y necesitas ${numParticipantsFinal}`;
       await sleep(2000);
       modal.style.display = 'none';
       btn.disabled = false;
