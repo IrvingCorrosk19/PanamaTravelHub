@@ -305,17 +305,37 @@ public class BookingService : IBookingService
             
             // Usar función SQL para reservar cupos de forma transaccional
             // Ejecutar función PostgreSQL que retorna boolean
-            var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, {1}::uuid, {2}::integer) THEN 1 ELSE 0 END";
-            _logger.LogInformation("Ejecutando SQL: {Sql} con parámetros: tourId={TourId}, tourDateId={TourDateId}, participants={Participants}",
-                sql, tourId, tourDateId?.ToString() ?? "NULL", participants);
+            // Usar parámetros nombrados para mejor manejo de NULL
+            int result;
             
-            var result = await _context.Database
-                .SqlQueryRaw<int>(
-                    sql,
-                    tourId,
-                    tourDateId ?? (object)DBNull.Value,
-                    participants)
-                .FirstOrDefaultAsync(cancellationToken);
+            if (tourDateId.HasValue)
+            {
+                var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, {1}::uuid, {2}::integer) THEN 1 ELSE 0 END";
+                _logger.LogInformation("Ejecutando SQL con tourDateId: {Sql}",
+                    sql);
+                
+                result = await _context.Database
+                    .SqlQueryRaw<int>(
+                        sql,
+                        tourId,
+                        tourDateId.Value,
+                        participants)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+            else
+            {
+                // Cuando tourDateId es NULL, usar NULL explícitamente en SQL
+                var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, NULL::uuid, {1}::integer) THEN 1 ELSE 0 END";
+                _logger.LogInformation("Ejecutando SQL sin tourDateId (NULL): {Sql}",
+                    sql);
+                
+                result = await _context.Database
+                    .SqlQueryRaw<int>(
+                        sql,
+                        tourId,
+                        participants)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
 
             _logger.LogInformation(
                 "ReserveSpotsAsync resultado: {Result} (1=éxito, 0=fallo) para tour {TourId}",
