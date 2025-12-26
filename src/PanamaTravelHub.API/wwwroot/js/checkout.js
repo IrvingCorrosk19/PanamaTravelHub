@@ -1378,7 +1378,30 @@ async function processPayment() {
       showNotificationError(errorMessage);
       return;
     }
-    const bookingId = bookingResponse.id;
+    
+    // Extraer bookingId de la respuesta (manejar tanto PascalCase como camelCase)
+    const bookingId = bookingResponse.Id || bookingResponse.id;
+    
+    // 🔍 LOG DE PROTECCIÓN: Validar que bookingId existe
+    console.log('🔍 [processPayment] Respuesta de booking:', {
+      bookingResponse,
+      bookingId,
+      bookingIdType: typeof bookingId,
+      hasId: !!bookingResponse.Id,
+      hasid: !!bookingResponse.id
+    });
+    
+    if (!bookingId) {
+      const errorMsg = 'Error: No se recibió el ID de la reserva desde el servidor. Por favor, intenta de nuevo.';
+      console.error('❌ [processPayment]', errorMsg, { bookingResponse });
+      showNotificationError(errorMsg);
+      modal.style.display = 'none';
+      btn.disabled = false;
+      loadingManager.hideGlobal();
+      return;
+    }
+    
+    console.log('✅ [processPayment] Booking creado exitosamente con ID:', bookingId);
 
     // Procesar pago según el método seleccionado
     if (selectedPaymentMethod === 'stripe') {
@@ -1480,6 +1503,13 @@ async function processPayment() {
       window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
       
     } else if (selectedPaymentMethod === 'paypal') {
+      // 🔍 LOG DE PROTECCIÓN: Verificar bookingId antes de crear pago
+      if (!bookingId) {
+        console.error('❌ [processPayment] bookingId es null/undefined antes de crear pago PayPal');
+        throw new Error('No se pudo obtener el ID de la reserva para procesar el pago');
+      }
+      
+      console.log('💳 [processPayment] Creando pago PayPal con bookingId:', bookingId);
       statusText.textContent = 'Iniciando pago con PayPal...';
       
       // Crear el payment intent
@@ -1509,12 +1539,19 @@ async function processPayment() {
       }
       
     } else if (selectedPaymentMethod === 'yappy') {
+      // 🔍 LOG DE PROTECCIÓN: Verificar bookingId antes de crear pago
+      if (!bookingId) {
+        console.error('❌ [processPayment] bookingId es null/undefined antes de crear pago Yappy');
+        throw new Error('No se pudo obtener el ID de la reserva para procesar el pago');
+      }
+      
       const phone = document.getElementById('yappyPhone').value.trim();
       
       if (!phone) {
         throw new Error('Por favor ingresa tu número de teléfono para Yappy');
       }
 
+      console.log('💳 [processPayment] Creando pago Yappy con bookingId:', bookingId);
       statusText.textContent = 'Generando código QR de Yappy...';
       
       // Crear el payment intent

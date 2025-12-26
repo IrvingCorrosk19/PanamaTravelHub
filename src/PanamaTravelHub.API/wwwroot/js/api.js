@@ -556,6 +556,20 @@ class ApiClient {
 
   // Payments
   async createPayment(bookingId, currency = 'USD', provider = 'stripe') {
+    // 🔍 LOG DE PROTECCIÓN: Validar bookingId antes de enviar
+    if (!bookingId) {
+      const error = new Error('bookingId es requerido para crear un pago');
+      logger.error('Error en createPayment: bookingId faltante', error);
+      throw error;
+    }
+    
+    console.log('💳 [createPayment] Creando pago:', {
+      bookingId,
+      bookingIdType: typeof bookingId,
+      currency,
+      provider
+    });
+    
     const providerMap = {
       'stripe': 1,
       'paypal': 2,
@@ -567,6 +581,8 @@ class ApiClient {
       currency: currency,
       provider: providerMap[provider.toLowerCase()] || 1
     };
+    
+    console.log('💳 [createPayment] Payload a enviar:', requestBody);
     
     return this.request('/api/payments/create', {
       method: 'POST',
