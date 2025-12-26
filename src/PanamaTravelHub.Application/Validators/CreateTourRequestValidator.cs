@@ -7,6 +7,7 @@ public class CreateTourRequestDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? Itinerary { get; set; }
+    public string? Includes { get; set; }
     public decimal Price { get; set; }
     public int MaxCapacity { get; set; }
     public int DurationHours { get; set; }
@@ -31,6 +32,10 @@ public class CreateTourRequestValidator : AbstractValidator<CreateTourRequestDto
         RuleFor(x => x.Itinerary)
             .MaximumLength(5000).WithMessage("El itinerario no puede exceder 5000 caracteres")
             .When(x => !string.IsNullOrEmpty(x.Itinerary));
+
+        RuleFor(x => x.Includes)
+            .MaximumLength(2000).WithMessage("El campo 'Qué Incluye' no puede exceder 2000 caracteres")
+            .When(x => !string.IsNullOrEmpty(x.Includes));
 
         RuleFor(x => x.Price)
             .GreaterThan(0).WithMessage("El precio debe ser mayor a 0")

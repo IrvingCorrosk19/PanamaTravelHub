@@ -27,6 +27,9 @@ public class TourConfiguration : IEntityTypeConfiguration<Tour>
         builder.Property(t => t.Itinerary)
             .HasColumnName("itinerary");
 
+        builder.Property(t => t.Includes)
+            .HasColumnName("includes");
+
         builder.Property(t => t.Price)
             .HasColumnName("price")
             .HasColumnType("decimal(10,2)")

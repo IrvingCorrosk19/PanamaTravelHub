@@ -127,6 +127,10 @@ public class HomePageContentConfiguration : IEntityTypeConfiguration<HomePageCon
             .HasColumnName("logo_url_social")
             .HasMaxLength(500);
 
+        builder.Property(h => h.HeroImageUrl)
+            .HasColumnName("hero_image_url")
+            .HasMaxLength(500);
+
         builder.Property(h => h.CreatedAt)
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP")

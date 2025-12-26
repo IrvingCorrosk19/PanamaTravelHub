@@ -7,6 +7,7 @@ public class HomePageContent : BaseEntity
     public string HeroSubtitle { get; set; } = "Explora los destinos más increíbles con nuestros tours exclusivos";
     public string HeroSearchPlaceholder { get; set; } = "Buscar tours...";
     public string HeroSearchButton { get; set; } = "Buscar";
+    public string? HeroImageUrl { get; set; } // URL de la imagen de fondo del hero
     
     // Tours Section
     public string ToursSectionTitle { get; set; } = "Tours Disponibles";

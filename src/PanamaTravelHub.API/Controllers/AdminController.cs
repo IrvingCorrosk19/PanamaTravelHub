@@ -60,6 +60,8 @@ public class AdminController : ControllerBase
                 Id = t.Id,
                 Name = t.Name,
                 Description = t.Description,
+                Itinerary = t.Itinerary,
+                Includes = t.Includes,
                 Price = t.Price,
                 MaxCapacity = t.MaxCapacity,
                 AvailableSpots = t.AvailableSpots,
@@ -67,7 +69,8 @@ public class AdminController : ControllerBase
                 Location = t.Location,
                 IsActive = t.IsActive,
                 CreatedAt = t.CreatedAt,
-                ImageUrl = t.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl
+                ImageUrl = t.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
+                Images = t.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList()
             });
 
             return Ok(result);
@@ -93,6 +96,7 @@ public class AdminController : ControllerBase
                 Name = request.Name,
                 Description = request.Description,
                 Itinerary = request.Itinerary,
+                Includes = request.Includes,
                 Price = request.Price,
                 MaxCapacity = request.MaxCapacity,
                 AvailableSpots = request.MaxCapacity, // Inicialmente todos los cupos están disponibles
@@ -132,6 +136,8 @@ public class AdminController : ControllerBase
                 Id = tour.Id,
                 Name = tour.Name,
                 Description = tour.Description,
+                Itinerary = tour.Itinerary,
+                Includes = tour.Includes,
                 Price = tour.Price,
                 MaxCapacity = tour.MaxCapacity,
                 AvailableSpots = tour.AvailableSpots,
@@ -174,6 +180,7 @@ public class AdminController : ControllerBase
                 Name = tour.Name,
                 Description = tour.Description,
                 Itinerary = tour.Itinerary,
+                Includes = tour.Includes,
                 Price = tour.Price,
                 MaxCapacity = tour.MaxCapacity,
                 AvailableSpots = tour.AvailableSpots,
@@ -218,6 +225,9 @@ public class AdminController : ControllerBase
             
             if (request.Itinerary != null)
                 tour.Itinerary = request.Itinerary;
+            
+            if (request.Includes != null)
+                tour.Includes = request.Includes;
             
             if (request.Price.HasValue)
                 tour.Price = request.Price.Value;
@@ -290,6 +300,7 @@ public class AdminController : ControllerBase
             entry.Property(t => t.Name).IsModified = !string.IsNullOrWhiteSpace(request.Name);
             entry.Property(t => t.Description).IsModified = !string.IsNullOrWhiteSpace(request.Description);
             entry.Property(t => t.Itinerary).IsModified = request.Itinerary != null;
+            entry.Property(t => t.Includes).IsModified = request.Includes != null;
             entry.Property(t => t.Price).IsModified = request.Price.HasValue;
             entry.Property(t => t.MaxCapacity).IsModified = request.MaxCapacity.HasValue;
             entry.Property(t => t.AvailableSpots).IsModified = request.MaxCapacity.HasValue; // Se modifica si cambia la capacidad
@@ -314,6 +325,7 @@ public class AdminController : ControllerBase
                 Name = tour.Name,
                 Description = tour.Description,
                 Itinerary = tour.Itinerary,
+                Includes = tour.Includes,
                 Price = tour.Price,
                 MaxCapacity = tour.MaxCapacity,
                 AvailableSpots = tour.AvailableSpots,
@@ -501,6 +513,7 @@ public class AdminController : ControllerBase
                 LogoUrl = content.LogoUrl,
                 FaviconUrl = content.FaviconUrl,
                 LogoUrlSocial = content.LogoUrlSocial,
+                HeroImageUrl = content.HeroImageUrl,
                 UpdatedAt = content.UpdatedAt
             };
 
@@ -559,6 +572,7 @@ public class AdminController : ControllerBase
             content.LogoUrl = string.IsNullOrEmpty(request.LogoUrl) ? null : request.LogoUrl;
             content.FaviconUrl = string.IsNullOrEmpty(request.FaviconUrl) ? null : request.FaviconUrl;
             content.LogoUrlSocial = string.IsNullOrEmpty(request.LogoUrlSocial) ? null : request.LogoUrlSocial;
+            content.HeroImageUrl = string.IsNullOrEmpty(request.HeroImageUrl) ? null : request.HeroImageUrl;
 
             content.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
@@ -588,6 +602,7 @@ public class AdminController : ControllerBase
                 LogoUrl = content.LogoUrl,
                 FaviconUrl = content.FaviconUrl,
                 LogoUrlSocial = content.LogoUrlSocial,
+                HeroImageUrl = content.HeroImageUrl,
                 UpdatedAt = content.UpdatedAt
             };
 
@@ -1633,6 +1648,7 @@ public class AdminTourDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? Itinerary { get; set; }
+    public string? Includes { get; set; }
     public decimal Price { get; set; }
     public int MaxCapacity { get; set; }
     public int AvailableSpots { get; set; }
@@ -1696,7 +1712,35 @@ public class HomePageContentDto
     public string? LogoUrl { get; set; }
     public string? FaviconUrl { get; set; }
     public string? LogoUrlSocial { get; set; }
+    public string? HeroImageUrl { get; set; }
     public DateTime? UpdatedAt { get; set; }
+}
+
+public class UpdateHomePageContentDto
+{
+    public string? HeroTitle { get; set; }
+    public string? HeroSubtitle { get; set; }
+    public string? HeroSearchPlaceholder { get; set; }
+    public string? HeroSearchButton { get; set; }
+    public string? ToursSectionTitle { get; set; }
+    public string? ToursSectionSubtitle { get; set; }
+    public string? LoadingToursText { get; set; }
+    public string? ErrorLoadingToursText { get; set; }
+    public string? NoToursFoundText { get; set; }
+    public string? FooterBrandText { get; set; }
+    public string? FooterDescription { get; set; }
+    public string? FooterCopyright { get; set; }
+    public string? NavBrandText { get; set; }
+    public string? NavToursLink { get; set; }
+    public string? NavBookingsLink { get; set; }
+    public string? NavLoginLink { get; set; }
+    public string? NavLogoutButton { get; set; }
+    public string? PageTitle { get; set; }
+    public string? MetaDescription { get; set; }
+    public string? LogoUrl { get; set; }
+    public string? FaviconUrl { get; set; }
+    public string? LogoUrlSocial { get; set; }
+    public string? HeroImageUrl { get; set; }
 }
 
 public class ImageUploadResponseDto

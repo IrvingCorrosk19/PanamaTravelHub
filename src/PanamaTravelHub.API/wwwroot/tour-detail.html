@@ -90,24 +90,13 @@
           </section>
 
           <!-- What's Included -->
-          <section class="info-block">
+          <section class="info-block" id="includesSection">
             <h2 class="info-block-title">Qué Incluye</h2>
-            <ul class="included-list">
+            <ul id="includedList" class="included-list">
+              <!-- Se cargará dinámicamente desde la base de datos -->
               <li class="included-item">
                 <span class="included-icon">✓</span>
-                <span>Guía turístico profesional</span>
-              </li>
-              <li class="included-item">
-                <span class="included-icon">✓</span>
-                <span>Transporte ida y vuelta</span>
-              </li>
-              <li class="included-item">
-                <span class="included-icon">✓</span>
-                <span>Entradas a atracciones</span>
-              </li>
-              <li class="included-item">
-                <span class="included-icon">✓</span>
-                <span>Seguro de viaje básico</span>
+                <span>Cargando...</span>
               </li>
             </ul>
           </section>
@@ -370,14 +359,77 @@
         if (itinerary) {
           const itinerarySection = document.getElementById('itinerarySection');
           const itineraryList = document.getElementById('tourItinerary');
-          const items = itinerary.split('\n').filter(item => item.trim());
-          itineraryList.innerHTML = items.map((item, index) => `
-            <div class="itinerary-item">
-              <div class="itinerary-number">${index + 1}</div>
-              <div class="itinerary-content">${item.trim()}</div>
-            </div>
-          `).join('');
-          itinerarySection.style.display = 'block';
+          
+          // Procesar el itinerario: puede venir con números, guiones, o simplemente texto
+          // Separar por saltos de línea y limpiar formato
+          let items = itinerary.split('\n').filter(item => item.trim());
+          
+          // Limpiar formato común (números al inicio, guiones, etc.)
+          items = items.map(item => {
+            // Remover números al inicio seguidos de punto, guión o espacio
+            item = item.trim().replace(/^\d+[\.\-\s)]+\s*/, '');
+            // Remover guiones al inicio
+            item = item.replace(/^[\-\•]\s*/, '');
+            return item.trim();
+          }).filter(item => item.length > 0);
+          
+          if (items.length > 0) {
+            itineraryList.innerHTML = items.map((item, index) => `
+              <div class="itinerary-item">
+                <div class="itinerary-number">${index + 1}</div>
+                <div class="itinerary-content">${item}</div>
+              </div>
+            `).join('');
+            itinerarySection.style.display = 'block';
+          }
+        }
+
+        // Qué Incluye (priorizar PascalCase del backend)
+        const includes = currentTour.Includes || currentTour.includes;
+        const includedList = document.getElementById('includedList');
+        const includesSection = document.getElementById('includesSection');
+        
+        if (includes && includes.trim()) {
+          // Procesar el contenido: separar por saltos de línea
+          let includeItems = includes.split('\n').filter(item => item.trim());
+          
+          // Limpiar formato común
+          includeItems = includeItems.map(item => {
+            item = item.trim().replace(/^[\-\•\d+[\.\-\s)]+\s*/, '');
+            return item.trim();
+          }).filter(item => item.length > 0);
+          
+          if (includeItems.length > 0) {
+            includedList.innerHTML = includeItems.map(item => `
+              <li class="included-item">
+                <span class="included-icon">✓</span>
+                <span>${item}</span>
+              </li>
+            `).join('');
+          } else {
+            // Si no hay items válidos, ocultar la sección
+            includesSection.style.display = 'none';
+          }
+        } else {
+          // Si no hay contenido, mostrar valores por defecto
+          includedList.innerHTML = `
+            <li class="included-item">
+              <span class="included-icon">✓</span>
+              <span>Guía turístico profesional</span>
+            </li>
+            <li class="included-item">
+              <span class="included-icon">✓</span>
+              <span>Transporte ida y vuelta</span>
+            </li>
+            <li class="included-item">
+              <span class="included-icon">✓</span>
+              <span>Entradas a atracciones</span>
+            </li>
+            <li class="included-item">
+              <span class="included-icon">✓</span>
+              <span>Seguro de viaje básico</span>
+            </li>
+          `;
         }
 
         // Badge (usar variable normalizada availableSpots en lugar de currentTour.availableSpots)

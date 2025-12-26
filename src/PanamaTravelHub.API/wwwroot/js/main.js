@@ -48,6 +48,25 @@ async function loadHomePageContent() {
     const searchButton = document.getElementById('searchButton');
     if (searchButton) searchButton.textContent = getValue(content, 'HeroSearchButton', 'heroSearchButton') || 'Buscar';
     
+    // Actualizar imagen de fondo del hero
+    const heroImageUrl = getValue(content, 'HeroImageUrl', 'heroImageUrl');
+    const heroSection = document.querySelector('.hero');
+    if (heroSection && heroImageUrl) {
+      // Convertir URL relativa a absoluta si es necesario
+      const absoluteHeroImageUrl = heroImageUrl.startsWith('http') 
+        ? heroImageUrl 
+        : `${window.location.origin}${heroImageUrl.startsWith('/') ? '' : '/'}${heroImageUrl}`;
+      heroSection.style.backgroundImage = `url('${absoluteHeroImageUrl}')`;
+      heroSection.style.backgroundSize = 'cover';
+      heroSection.style.backgroundPosition = 'center';
+      heroSection.style.backgroundRepeat = 'no-repeat';
+      console.log('✅ [loadHomePageContent] Imagen del hero aplicada:', absoluteHeroImageUrl);
+    } else if (heroSection && !heroImageUrl) {
+      // Si no hay imagen, mantener la imagen por defecto del CSS o eliminar el estilo inline
+      // El CSS ya tiene una imagen por defecto: background-image: url('/images/Hero Image 19369.png');
+      console.log('ℹ️ [loadHomePageContent] No hay imagen del hero configurada, usando imagen por defecto del CSS');
+    }
+    
     // Actualizar título y meta description
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) pageTitle.textContent = getValue(content, 'PageTitle', 'pageTitle') || 'ToursPanama — Descubre los Mejores Tours en Panamá';

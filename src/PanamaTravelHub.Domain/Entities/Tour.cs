@@ -5,6 +5,7 @@ public class Tour : BaseEntity
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? Itinerary { get; set; }
+    public string? Includes { get; set; }
     public decimal Price { get; set; }
     public int MaxCapacity { get; set; }
     public int DurationHours { get; set; }

@@ -568,6 +568,15 @@
                   </label>
                   <textarea id="tourItinerary" class="form-input form-textarea" rows="5" placeholder="Detalla el itinerario del tour, horarios, actividades, etc..."></textarea>
                 </div>
+
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="label-text">Qué Incluye</span>
+                    <span class="label-optional">(Opcional)</span>
+                  </label>
+                  <textarea id="tourIncludes" class="form-input form-textarea" rows="5" placeholder="Lista los items incluidos en el tour, uno por línea. Ejemplo:&#10;Guía turístico profesional&#10;Transporte ida y vuelta&#10;Entradas a atracciones&#10;Seguro de viaje básico"></textarea>
+                  <small class="form-hint">Cada línea se mostrará como un item en la lista "Qué Incluye"</small>
+                </div>
               </div>
 
               <!-- Sección: Estado -->
@@ -1034,6 +1043,15 @@
                     </label>
                     <textarea id="tourItinerary" class="form-input form-textarea" rows="5" placeholder="Detalla el itinerario del tour, horarios, actividades, etc...">${(tour.itinerary || tour.Itinerary || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
                   </div>
+
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="label-text">Qué Incluye</span>
+                      <span class="label-optional">(Opcional)</span>
+                    </label>
+                    <textarea id="tourIncludes" class="form-input form-textarea" rows="5" placeholder="Lista los items incluidos en el tour, uno por línea. Ejemplo:&#10;Guía turístico profesional&#10;Transporte ida y vuelta&#10;Entradas a atracciones&#10;Seguro de viaje básico">${(tour.includes || tour.Includes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                    <small class="form-hint">Cada línea se mostrará como un item en la lista "Qué Incluye"</small>
+                  </div>
                 </div>
 
                 <!-- Sección: Estado -->
@@ -1180,6 +1198,7 @@
           name: document.getElementById('tourName').value.trim(),
           description: document.getElementById('tourDescription').value.trim(),
           itinerary: document.getElementById('tourItinerary').value.trim() || null,
+          includes: document.getElementById('tourIncludes').value.trim() || null,
           price: parseFloat(document.getElementById('tourPrice').value),
           maxCapacity: parseInt(document.getElementById('tourMaxCapacity').value),
           durationHours: parseInt(document.getElementById('tourDurationHours').value),
@@ -1692,6 +1711,16 @@
         const cmsContent = await api.getAdminHomePageContent();
         const contentDiv = document.getElementById('cms');
         
+        // Normalizar propiedades del backend (PascalCase a camelCase para compatibilidad)
+        const getValue = (obj, pascalKey, camelKey, defaultValue = '') => {
+          return obj[pascalKey] ?? obj[camelKey] ?? defaultValue;
+        };
+        
+        const logoUrl = getValue(cmsContent, 'LogoUrl', 'logoUrl', '');
+        const faviconUrl = getValue(cmsContent, 'FaviconUrl', 'faviconUrl', '');
+        const logoUrlSocial = getValue(cmsContent, 'LogoUrlSocial', 'logoUrlSocial', '');
+        const heroImageUrl = getValue(cmsContent, 'HeroImageUrl', 'heroImageUrl', '');
+        
         contentDiv.innerHTML = `
           <div class="admin-card">
             <h2>Contenido de la Página de Inicio</h2>
@@ -1705,17 +1734,17 @@
                     <label>Logo Principal</label>
                     <div class="image-upload-container">
                       <div class="image-preview-wrapper" id="logoPreviewWrapper">
-                        ${cmsContent.logoUrl ? `
-                          <img src="${cmsContent.logoUrl}" alt="Logo preview" id="logoPreview" class="image-preview" />
+                        ${logoUrl ? `
+                          <img src="${logoUrl}" alt="Logo preview" id="logoPreview" class="image-preview" />
                           <button type="button" class="image-remove-btn" onclick="removeCMSImage('cmsLogoUrl', 'logoPreviewWrapper')" title="Eliminar">×</button>
                         ` : `
                           <div class="image-placeholder">
-                            <span>Sin imagen</span>
+                            <span>Preview</span>
                           </div>
                         `}
                       </div>
                       <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <input type="text" id="cmsLogoUrl" class="form-input" value="${cmsContent.logoUrl || ''}" placeholder="URL de la imagen o sube una nueva" style="flex: 1;" />
+                        <input type="text" id="cmsLogoUrl" class="form-input" value="${logoUrl}" placeholder="URL de la imagen o sube una nueva" style="flex: 1;" />
                         <input type="file" id="cmsLogoUrlFile" accept="image/*" style="display: none;" onchange="uploadCMSImage('cmsLogoUrlFile', 'cmsLogoUrl', 'logoPreviewWrapper', 'logoPreview')" />
                         <button type="button" class="btn-sm btn-primary" onclick="document.getElementById('cmsLogoUrlFile').click()">📤 Subir</button>
                         <button type="button" class="btn-sm btn-secondary" onclick="selectMediaForCMS('cmsLogoUrl', 'logoPreviewWrapper', 'logoPreview')">📁 Seleccionar</button>
@@ -1728,8 +1757,8 @@
                     <label>Favicon</label>
                     <div class="image-upload-container">
                       <div class="image-preview-wrapper" id="faviconPreviewWrapper" style="width: 64px; height: 64px;">
-                        ${cmsContent.faviconUrl ? `
-                          <img src="${cmsContent.faviconUrl}" alt="Favicon preview" id="faviconPreview" class="image-preview" />
+                        ${faviconUrl ? `
+                          <img src="${faviconUrl}" alt="Favicon preview" id="faviconPreview" class="image-preview" />
                           <button type="button" class="image-remove-btn" onclick="removeCMSImage('cmsFaviconUrl', 'faviconPreviewWrapper')" title="Eliminar">×</button>
                         ` : `
                           <div class="image-placeholder">
@@ -1738,7 +1767,7 @@
                         `}
                       </div>
                       <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <input type="text" id="cmsFaviconUrl" class="form-input" value="${cmsContent.faviconUrl || ''}" placeholder="URL del favicon" style="flex: 1;" />
+                        <input type="text" id="cmsFaviconUrl" class="form-input" value="${faviconUrl}" placeholder="URL del favicon" style="flex: 1;" />
                         <input type="file" id="cmsFaviconUrlFile" accept="image/*,.ico" style="display: none;" onchange="uploadCMSImage('cmsFaviconUrlFile', 'cmsFaviconUrl', 'faviconPreviewWrapper', 'faviconPreview')" />
                         <button type="button" class="btn-sm btn-primary" onclick="document.getElementById('cmsFaviconUrlFile').click()">📤 Subir</button>
                       </div>
@@ -1750,8 +1779,8 @@
                     <label>Logo Redes Sociales (Open Graph)</label>
                     <div class="image-upload-container">
                       <div class="image-preview-wrapper" id="socialLogoPreviewWrapper">
-                        ${cmsContent.logoUrlSocial ? `
-                          <img src="${cmsContent.logoUrlSocial}" alt="Social logo preview" id="socialLogoPreview" class="image-preview" />
+                        ${logoUrlSocial ? `
+                          <img src="${logoUrlSocial}" alt="Social logo preview" id="socialLogoPreview" class="image-preview" />
                           <button type="button" class="image-remove-btn" onclick="removeCMSImage('cmsLogoUrlSocial', 'socialLogoPreviewWrapper')" title="Eliminar">×</button>
                         ` : `
                           <div class="image-placeholder">
@@ -1760,7 +1789,7 @@
                         `}
                       </div>
                       <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <input type="text" id="cmsLogoUrlSocial" class="form-input" value="${cmsContent.logoUrlSocial || ''}" placeholder="URL de la imagen" style="flex: 1;" />
+                        <input type="text" id="cmsLogoUrlSocial" class="form-input" value="${logoUrlSocial}" placeholder="URL de la imagen" style="flex: 1;" />
                         <input type="file" id="cmsLogoUrlSocialFile" accept="image/*" style="display: none;" onchange="uploadCMSImage('cmsLogoUrlSocialFile', 'cmsLogoUrlSocial', 'socialLogoPreviewWrapper', 'socialLogoPreview')" />
                         <button type="button" class="btn-sm btn-primary" onclick="document.getElementById('cmsLogoUrlSocialFile').click()">📤 Subir</button>
                       </div>
@@ -1775,8 +1804,30 @@
                 <h3>🎯 Hero Section (Banner Principal)</h3>
                 <div class="form-grid">
                 <div class="form-group full-width">
+                  <label>Imagen de Fondo del Hero</label>
+                  <div class="image-upload-container">
+                    <div class="image-preview-wrapper" id="heroImagePreviewWrapper" style="max-height: 300px;">
+                      ${heroImageUrl ? `
+                        <img src="${heroImageUrl}" alt="Hero image preview" id="heroImagePreview" class="image-preview" />
+                        <button type="button" class="image-remove-btn" onclick="removeCMSImage('cmsHeroImageUrl', 'heroImagePreviewWrapper')" title="Eliminar">×</button>
+                      ` : `
+                        <div class="image-placeholder">
+                          <span>Sin imagen</span>
+                        </div>
+                      `}
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                      <input type="text" id="cmsHeroImageUrl" class="form-input" value="${heroImageUrl}" placeholder="URL de la imagen de fondo del hero" style="flex: 1;" />
+                      <input type="file" id="cmsHeroImageUrlFile" accept="image/*" style="display: none;" onchange="uploadCMSImage('cmsHeroImageUrlFile', 'cmsHeroImageUrl', 'heroImagePreviewWrapper', 'heroImagePreview')" />
+                      <button type="button" class="btn-sm btn-primary" onclick="document.getElementById('cmsHeroImageUrlFile').click()">📤 Subir</button>
+                      <button type="button" class="btn-sm btn-secondary" onclick="selectMediaForCMS('cmsHeroImageUrl', 'heroImagePreviewWrapper', 'heroImagePreview')">📁 Seleccionar</button>
+                    </div>
+                    <small style="color: var(--text-muted); margin-top: 4px; display: block;">Recomendado: 1920x1080px o mayor, formato JPG/PNG. Esta imagen aparecerá como fondo del banner principal.</small>
+                  </div>
+                </div>
+                <div class="form-group full-width">
                   <label>Título del Hero</label>
-                  <input type="text" id="cmsHeroTitle" class="form-input" value="${cmsContent.heroTitle || ''}" placeholder="Título principal" />
+                  <input type="text" id="cmsHeroTitle" class="form-input" value="${getValue(cmsContent, 'HeroTitle', 'heroTitle', '')}" placeholder="Título principal" />
                 </div>
                 <div class="form-group full-width">
                   <label>Subtítulo del Hero</label>
@@ -1902,6 +1953,7 @@
           logoUrl: toNullIfEmpty(document.getElementById('cmsLogoUrl').value),
           faviconUrl: toNullIfEmpty(document.getElementById('cmsFaviconUrl').value),
           logoUrlSocial: toNullIfEmpty(document.getElementById('cmsLogoUrlSocial').value),
+          heroImageUrl: toNullIfEmpty(document.getElementById('cmsHeroImageUrl').value),
           // Campos de texto: solo enviar si tienen contenido (backend solo actualiza si no está vacío)
           heroTitle: toNullIfEmpty(document.getElementById('cmsHeroTitle').value),
           heroSubtitle: toNullIfEmpty(document.getElementById('cmsHeroSubtitle').value),
@@ -1944,19 +1996,32 @@
         // Subir usando el endpoint de media
         const result = await api.uploadMediaFile(file, null, null, 'cms');
         
+        // El backend retorna FileUrl (PascalCase), pero también puede venir como fileUrl (camelCase)
+        const fileUrl = result.FileUrl || result.fileUrl || result.url || result.Url || '';
+        
+        if (!fileUrl) {
+          throw new Error('No se recibió la URL del archivo subido');
+        }
+        
+        // Convertir URL relativa a absoluta si es necesario
+        const absoluteUrl = fileUrl.startsWith('http') ? fileUrl : `${window.location.origin}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+        
         // Actualizar el input con la URL
-        document.getElementById(urlInputId).value = result.fileUrl;
+        const urlInput = document.getElementById(urlInputId);
+        if (urlInput) {
+          urlInput.value = fileUrl;
+        }
         
         // Actualizar preview
         const previewWrapper = document.getElementById(previewWrapperId);
         if (previewWrapper && previewImgId) {
           previewWrapper.innerHTML = `
-            <img src="${result.fileUrl}" alt="Preview" id="${previewImgId}" class="image-preview" />
+            <img src="${absoluteUrl}" alt="Preview" id="${previewImgId}" class="image-preview" />
             <button type="button" class="image-remove-btn" onclick="removeCMSImage('${urlInputId}', '${previewWrapperId}')" title="Eliminar">×</button>
           `;
         } else if (previewWrapper) {
           previewWrapper.innerHTML = `
-            <img src="${result.fileUrl}" alt="Preview" class="image-preview" />
+            <img src="${absoluteUrl}" alt="Preview" class="image-preview" />
             <button type="button" class="image-remove-btn" onclick="removeCMSImage('${urlInputId}', '${previewWrapperId}')" title="Eliminar">×</button>
           `;
         }
@@ -2006,15 +2071,20 @@
               <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
             </div>
             <div class="media-selection-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; max-height: 60vh; overflow-y: auto; padding: 16px;">
-              ${mediaFiles.map(file => `
+              ${mediaFiles.map(file => {
+                const fileUrl = file.FileUrl || file.fileUrl || file.url || file.Url || '';
+                const fileName = file.FileName || file.fileName || 'Sin nombre';
+                const absoluteUrl = fileUrl.startsWith('http') ? fileUrl : `${window.location.origin}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+                return `
                 <div class="media-selection-item" style="border: 2px solid var(--stroke); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: all 0.2s;" 
                      onmouseover="this.style.borderColor='var(--primary)'" 
                      onmouseout="this.style.borderColor='var(--stroke)'"
-                     onclick="selectCMSImageFromLibrary('${file.fileUrl}', '${inputId}', '${previewWrapperId}', '${previewImgId}')">
-                  <img src="${file.fileUrl}" alt="${file.fileName}" style="width: 100%; height: 150px; object-fit: cover;" />
-                  <div style="padding: 8px; font-size: 0.875rem; color: var(--text-muted);">${file.fileName}</div>
+                     onclick="selectCMSImageFromLibrary('${fileUrl}', '${inputId}', '${previewWrapperId}', '${previewImgId}')">
+                  <img src="${absoluteUrl}" alt="${fileName}" style="width: 100%; height: 150px; object-fit: cover;" />
+                  <div style="padding: 8px; font-size: 0.875rem; color: var(--text-muted);">${fileName}</div>
                 </div>
-              `).join('')}
+              `;
+              }).join('')}
             </div>
           </div>
         `;
@@ -2027,21 +2097,35 @@
     
     // Función para seleccionar imagen de la biblioteca
     function selectCMSImageFromLibrary(imageUrl, inputId, previewWrapperId, previewImgId) {
-      document.getElementById(inputId).value = imageUrl;
+      if (!imageUrl) {
+        console.error('No se proporcionó URL de imagen');
+        return;
+      }
+      
+      // Actualizar input
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.value = imageUrl;
+      }
+      
+      // Convertir URL relativa a absoluta si es necesario
+      const absoluteUrl = imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
       
       // Actualizar preview
       const previewWrapper = document.getElementById(previewWrapperId);
       if (previewWrapper && previewImgId) {
         previewWrapper.innerHTML = `
-          <img src="${imageUrl}" alt="Preview" id="${previewImgId}" class="image-preview" />
+          <img src="${absoluteUrl}" alt="Preview" id="${previewImgId}" class="image-preview" />
           <button type="button" class="image-remove-btn" onclick="removeCMSImage('${inputId}', '${previewWrapperId}')" title="Eliminar">×</button>
         `;
       } else if (previewWrapper) {
         previewWrapper.innerHTML = `
-          <img src="${imageUrl}" alt="Preview" class="image-preview" />
+          <img src="${absoluteUrl}" alt="Preview" class="image-preview" />
           <button type="button" class="image-remove-btn" onclick="removeCMSImage('${inputId}', '${previewWrapperId}')" title="Eliminar">×</button>
         `;
       }
+      
+      notificationManager.success('Imagen seleccionada exitosamente');
       
       // Cerrar modal
       document.querySelector('.modal').remove();

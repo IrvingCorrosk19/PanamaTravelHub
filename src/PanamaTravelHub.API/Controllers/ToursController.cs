@@ -183,6 +183,8 @@ public class ToursController : ControllerBase
                 Id = t.Id,
                 Name = t.Name ?? string.Empty,
                 Description = t.Description ?? string.Empty,
+                Itinerary = t.Itinerary,
+                Includes = t.Includes,
                 Price = t.Price >= 0 ? t.Price : 0, // Garantizar precio válido (nunca null ni negativo)
                 DurationHours = t.DurationHours,
                 Location = t.Location ?? string.Empty,
@@ -258,6 +260,7 @@ public class ToursController : ControllerBase
                 Name = tour.Name,
                 Description = tour.Description,
                 Itinerary = tour.Itinerary,
+                Includes = tour.Includes,
                 Price = tour.Price,
                 DurationHours = tour.DurationHours,
                 Location = tour.Location,
@@ -316,7 +319,8 @@ public class ToursController : ControllerBase
                     MetaDescription = "Plataforma moderna de reservas de tours en Panamá. Explora, reserva y disfruta de las mejores experiencias turísticas.",
                     LogoUrl = null,
                     FaviconUrl = null,
-                    LogoUrlSocial = null
+                    LogoUrlSocial = null,
+                    HeroImageUrl = null
                 });
             }
 
@@ -343,7 +347,8 @@ public class ToursController : ControllerBase
                 MetaDescription = content.MetaDescription,
                 LogoUrl = content.LogoUrl,
                 FaviconUrl = content.FaviconUrl,
-                LogoUrlSocial = content.LogoUrlSocial
+                LogoUrlSocial = content.LogoUrlSocial,
+                HeroImageUrl = content.HeroImageUrl
             };
 
             return Ok(result);
@@ -435,6 +440,7 @@ public class TourDto
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? Itinerary { get; set; }
+    public string? Includes { get; set; }
     public decimal Price { get; set; } = 0; // Valor por defecto para garantizar que nunca sea null
     public int DurationHours { get; set; }
     public string? Location { get; set; }
@@ -474,6 +480,7 @@ public class HomePageContentPublicDto
     public string? LogoUrl { get; set; }
     public string? FaviconUrl { get; set; }
     public string? LogoUrlSocial { get; set; }
+    public string? HeroImageUrl { get; set; }
 }
 
 public class CountryDto
