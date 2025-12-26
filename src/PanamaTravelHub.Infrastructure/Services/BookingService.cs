@@ -81,7 +81,34 @@ public class BookingService : IBookingService
                }
 
                // Verificar cupos disponibles
+               _logger.LogInformation(
+                   "Verificando cupos para tour {TourId}, tourDateId: {TourDateId}, participantes: {Participants}",
+                   tourId, tourDateId?.ToString() ?? "null", numberOfParticipants);
+               
+               // Log de cupos actuales antes de reservar
+               if (tourDateId.HasValue)
+               {
+                   var tourDate = await _context.TourDates
+                       .FirstOrDefaultAsync(td => td.Id == tourDateId.Value, cancellationToken);
+                   if (tourDate != null)
+                   {
+                       _logger.LogInformation(
+                           "TourDate {TourDateId} tiene {AvailableSpots} cupos disponibles",
+                           tourDateId.Value, tourDate.AvailableSpots);
+                   }
+               }
+               else
+               {
+                   _logger.LogInformation(
+                       "Tour {TourId} tiene {AvailableSpots} cupos disponibles (sin fecha específica)",
+                       tourId, tour.AvailableSpots);
+               }
+               
                var hasSpots = await ReserveSpotsAsync(tourId, tourDateId, numberOfParticipants, cancellationToken);
+               _logger.LogInformation(
+                   "Resultado de ReserveSpotsAsync: {HasSpots} para tour {TourId}",
+                   hasSpots, tourId);
+               
                if (!hasSpots)
                {
                    throw new BusinessException("No hay suficientes cupos disponibles para este tour", "INSUFFICIENT_SPOTS");
@@ -272,21 +299,34 @@ public class BookingService : IBookingService
     {
         try
         {
+            _logger.LogInformation(
+                "ReserveSpotsAsync: tourId={TourId}, tourDateId={TourDateId}, participants={Participants}",
+                tourId, tourDateId?.ToString() ?? "NULL", participants);
+            
             // Usar función SQL para reservar cupos de forma transaccional
             // Ejecutar función PostgreSQL que retorna boolean
+            var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, {1}::uuid, {2}::integer) THEN 1 ELSE 0 END";
+            _logger.LogInformation("Ejecutando SQL: {Sql} con parámetros: tourId={TourId}, tourDateId={TourDateId}, participants={Participants}",
+                sql, tourId, tourDateId?.ToString() ?? "NULL", participants);
+            
             var result = await _context.Database
                 .SqlQueryRaw<int>(
-                    "SELECT CASE WHEN reserve_tour_spots({0}::uuid, {1}::uuid, {2}::integer) THEN 1 ELSE 0 END",
+                    sql,
                     tourId,
                     tourDateId ?? (object)DBNull.Value,
                     participants)
                 .FirstOrDefaultAsync(cancellationToken);
 
+            _logger.LogInformation(
+                "ReserveSpotsAsync resultado: {Result} (1=éxito, 0=fallo) para tour {TourId}",
+                result, tourId);
+
             return result == 1;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al reservar cupos para tour {TourId}", tourId);
+            _logger.LogError(ex, "Error al reservar cupos para tour {TourId}, tourDateId: {TourDateId}, participants: {Participants}",
+                tourId, tourDateId?.ToString() ?? "NULL", participants);
             return false;
         }
     }
