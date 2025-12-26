@@ -1061,6 +1061,17 @@ async function processPayment() {
     const participants = [];
     const participantCards = document.querySelectorAll('.participant-card');
     
+    // Asegurar que tenemos exactamente numberOfParticipants participantes
+    if (participantCards.length !== numParticipants) {
+      const errorMsg = `Error: Se esperaban ${numParticipants} participante(s) pero se encontraron ${participantCards.length}. Por favor, recarga la página.`;
+      console.error('❌ [processPayment]', errorMsg);
+      showNotificationError(errorMsg);
+      modal.style.display = 'none';
+      btn.disabled = false;
+      loadingManager.hideGlobal();
+      return;
+    }
+    
     participantCards.forEach((card, index) => {
       const firstName = card.querySelector('.participant-firstname')?.value.trim() || '';
       const lastName = card.querySelector('.participant-lastname')?.value.trim() || '';
@@ -1068,16 +1079,51 @@ async function processPayment() {
       const phone = card.querySelector('.participant-phone')?.value.trim() || '';
       const dateOfBirth = card.querySelector('.participant-dob')?.value || null;
 
-      if (firstName && lastName) {
-        participants.push({
-          firstName: firstName,
-          lastName: lastName,
-          email: email || null,
-          phone: phone || null,
-          dateOfBirth: dateOfBirth ? new Date(dateOfBirth).toISOString() : null
-        });
+      // Validar que nombre y apellido estén presentes
+      if (!firstName || !lastName) {
+        const errorMsg = `Participante ${index + 1}: El nombre y apellido son requeridos.`;
+        console.error('❌ [processPayment]', errorMsg);
+        showNotificationError(errorMsg);
+        modal.style.display = 'none';
+        btn.disabled = false;
+        loadingManager.hideGlobal();
+        return;
       }
+
+      // Construir objeto participante con formato correcto (camelCase para JSON)
+      const participant = {
+        firstName: firstName,
+        lastName: lastName
+      };
+      
+      // Agregar campos opcionales solo si tienen valor
+      if (email) {
+        participant.email = email;
+      }
+      if (phone) {
+        participant.phone = phone;
+      }
+      if (dateOfBirth) {
+        // Convertir fecha a ISO string (el backend espera DateTime)
+        const dobDate = new Date(dateOfBirth);
+        if (!isNaN(dobDate.getTime())) {
+          participant.dateOfBirth = dobDate.toISOString();
+        }
+      }
+      
+      participants.push(participant);
     });
+    
+    // Validar que tenemos exactamente el número correcto de participantes
+    if (participants.length !== numParticipants) {
+      const errorMsg = `Error: Se esperaban ${numParticipants} participante(s) pero solo se encontraron ${participants.length} válidos. Por favor, completa todos los campos.`;
+      console.error('❌ [processPayment]', errorMsg);
+      showNotificationError(errorMsg);
+      modal.style.display = 'none';
+      btn.disabled = false;
+      loadingManager.hideGlobal();
+      return;
+    }
 
     // Validar que el tour tenga cupos disponibles (usar la misma lógica que arriba)
     let availableSpotsForBooking = 0;
@@ -1248,31 +1294,85 @@ async function processPayment() {
 
     let bookingResponse;
     try {
-      bookingResponse = await api.createBooking(bookingData);
-    } catch (bookingError) {
-      // Manejar específicamente el error de cupos insuficientes
-      if (bookingError.message && (
-        bookingError.message.includes('cupos') || 
-        bookingError.message.includes('cupo') ||
-        bookingError.message.includes('disponibles') ||
-        bookingError.message.includes('INSUFFICIENT_SPOTS')
-      )) {
-        // Cerrar modal de pago
+      // Validar que el payload tenga todos los campos requeridos antes de enviar
+      console.log('🔍 [processPayment] Validando payload antes de enviar:', {
+        tourId: bookingData.tourId,
+        tourDateId: bookingData.tourDateId,
+        numberOfParticipants: bookingData.numberOfParticipants,
+        participantsCount: bookingData.participants?.length || 0,
+        countryId: bookingData.countryId,
+        participants: bookingData.participants
+      });
+      
+      // Validar que numberOfParticipants coincida con la cantidad de participantes
+      if (bookingData.participants && bookingData.participants.length !== bookingData.numberOfParticipants) {
+        const errorMsg = `El número de participantes (${bookingData.numberOfParticipants}) no coincide con la lista proporcionada (${bookingData.participants.length}). Por favor, verifica los datos.`;
+        console.error('❌ [processPayment]', errorMsg);
+        showNotificationError(errorMsg);
         modal.style.display = 'none';
         btn.disabled = false;
         loadingManager.hideGlobal();
-        
-        // Mostrar mensaje claro y amigable
-        showNotificationError(
-          'Lo sentimos, este tour ya no tiene cupos disponibles en este momento. Por favor, selecciona otra fecha o intenta más tarde.'
-        );
-        
-        // Recargar fechas disponibles para actualizar la UI
-        await loadAvailableDates();
         return;
       }
-      // Si es otro error, relanzarlo para que se maneje en el catch general
-      throw bookingError;
+      
+      // Validar que todos los participantes tengan nombre y apellido
+      if (bookingData.participants) {
+        const invalidParticipants = bookingData.participants.filter(p => 
+          !p.firstName || !p.lastName || p.firstName.trim() === '' || p.lastName.trim() === ''
+        );
+        if (invalidParticipants.length > 0) {
+          const errorMsg = `Por favor, completa el nombre y apellido de todos los participantes.`;
+          console.error('❌ [processPayment]', errorMsg, invalidParticipants);
+          showNotificationError(errorMsg);
+          modal.style.display = 'none';
+          btn.disabled = false;
+          loadingManager.hideGlobal();
+          return;
+        }
+      }
+      
+      bookingResponse = await api.createBooking(bookingData);
+    } catch (bookingError) {
+      console.error('❌ [processPayment] Error al crear reserva:', bookingError);
+      
+      // Cerrar modal de pago
+      modal.style.display = 'none';
+      btn.disabled = false;
+      loadingManager.hideGlobal();
+      
+      // Extraer mensaje de error más específico
+      let errorMessage = 'Error al crear la reserva. Por favor, intenta de nuevo.';
+      
+      if (bookingError.message) {
+        errorMessage = bookingError.message;
+      } else if (bookingError.response) {
+        // Intentar extraer mensaje del response
+        if (bookingError.response.errors) {
+          // Errores de validación de FluentValidation
+          const validationErrors = Object.values(bookingError.response.errors).flat();
+          if (validationErrors.length > 0) {
+            errorMessage = validationErrors.join('\n');
+          }
+        } else if (bookingError.response.message) {
+          errorMessage = bookingError.response.message;
+        } else if (bookingError.response.title) {
+          errorMessage = bookingError.response.title;
+        }
+      }
+      
+      // Manejar específicamente el error de cupos insuficientes
+      if (errorMessage.includes('cupos') || 
+          errorMessage.includes('cupo') ||
+          errorMessage.includes('disponibles') ||
+          errorMessage.includes('INSUFFICIENT_SPOTS')) {
+        errorMessage = 'Lo sentimos, este tour ya no tiene cupos disponibles en este momento. Por favor, selecciona otra fecha o intenta más tarde.';
+        // Recargar fechas disponibles para actualizar la UI
+        await loadAvailableDates();
+      }
+      
+      // Mostrar mensaje de error
+      showNotificationError(errorMessage);
+      return;
     }
     const bookingId = bookingResponse.id;
 
