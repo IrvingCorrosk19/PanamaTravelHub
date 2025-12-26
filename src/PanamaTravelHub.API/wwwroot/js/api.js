@@ -254,16 +254,20 @@ class ApiClient {
         console.error('❌ [login] No se encontraron tokens en la respuesta:', response);
       }
       
-      // Guardar userId para usar en reservas
-      if (response.user && response.user.id) {
-        localStorage.setItem('userId', response.user.id);
-        logger.debug('UserId guardado', { userId: response.user.id });
+      // Guardar userId para usar en reservas (manejar tanto PascalCase como camelCase)
+      const userId = response.user?.Id || response.user?.id;
+      if (userId) {
+        localStorage.setItem('userId', userId);
+        logger.debug('UserId guardado', { userId });
+      } else {
+        logger.warn('No se encontró userId en la respuesta del login', { user: response.user });
       }
       
-      // Guardar roles del usuario
-      if (response.user && response.user.roles) {
-        localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
-        logger.debug('Roles guardados', { roles: response.user.roles });
+      // Guardar roles del usuario (manejar tanto PascalCase como camelCase)
+      const userRoles = response.user?.Roles || response.user?.roles;
+      if (userRoles) {
+        localStorage.setItem('userRoles', JSON.stringify(userRoles));
+        logger.debug('Roles guardados', { roles: userRoles });
       }
       
       return response;
@@ -375,16 +379,20 @@ class ApiClient {
         logger.debug('Tokens guardados en localStorage');
       }
       
-      // Guardar userId para usar en reservas
-      if (response.user && response.user.id) {
-        localStorage.setItem('userId', response.user.id);
-        logger.debug('UserId guardado', { userId: response.user.id });
+      // Guardar userId para usar en reservas (manejar tanto PascalCase como camelCase)
+      const userId = response.user?.Id || response.user?.id;
+      if (userId) {
+        localStorage.setItem('userId', userId);
+        logger.debug('UserId guardado', { userId });
+      } else {
+        logger.warn('No se encontró userId en la respuesta del registro', { user: response.user });
       }
       
-      // Guardar roles del usuario
-      if (response.user && response.user.roles) {
-        localStorage.setItem('userRoles', JSON.stringify(response.user.roles));
-        logger.debug('Roles guardados', { roles: response.user.roles });
+      // Guardar roles del usuario (manejar tanto PascalCase como camelCase)
+      const userRoles = response.user?.Roles || response.user?.roles;
+      if (userRoles) {
+        localStorage.setItem('userRoles', JSON.stringify(userRoles));
+        logger.debug('Roles guardados', { roles: userRoles });
       }
       
       return response;

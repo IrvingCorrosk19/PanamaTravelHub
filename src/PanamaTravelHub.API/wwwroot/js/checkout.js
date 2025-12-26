@@ -916,7 +916,26 @@ async function processPayment() {
   }
 
   // Verificar que el usuario esté autenticado
-  const userId = localStorage.getItem('userId');
+  let userId = localStorage.getItem('userId');
+  
+  // Si no hay userId pero hay token, intentar obtener el usuario actual
+  if (!userId) {
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+    if (token) {
+      try {
+        console.log('🔍 [processPayment] No hay userId en localStorage, obteniendo usuario actual...');
+        const currentUser = await api.getCurrentUser();
+        userId = currentUser?.Id || currentUser?.id;
+        if (userId) {
+          localStorage.setItem('userId', userId);
+          console.log('✅ [processPayment] userId obtenido y guardado:', userId);
+        }
+      } catch (error) {
+        console.warn('⚠️ [processPayment] Error al obtener usuario actual:', error);
+      }
+    }
+  }
+  
   if (!userId) {
     const msg = 'Debes iniciar sesión para realizar una reserva';
     showNotificationError(msg);
