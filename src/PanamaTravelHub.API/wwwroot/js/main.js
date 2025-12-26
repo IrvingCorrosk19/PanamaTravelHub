@@ -560,12 +560,31 @@ function createTourCard(tour) {
   const finalTourDescription = tourDescription || 'Sin descripción disponible';
   const durationHours = tour.DurationHours || tour.durationHours || 0;
   const finalLocation = tourLocation || 'Ubicación no especificada';
+  
+  // Obtener fecha del tour (TourDate)
+  const tourDate = tour.TourDate || tour.tourDate;
+  let formattedTourDate = '';
+  if (tourDate) {
+    try {
+      const dateObj = new Date(tourDate);
+      if (!isNaN(dateObj.getTime())) {
+        formattedTourDate = dateObj.toLocaleDateString('es-PA', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        });
+      }
+    } catch (e) {
+      console.warn('Error al formatear fecha del tour:', e);
+    }
+  }
 
   console.log('🎨 [createTourCard] Generando HTML para card:', {
     finalTourName,
     durationHours,
     finalLocation,
-    priceText
+    priceText,
+    tourDate: formattedTourDate
   });
 
   const cardHtml = `
@@ -581,6 +600,7 @@ function createTourCard(tour) {
             <div class="tour-card-info">
               <span>⏱ ${durationHours}h</span>
               <span>📍 ${finalLocation}</span>
+              ${formattedTourDate ? `<span>📅 ${formattedTourDate}</span>` : ''}
             </div>
           </div>
         </div>

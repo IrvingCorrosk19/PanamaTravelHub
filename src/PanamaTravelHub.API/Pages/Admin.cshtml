@@ -494,6 +494,14 @@
                     <input type="number" id="tourMaxCapacity" class="form-input" min="1" placeholder="Ej: 20" required />
                     <div class="field-error" id="tourMaxCapacityError" style="display: none;"></div>
                   </div>
+                  <div class="form-group">
+                    <label class="form-label">
+                      <span class="label-text">Fecha del Tour</span>
+                      <span class="label-optional">(Opcional)</span>
+                    </label>
+                    <input type="datetime-local" id="tourDate" class="form-input" />
+                    <div class="form-hint">Fecha principal del tour. Puedes agregar más fechas después de crear el tour.</div>
+                  </div>
                 </div>
               </div>
 
@@ -967,6 +975,14 @@
                       <input type="number" id="tourMaxCapacity" class="form-input" min="1" value="${tour.maxCapacity ?? tour.MaxCapacity ?? ''}" placeholder="Ej: 20" required />
                       <div class="field-error" id="tourMaxCapacityError" style="display: none;"></div>
                     </div>
+                    <div class="form-group">
+                      <label class="form-label">
+                        <span class="label-text">Fecha del Tour</span>
+                        <span class="label-optional">(Opcional)</span>
+                      </label>
+                      <input type="datetime-local" id="tourDate" class="form-input" value="${tour.tourDate || tour.TourDate ? new Date(tour.tourDate || tour.TourDate).toISOString().slice(0, 16) : ''}" />
+                      <div class="form-hint">Fecha principal del tour. Puedes agregar más fechas después de crear el tour.</div>
+                    </div>
                   </div>
                 </div>
 
@@ -1194,6 +1210,13 @@
           throw new Error('Algunas URLs de imágenes no son válidas. Por favor, asegúrate de que todas las imágenes estén subidas correctamente.');
         }
 
+        // Obtener fecha del tour (datetime-local)
+        const tourDateInput = document.getElementById('tourDate').value;
+        let tourDate = null;
+        if (tourDateInput) {
+          tourDate = new Date(tourDateInput).toISOString();
+        }
+
         const tourData = {
           name: document.getElementById('tourName').value.trim(),
           description: document.getElementById('tourDescription').value.trim(),
@@ -1203,6 +1226,7 @@
           maxCapacity: parseInt(document.getElementById('tourMaxCapacity').value),
           durationHours: parseInt(document.getElementById('tourDurationHours').value),
           location: document.getElementById('tourLocation').value.trim() || null,
+          tourDate: tourDate,
           isActive: document.getElementById('tourIsActive').checked,
           images: images.length > 0 ? images : []
         };
@@ -1232,7 +1256,7 @@
         } else if (typeof window !== 'undefined' && window.notificationManager) {
           window.notificationManager.error('Error al guardar el tour: ' + errorMessage);
         } else {
-          alert('Error al guardar el tour: ' + errorMessage);
+          console.error('Error al guardar el tour:', errorMessage);
         }
       } finally {
         if (submitBtn) {
@@ -1336,8 +1360,6 @@
           notificationManager.success('Tour eliminado/desactivado exitosamente');
         } else if (typeof window !== 'undefined' && window.notificationManager) {
           window.notificationManager.success('Tour eliminado/desactivado exitosamente');
-        } else {
-          alert('Tour eliminado/desactivado exitosamente');
         }
         loadTours();
       } catch (error) {
@@ -1348,7 +1370,7 @@
         } else if (typeof window !== 'undefined' && window.notificationManager) {
           window.notificationManager.error('Error al eliminar el tour: ' + errorMessage);
         } else {
-          alert('Error al eliminar el tour: ' + errorMessage);
+          console.error('Error al eliminar el tour:', errorMessage);
         }
       }
     }

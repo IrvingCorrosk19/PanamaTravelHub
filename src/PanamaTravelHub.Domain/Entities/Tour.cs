@@ -10,6 +10,7 @@ public class Tour : BaseEntity
     public int MaxCapacity { get; set; }
     public int DurationHours { get; set; }
     public string? Location { get; set; }
+    public DateTime? TourDate { get; set; } // Fecha principal del tour
     public bool IsActive { get; set; } = true;
     public int AvailableSpots { get; set; }
 

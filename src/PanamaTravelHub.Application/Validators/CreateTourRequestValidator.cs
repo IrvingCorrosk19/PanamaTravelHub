@@ -12,6 +12,7 @@ public class CreateTourRequestDto
     public int MaxCapacity { get; set; }
     public int DurationHours { get; set; }
     public string? Location { get; set; }
+    public DateTime? TourDate { get; set; } // Fecha principal del tour
     public bool? IsActive { get; set; }
     public List<string>? Images { get; set; }
 }
@@ -52,6 +53,11 @@ public class CreateTourRequestValidator : AbstractValidator<CreateTourRequestDto
         RuleFor(x => x.Location)
             .MaximumLength(200).WithMessage("La ubicación no puede exceder 200 caracteres")
             .When(x => !string.IsNullOrEmpty(x.Location));
+
+        RuleFor(x => x.TourDate)
+            .Must(date => !date.HasValue || date.Value > DateTime.UtcNow)
+            .WithMessage("La fecha del tour debe ser futura")
+            .When(x => x.TourDate.HasValue);
 
         RuleFor(x => x.Images)
             .Must(images => images == null || images.Count <= 5)

@@ -47,6 +47,9 @@ public class TourConfiguration : IEntityTypeConfiguration<Tour>
             .HasColumnName("location")
             .HasMaxLength(200);
 
+        builder.Property(t => t.TourDate)
+            .HasColumnName("tour_date");
+
         builder.Property(t => t.IsActive)
             .HasColumnName("is_active")
             .HasDefaultValue(true)

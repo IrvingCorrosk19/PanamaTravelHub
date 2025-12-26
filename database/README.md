@@ -11,6 +11,7 @@ Este directorio contiene los scripts SQL para crear y gestionar la base de datos
 5. **05_create_functions.sql** - Funciones y triggers para control de concurrencia
 6. **06_seed_data.sql** - Datos iniciales (roles y usuario admin)
 7. **07_drop_all.sql** - Script para eliminar todo (usar con precaución)
+8. **11_add_tour_date_to_tours.sql** - Agrega columna tour_date a la tabla tours
 
 ## Ejecución
 

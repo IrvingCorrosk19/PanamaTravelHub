@@ -67,6 +67,7 @@ public class AdminController : ControllerBase
                 AvailableSpots = t.AvailableSpots,
                 DurationHours = t.DurationHours,
                 Location = t.Location,
+                TourDate = t.TourDate,
                 IsActive = t.IsActive,
                 CreatedAt = t.CreatedAt,
                 ImageUrl = t.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
@@ -102,6 +103,9 @@ public class AdminController : ControllerBase
                 AvailableSpots = request.MaxCapacity, // Inicialmente todos los cupos están disponibles
                 DurationHours = request.DurationHours,
                 Location = request.Location,
+                TourDate = request.TourDate.HasValue 
+                    ? DateTime.SpecifyKind(request.TourDate.Value, DateTimeKind.Utc) 
+                    : null,
                 IsActive = request.IsActive ?? true
             };
 
@@ -143,6 +147,7 @@ public class AdminController : ControllerBase
                 AvailableSpots = tour.AvailableSpots,
                 DurationHours = tour.DurationHours,
                 Location = tour.Location,
+                TourDate = tour.TourDate,
                 IsActive = tour.IsActive,
                 CreatedAt = tour.CreatedAt,
                 ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
@@ -186,6 +191,7 @@ public class AdminController : ControllerBase
                 AvailableSpots = tour.AvailableSpots,
                 DurationHours = tour.DurationHours,
                 Location = tour.Location,
+                TourDate = tour.TourDate,
                 IsActive = tour.IsActive,
                 CreatedAt = tour.CreatedAt,
                 ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
@@ -253,6 +259,17 @@ public class AdminController : ControllerBase
             if (request.Location != null)
                 tour.Location = request.Location;
             
+            // Actualizar TourDate si se proporciona (puede ser null para limpiar la fecha)
+            // Nota: En ASP.NET Core, no podemos distinguir entre "campo no enviado" y "campo enviado como null"
+            // Por lo tanto, si TourDate está presente en el request (incluso como null), lo actualizamos
+            // Para limpiar la fecha, el frontend debe enviar explícitamente null
+            if (request.TourDate.HasValue)
+            {
+                tour.TourDate = DateTime.SpecifyKind(request.TourDate.Value, DateTimeKind.Utc);
+            }
+            // Si TourDate es null en el request, no lo actualizamos (mantenemos el valor actual)
+            // Esto evita que se limpie accidentalmente si el campo no se incluye en el JSON
+            
             if (request.IsActive.HasValue)
                 tour.IsActive = request.IsActive.Value;
 
@@ -306,6 +323,7 @@ public class AdminController : ControllerBase
             entry.Property(t => t.AvailableSpots).IsModified = request.MaxCapacity.HasValue; // Se modifica si cambia la capacidad
             entry.Property(t => t.DurationHours).IsModified = request.DurationHours.HasValue;
             entry.Property(t => t.Location).IsModified = request.Location != null;
+            entry.Property(t => t.TourDate).IsModified = request.TourDate.HasValue; // Solo actualizar si se proporciona un valor
             entry.Property(t => t.IsActive).IsModified = request.IsActive.HasValue;
             entry.Property(t => t.UpdatedAt).IsModified = true; // Siempre actualizar UpdatedAt
             
@@ -331,6 +349,7 @@ public class AdminController : ControllerBase
                 AvailableSpots = tour.AvailableSpots,
                 DurationHours = tour.DurationHours,
                 Location = tour.Location,
+                TourDate = tour.TourDate,
                 IsActive = tour.IsActive,
                 CreatedAt = tour.CreatedAt,
                 ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
@@ -1654,6 +1673,7 @@ public class AdminTourDto
     public int AvailableSpots { get; set; }
     public int DurationHours { get; set; }
     public string? Location { get; set; }
+    public DateTime? TourDate { get; set; } // Fecha principal del tour
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? ImageUrl { get; set; }

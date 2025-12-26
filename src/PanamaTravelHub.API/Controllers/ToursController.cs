@@ -188,6 +188,7 @@ public class ToursController : ControllerBase
                 Price = t.Price >= 0 ? t.Price : 0, // Garantizar precio válido (nunca null ni negativo)
                 DurationHours = t.DurationHours,
                 Location = t.Location ?? string.Empty,
+                TourDate = t.TourDate,
                 AvailableSpots = t.AvailableSpots,
                 MaxCapacity = t.MaxCapacity,
                 IsActive = t.IsActive,
@@ -264,6 +265,7 @@ public class ToursController : ControllerBase
                 Price = tour.Price,
                 DurationHours = tour.DurationHours,
                 Location = tour.Location,
+                TourDate = tour.TourDate,
                 AvailableSpots = tour.AvailableSpots,
                 MaxCapacity = tour.MaxCapacity,
                 IsActive = tour.IsActive,
@@ -444,6 +446,7 @@ public class TourDto
     public decimal Price { get; set; } = 0; // Valor por defecto para garantizar que nunca sea null
     public int DurationHours { get; set; }
     public string? Location { get; set; }
+    public DateTime? TourDate { get; set; } // Fecha principal del tour
     public int AvailableSpots { get; set; }
     public int MaxCapacity { get; set; }
     public bool IsActive { get; set; }
