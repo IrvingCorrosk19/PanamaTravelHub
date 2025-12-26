@@ -11,9 +11,10 @@ using PanamaTravelHub.Infrastructure.Repositories;
 namespace PanamaTravelHub.Infrastructure.Services;
 
 // Clase simple para mapear el resultado de la función SQL
+// IMPORTANTE: El alias en SQL debe ser en minúscula porque PostgreSQL es case-sensitive
 internal class SqlResult
 {
-    public int Result { get; set; }
+    public int result { get; set; } // minúscula para coincidir con PostgreSQL
 }
 
 public class BookingService : IBookingService
@@ -316,7 +317,8 @@ public class BookingService : IBookingService
             
             if (tourDateId.HasValue)
             {
-                var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, {1}::uuid, {2}::integer) THEN 1 ELSE 0 END AS Result";
+                // Usar alias en minúscula porque PostgreSQL es case-sensitive
+                var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, {1}::uuid, {2}::integer) THEN 1 ELSE 0 END AS result";
                 _logger.LogInformation("Ejecutando SQL con tourDateId: {Sql}",
                     sql);
                 
@@ -328,12 +330,13 @@ public class BookingService : IBookingService
                         participants)
                     .FirstOrDefaultAsync(cancellationToken);
                 
-                result = sqlResult?.Result ?? 0;
+                result = sqlResult?.result ?? 0;
             }
             else
             {
                 // Cuando tourDateId es NULL, usar NULL explícitamente en SQL
-                var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, NULL::uuid, {1}::integer) THEN 1 ELSE 0 END AS Result";
+                // Usar alias en minúscula porque PostgreSQL es case-sensitive
+                var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, NULL::uuid, {1}::integer) THEN 1 ELSE 0 END AS result";
                 _logger.LogInformation("Ejecutando SQL sin tourDateId (NULL): {Sql} con tourId={TourId}, participants={Participants}",
                     sql, tourId, participants);
                 
@@ -356,11 +359,11 @@ public class BookingService : IBookingService
                     .FirstOrDefaultAsync(cancellationToken);
                 
                 _logger.LogInformation(
-                    "SqlResult obtenido: {SqlResult}, Result property: {Result}",
+                    "SqlResult obtenido: {SqlResult}, result property: {Result}",
                     sqlResult != null ? "not null" : "null",
-                    sqlResult?.Result ?? -1);
+                    sqlResult?.result ?? -1);
                 
-                result = sqlResult?.Result ?? 0;
+                result = sqlResult?.result ?? 0;
                 
                 // Verificar cupos DESPUÉS de ejecutar la función
                 var tourAfter = await _context.Tours

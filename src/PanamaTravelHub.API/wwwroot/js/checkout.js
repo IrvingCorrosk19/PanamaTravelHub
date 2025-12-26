@@ -1193,6 +1193,9 @@ async function processPayment() {
           finalAvailableSpots = Number(currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0);
         }
         
+        // Usar el mismo valor que se enviará en el payload (declarar ANTES de usarlo)
+        const numParticipantsForValidation = Number(numberOfParticipants) || 1;
+        
         console.log('🔍 [processPayment] Validación final con datos actualizados:', {
           available: finalAvailableSpots,
           availableType: typeof finalAvailableSpots,
@@ -1200,9 +1203,6 @@ async function processPayment() {
           requiredType: typeof numParticipantsForValidation,
           comparison: `${finalAvailableSpots} < ${numParticipantsForValidation} = ${finalAvailableSpots < numParticipantsForValidation}`
         });
-        
-        // Usar el mismo valor que se enviará en el payload
-        const numParticipantsForValidation = Number(numberOfParticipants) || 1;
         if (finalAvailableSpots < numParticipantsForValidation) {
           // Cerrar modal de pago
           modal.style.display = 'none';
