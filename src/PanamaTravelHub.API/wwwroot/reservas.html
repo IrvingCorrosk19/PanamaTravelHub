@@ -236,40 +236,67 @@
     }
 
     function createReservationCard(reservation) {
-      const statusClass = `status-${reservation.status.toLowerCase()}`;
+      // Helper para obtener valores manejando PascalCase y camelCase
+      const getValue = (obj, pascalKey, camelKey, defaultValue = null) => {
+        return obj[pascalKey] ?? obj[camelKey] ?? defaultValue;
+      };
+      
+      // Extraer valores manejando ambos casos
+      const status = getValue(reservation, 'Status', 'status', 'Pending');
+      const tourName = getValue(reservation, 'TourName', 'tourName', 'Tour sin nombre');
+      const reservationId = getValue(reservation, 'Id', 'id', '');
+      const createdAt = getValue(reservation, 'CreatedAt', 'createdAt');
+      const numberOfParticipants = getValue(reservation, 'NumberOfParticipants', 'numberOfParticipants', 0);
+      const totalAmount = getValue(reservation, 'TotalAmount', 'totalAmount', 0);
+      const tourDate = getValue(reservation, 'TourDate', 'tourDate');
+      
+      // Normalizar status a minúsculas para la clase CSS
+      const statusLower = (status || '').toLowerCase();
+      const statusClass = `status-${statusLower}`;
+      
+      // Mapeo de estados
       const statusText = {
         'pending': 'Pendiente',
         'confirmed': 'Confirmada',
         'cancelled': 'Cancelada',
         'expired': 'Expirada',
         'completed': 'Completada'
-      }[reservation.status] || reservation.status;
+      }[statusLower] || status || 'Desconocido';
+
+      // Formatear ID de reserva (solo si existe)
+      const reservationIdDisplay = reservationId ? `#${reservationId.substring(0, 8)}` : '#N/A';
+      
+      // Formatear fecha de creación
+      const createdAtDisplay = createdAt ? new Date(createdAt).toLocaleDateString('es-PA') : 'N/A';
+      
+      // Formatear fecha del tour
+      const tourDateDisplay = tourDate ? new Date(tourDate).toLocaleDateString('es-PA') : 'Por definir';
 
       return `
         <div class="reservation-card">
           <div class="reservation-header">
             <div>
-              <h3 style="margin-bottom: var(--spacing-xs);">${reservation.tourName}</h3>
-              <p style="color: var(--text-muted);">Reserva #${reservation.id.substring(0, 8)}</p>
+              <h3 style="margin-bottom: var(--spacing-xs);">${tourName}</h3>
+              <p style="color: var(--text-muted);">Reserva ${reservationIdDisplay}</p>
             </div>
             <span class="reservation-status ${statusClass}">${statusText}</span>
           </div>
           <div class="reservation-details">
             <div class="detail-item">
               <div class="detail-label">Fecha de Reserva</div>
-              <div class="detail-value">${new Date(reservation.createdAt).toLocaleDateString('es-PA')}</div>
+              <div class="detail-value">${createdAtDisplay}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Participantes</div>
-              <div class="detail-value">${reservation.numberOfParticipants}</div>
+              <div class="detail-value">${numberOfParticipants}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Total</div>
-              <div class="detail-value">${formatPrice(reservation.totalAmount)}</div>
+              <div class="detail-value">${formatPrice(totalAmount)}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Fecha del Tour</div>
-              <div class="detail-value">${reservation.tourDate ? new Date(reservation.tourDate).toLocaleDateString('es-PA') : 'Por definir'}</div>
+              <div class="detail-value">${tourDateDisplay}</div>
             </div>
           </div>
         </div>
