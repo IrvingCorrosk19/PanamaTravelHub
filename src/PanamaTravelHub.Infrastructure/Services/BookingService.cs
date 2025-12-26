@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PanamaTravelHub.Application.Exceptions;
@@ -332,18 +333,24 @@ public class BookingService : IBookingService
             else
             {
                 // Cuando tourDateId es NULL, usar NULL explícitamente en SQL
-                var sql = "SELECT CASE WHEN reserve_tour_spots({0}::uuid, NULL::uuid, {1}::integer) THEN 1 ELSE 0 END AS Result";
-                _logger.LogInformation("Ejecutando SQL sin tourDateId (NULL): {Sql}",
-                    sql);
+                // Usar FormattableString para evitar problemas de interpolación
+                var sql = FormattableStringFactory.Create(
+                    "SELECT CASE WHEN reserve_tour_spots({0}::uuid, NULL::uuid, {1}::integer) THEN 1 ELSE 0 END AS Result",
+                    tourId,
+                    participants);
+                
+                _logger.LogInformation("Ejecutando SQL sin tourDateId (NULL) con FormattableString");
                 
                 var sqlResult = await _context.Database
-                    .SqlQueryRaw<SqlResult>(
-                        sql,
-                        tourId,
-                        participants)
+                    .SqlQueryRaw<SqlResult>(sql)
                     .FirstOrDefaultAsync(cancellationToken);
                 
                 result = sqlResult?.Result ?? 0;
+                
+                _logger.LogInformation(
+                    "SqlResult obtenido: {SqlResult}, Result: {Result}",
+                    sqlResult != null ? "not null" : "null",
+                    result);
             }
 
             _logger.LogInformation(
