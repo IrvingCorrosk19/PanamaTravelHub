@@ -14,10 +14,16 @@ public class User : BaseEntity
     public DateTime? LockedUntil { get; set; }
     public DateTime? LastLoginAt { get; set; }
 
+    public bool EmailVerified { get; set; } = false;
+    public DateTime? EmailVerifiedAt { get; set; }
+    public string? EmailVerificationToken { get; set; }
+
     // Navigation properties
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+    public UserTwoFactor? TwoFactor { get; set; }
+    public ICollection<LoginHistory> LoginHistories { get; set; } = new List<LoginHistory>();
 }

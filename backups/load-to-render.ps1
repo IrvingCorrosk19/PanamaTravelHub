@@ -5,11 +5,11 @@ $backupFile = "PanamaTravelHub_backup_20251225_105337.sql"
 $backupPath = Join-Path $PSScriptRoot $backupFile
 
 # Datos de conexión a Render
-$renderHost = "dpg-d54nnjf5r7bs73ej6gn0-a.oregon-postgres.render.com"
+$renderHost = "dpg-d5efvg7pm1nc73a63qqg-a.virginia-postgres.render.com"
 $renderPort = "5432"
-$renderDatabase = "panamatravelhub"
-$renderUser = "panamatravelhub_user"
-$renderPassword = "YFxc28DdPtabZS11XfVxywP5SnS53yZP"
+$renderDatabase = "panamatravelhub_2juu"
+$renderUser = "panamatravelhub_2juu_user"
+$renderPassword = "BhC1OtUf9WBxSKUrWksobwH8jwNYAmKT"
 
 Write-Host "=== Cargar Backup a Render ===" -ForegroundColor Cyan
 Write-Host "Archivo: $backupFile" -ForegroundColor Yellow

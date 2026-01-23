@@ -1,30 +1,50 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: panamatravelhub-postgres
+    container_name: panamatravelhub_postgres
+    restart: always
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: PanamaTravelHub
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Panama2020$
       PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - panamatravelhub_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Puerto único para evitar conflicto con carnetqr (5432)
+    networks:
+      - panamatravelhub_net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  web:
+    build: .
+    container_name: panamatravelhub_web
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_DATAPROTECTION_PATH: /app/dataprotection-keys
+    volumes:
+      - panamatravelhub_dataprotection_keys:/app/dataprotection-keys
+      - panamatravelhub_uploads:/app/wwwroot/uploads
+    ports:
+      - "8082:8080"  # Puerto único para evitar conflicto con carnetqr (8081)
     networks:
-      - panamatravelhub-network
+      - panamatravelhub_net
 
 volumes:
-  postgres_data:
-    driver: local
+  panamatravelhub_postgres_data:
+  panamatravelhub_dataprotection_keys:
+  panamatravelhub_uploads:
 
 networks:
-  panamatravelhub-network:
+  panamatravelhub_net:
     driver: bridge

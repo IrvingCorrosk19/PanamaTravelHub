@@ -5,10 +5,12 @@ using PanamaTravelHub.Application.Exceptions;
 using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Application.Validators;
 using PanamaTravelHub.Domain.Entities;
+using PanamaTravelHub.Domain.Enums;
 using PanamaTravelHub.Infrastructure.Data;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
+using OtpNet;
 
 namespace PanamaTravelHub.API.Controllers;
 
@@ -21,19 +23,22 @@ public class AuthController : ControllerBase
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtService _jwtService;
     private readonly IConfiguration _configuration;
+    private readonly IEmailNotificationService _emailNotificationService;
 
     public AuthController(
         ILogger<AuthController> logger,
         ApplicationDbContext context,
         IPasswordHasher passwordHasher,
         IJwtService jwtService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IEmailNotificationService emailNotificationService)
     {
         _logger = logger;
         _context = context;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
         _configuration = configuration;
+        _emailNotificationService = emailNotificationService;
     }
 
     /// <summary>
@@ -79,24 +84,51 @@ public class AuthController : ControllerBase
             PasswordHash = passwordHash,
             FirstName = request.FirstName?.Trim() ?? string.Empty,
             LastName = request.LastName?.Trim() ?? string.Empty,
-            IsActive = true
+            IsActive = true,
+            EmailVerified = false, // Requiere verificación
+            EmailVerificationToken = Guid.NewGuid().ToString("N") // Token para verificación
         };
 
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
 
-        // Asignar rol Customer por defecto
-        var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Customer");
-        if (customerRole != null)
+        // Enviar email de verificación (en background)
+        try
         {
-            var userRole = new UserRole
-            {
-                UserId = user.Id,
-                RoleId = customerRole.Id
-            };
-            await _context.UserRoles.AddAsync(userRole);
-            await _context.SaveChangesAsync();
+            var verificationLink = $"{Request.Scheme}://{Request.Host}/verify-email.html?token={user.EmailVerificationToken}";
+            await _emailNotificationService.QueueTemplatedEmailAsync(
+                user.Email,
+                "Verifica tu correo electrónico - PanamaTravelHub",
+                "email-verification",
+                new
+                {
+                    CustomerName = $"{user.FirstName} {user.LastName}",
+                    VerificationLink = verificationLink,
+                    Year = DateTime.UtcNow.Year
+                },
+                EmailNotificationType.EmailVerification,
+                user.Id,
+                null
+            );
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al enviar email de verificación después del registro");
+            // No fallar el registro si falla el email
+        }
+
+            // Asignar rol Customer por defecto
+            var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Customer");
+            if (customerRole != null)
+            {
+                var userRole = new Domain.Entities.UserRole
+                {
+                    UserId = user.Id,
+                    RoleId = customerRole.Id
+                };
+                await _context.UserRoles.AddAsync(userRole);
+                await _context.SaveChangesAsync();
+            }
 
         _logger.LogInformation("Usuario registrado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
         _logger.LogInformation("=== FIN Registro de usuario (exitoso) ===");
@@ -150,6 +182,19 @@ public class AuthController : ControllerBase
                 // Delay aleatorio entre 300-700ms para evitar timing attacks
                 var randomDelay = new Random().Next(300, 700);
                 await Task.Delay(randomDelay);
+                
+                // Registrar intento fallido (sin userId porque no existe)
+                var failedLoginHistory = new LoginHistory
+                {
+                    UserId = Guid.Empty, // Usuario no encontrado
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+                    UserAgent = Request.Headers["User-Agent"].ToString(),
+                    IsSuccessful = false,
+                    FailureReason = "Usuario no encontrado"
+                };
+                _context.LoginHistories.Add(failedLoginHistory);
+                await _context.SaveChangesAsync();
+                
                 _logger.LogWarning("Intento de login fallido: email no encontrado");
                 return Unauthorized(new ProblemDetails
                 {
@@ -196,6 +241,18 @@ public class AuthController : ControllerBase
 
                 await _context.SaveChangesAsync();
 
+                // Registrar intento fallido en historial
+                var failedLoginHistory = new LoginHistory
+                {
+                    UserId = user.Id,
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+                    UserAgent = Request.Headers["User-Agent"].ToString(),
+                    IsSuccessful = false,
+                    FailureReason = "Password incorrecto"
+                };
+                _context.LoginHistories.Add(failedLoginHistory);
+                await _context.SaveChangesAsync();
+
                 // No revelar si fue email o password (seguridad)
                 _logger.LogWarning("Intento de login fallido: password incorrecto para {Email}", user.Email);
                 return Unauthorized(new ProblemDetails
@@ -223,6 +280,16 @@ public class AuthController : ControllerBase
             user.FailedLoginAttempts = 0;
             user.LockedUntil = null;
             user.LastLoginAt = DateTime.UtcNow;
+
+            // Registrar en historial de logins
+            var loginHistory = new LoginHistory
+            {
+                UserId = user.Id,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+                UserAgent = Request.Headers["User-Agent"].ToString(),
+                IsSuccessful = true
+            };
+            _context.LoginHistories.Add(loginHistory);
 
             // Revocar todos los refresh tokens anteriores del usuario (opcional, para seguridad)
             var oldTokens = await _context.RefreshTokens

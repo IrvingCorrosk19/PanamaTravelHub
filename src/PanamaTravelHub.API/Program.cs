@@ -151,12 +151,29 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Configurar Razor Pages
 builder.Services.AddRazorPages();
 
-// Configurar Data Protection para usar PostgreSQL (IMPORTANTE para producción)
-// Esto evita que las keys se pierdan cuando Render recrea contenedores
-builder.Services.AddDataProtection()
-    .PersistKeysToDbContext<ApplicationDbContext>()
+// Configurar Data Protection
+// En Docker: usar FileSystem cuando ASPNETCORE_DATAPROTECTION_PATH está configurado
+// En Render: usar DbContext como fallback
+var dataProtectionPath = Environment.GetEnvironmentVariable("ASPNETCORE_DATAPROTECTION_PATH");
+
+var dataProtectionBuilder = builder.Services.AddDataProtection()
     .SetApplicationName("PanamaTravelHub")
     .SetDefaultKeyLifetime(TimeSpan.FromDays(90)); // Keys válidas por 90 días
+
+if (!string.IsNullOrEmpty(dataProtectionPath))
+{
+    // Docker: usar FileSystem con ruta única por aplicación
+    if (!Directory.Exists(dataProtectionPath))
+    {
+        Directory.CreateDirectory(dataProtectionPath);
+    }
+    dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath));
+}
+else
+{
+    // Render o desarrollo: usar DbContext
+    dataProtectionBuilder.PersistKeysToDbContext<ApplicationDbContext>();
+}
 
 // Configurar JWT Authentication
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey no configurada");
@@ -270,6 +287,40 @@ if (app.Environment.IsDevelopment())
 
 // Exception Handler debe ir temprano en el pipeline
 app.UseExceptionHandler();
+
+// Security Headers Middleware
+app.Use(async (context, next) =>
+{
+    // Headers de seguridad
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
+    
+    // HSTS solo en producción con HTTPS
+    if (app.Environment.IsProduction() && context.Request.IsHttps)
+    {
+        context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload";
+    }
+    
+    // Content Security Policy (CSP) - Ajustar según necesidades
+    var csp = "default-src 'self'; " +
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+              "font-src 'self' https://fonts.gstatic.com; " +
+              "img-src 'self' data: https: blob:; " +
+              "connect-src 'self' https://api.stripe.com; " +
+              "frame-src 'self' https://js.stripe.com; " +
+              "object-src 'none'; " +
+              "base-uri 'self'; " +
+              "form-action 'self'; " +
+              "frame-ancestors 'none';";
+    
+    context.Response.Headers["Content-Security-Policy"] = csp;
+    
+    await next();
+});
 
 // Correlation ID middleware (debe ir temprano)
 app.Use(async (context, next) =>

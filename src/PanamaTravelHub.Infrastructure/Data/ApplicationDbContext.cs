@@ -30,6 +30,13 @@ public class ApplicationDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<Page> Pages { get; set; }
     public DbSet<Country> Countries { get; set; }
     public DbSet<SmsNotification> SmsNotifications { get; set; }
+    public DbSet<TourReview> TourReviews { get; set; }
+    public DbSet<Coupon> Coupons { get; set; }
+    public DbSet<CouponUsage> CouponUsages { get; set; }
+    public DbSet<Waitlist> Waitlist { get; set; }
+    public DbSet<UserFavorite> UserFavorites { get; set; }
+    public DbSet<UserTwoFactor> UserTwoFactors { get; set; }
+    public DbSet<LoginHistory> LoginHistories { get; set; }
     
     // Data Protection Keys (para persistencia en PostgreSQL)
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;

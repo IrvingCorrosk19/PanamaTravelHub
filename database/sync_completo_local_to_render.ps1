@@ -19,11 +19,11 @@ $localUser = "postgres"
 $localPassword = "Panama2020$"
 
 # Configuración RENDER
-$renderHost = "dpg-d54nnjf5r7bs73ej6gn0-a.oregon-postgres.render.com"
+$renderHost = "dpg-d5efvg7pm1nc73a63qqg-a.virginia-postgres.render.com"
 $renderPort = "5432"
-$renderDatabase = "panamatravelhub"
-$renderUser = "panamatravelhub_user"
-$renderPassword = "YFxc28DdPtabZS11XfVxywP5SnS53yZP"
+$renderDatabase = "panamatravelhub_2juu"
+$renderUser = "panamatravelhub_2juu_user"
+$renderPassword = "BhC1OtUf9WBxSKUrWksobwH8jwNYAmKT"
 
 # Construir cadenas de conexión
 $localConnectionString = "Host=$localHost;Port=$localPort;Database=$localDatabase;Username=$localUser;Password=$localPassword"
@@ -36,7 +36,7 @@ $dataFile = Join-Path $tempDir "data.sql"
 $fullBackupFile = Join-Path $tempDir "full_backup.sql"
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "SINCRONIZACIÓN COMPLETA: Local → Render" -ForegroundColor Cyan
+Write-Host "SINCRONIZACION COMPLETA: Local -> Render" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -189,28 +189,15 @@ try {
     $env:PGPASSWORD = $renderPassword
     
     # Verificar conteos en Render
-    $verificationQuery = @"
-SELECT 
-    'tours' as tabla, COUNT(*) as total FROM tours
-UNION ALL
-SELECT 'tour_images', COUNT(*) FROM tour_images
-UNION ALL
-SELECT 'tour_dates', COUNT(*) FROM tour_dates
-UNION ALL
-SELECT 'bookings', COUNT(*) FROM bookings
-UNION ALL
-SELECT 'users', COUNT(*) FROM users
-UNION ALL
-SELECT 'countries', COUNT(*) FROM countries
-UNION ALL
-SELECT 'home_page_content', COUNT(*) FROM home_page_content
-ORDER BY tabla;
-"@
-    
     Write-Host "Conteos en RENDER:" -ForegroundColor Cyan
-    & $psqlPath $renderConnectionString -c $verificationQuery 2>&1 | ForEach-Object {
-        Write-Host $_
-    }
+    Write-Host "  Tours:" -ForegroundColor Yellow
+    & $psqlPath $renderConnectionString -c "SELECT COUNT(*) FROM tours;" 2>&1 | ForEach-Object { if ($_ -notmatch "ERROR") { Write-Host "    $_" } }
+    Write-Host "  Bookings:" -ForegroundColor Yellow
+    & $psqlPath $renderConnectionString -c "SELECT COUNT(*) FROM bookings;" 2>&1 | ForEach-Object { if ($_ -notmatch "ERROR") { Write-Host "    $_" } }
+    Write-Host "  Users:" -ForegroundColor Yellow
+    & $psqlPath $renderConnectionString -c "SELECT COUNT(*) FROM users;" 2>&1 | ForEach-Object { if ($_ -notmatch "ERROR") { Write-Host "    $_" } }
+    Write-Host "  Countries:" -ForegroundColor Yellow
+    & $psqlPath $renderConnectionString -c "SELECT COUNT(*) FROM countries;" 2>&1 | ForEach-Object { if ($_ -notmatch "ERROR") { Write-Host "    $_" } }
     
 } catch {
     Write-Host "⚠️ No se pudo verificar (no crítico): $($_.Exception.Message)" -ForegroundColor Yellow
@@ -220,10 +207,10 @@ ORDER BY tabla;
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
-Write-Host "SINCRONIZACIÓN COMPLETA FINALIZADA" -ForegroundColor Green
+Write-Host "SINCRONIZACION COMPLETA FINALIZADA" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Archivos temporales guardados en: $tempDir" -ForegroundColor Cyan
-Write-Host "Puedes revisarlos o eliminarlos después de verificar." -ForegroundColor Cyan
+Write-Host "Puedes revisarlos o eliminarlos despues de verificar." -ForegroundColor Cyan
 Write-Host ""
 

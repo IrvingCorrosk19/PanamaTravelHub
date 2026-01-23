@@ -1,9 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PanamaTravelHub.Application.Exceptions;
 using PanamaTravelHub.Domain.Entities;
+using PanamaTravelHub.Domain.Enums;
 using PanamaTravelHub.Infrastructure.Data;
 using PanamaTravelHub.Infrastructure.Repositories;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace PanamaTravelHub.API.Controllers;
 
@@ -26,10 +30,19 @@ public class ToursController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene todos los tours disponibles
+    /// Obtiene todos los tours disponibles con búsqueda y filtros avanzados
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TourDto>>> GetTours()
+    public async Task<ActionResult<IEnumerable<TourDto>>> GetTours(
+        [FromQuery] string? search = null,
+        [FromQuery] decimal? minPrice = null,
+        [FromQuery] decimal? maxPrice = null,
+        [FromQuery] int? minDuration = null,
+        [FromQuery] int? maxDuration = null,
+        [FromQuery] string? location = null,
+        [FromQuery] string? category = null,
+        [FromQuery] string? sortBy = "created", // created, price, duration, name
+        [FromQuery] string? sortOrder = "desc") // asc, desc
     {
         try
         {
@@ -37,11 +50,71 @@ public class ToursController : ControllerBase
             
             // Obtener tours activos desde la base de datos
             _logger.LogInformation("Consultando tours activos desde la base de datos...");
-            var tours = await _context.Tours
+            var query = _context.Tours
                 .Include(t => t.TourImages)
-                .Where(t => t.IsActive)
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
+                .Where(t => t.IsActive);
+
+            // Búsqueda por texto
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchLower = search.ToLower();
+                query = query.Where(t => 
+                    t.Name.ToLower().Contains(searchLower) ||
+                    (t.Description != null && t.Description.ToLower().Contains(searchLower)) ||
+                    (t.Location != null && t.Location.ToLower().Contains(searchLower)));
+            }
+
+            // Filtro por precio
+            if (minPrice.HasValue)
+            {
+                query = query.Where(t => t.Price >= minPrice.Value);
+            }
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(t => t.Price <= maxPrice.Value);
+            }
+
+            // Filtro por duración
+            if (minDuration.HasValue)
+            {
+                query = query.Where(t => t.DurationHours >= minDuration.Value);
+            }
+            if (maxDuration.HasValue)
+            {
+                query = query.Where(t => t.DurationHours <= maxDuration.Value);
+            }
+
+            // Filtro por ubicación
+            if (!string.IsNullOrWhiteSpace(location))
+            {
+                var locationLower = location.ToLower();
+                query = query.Where(t => t.Location != null && t.Location.ToLower().Contains(locationLower));
+            }
+
+            // TODO: Filtro por categoría (cuando se implemente el sistema de categorías)
+            // if (!string.IsNullOrWhiteSpace(category))
+            // {
+            //     query = query.Where(t => t.Category == category);
+            // }
+
+            // Ordenamiento
+            query = sortBy.ToLower() switch
+            {
+                "price" => sortOrder.ToLower() == "asc" 
+                    ? query.OrderBy(t => t.Price)
+                    : query.OrderByDescending(t => t.Price),
+                "duration" => sortOrder.ToLower() == "asc"
+                    ? query.OrderBy(t => t.DurationHours)
+                    : query.OrderByDescending(t => t.DurationHours),
+                "name" => sortOrder.ToLower() == "asc"
+                    ? query.OrderBy(t => t.Name)
+                    : query.OrderByDescending(t => t.Name),
+                _ => sortOrder.ToLower() == "asc"
+                    ? query.OrderBy(t => t.CreatedAt)
+                    : query.OrderByDescending(t => t.CreatedAt)
+            };
+
+            var tours = await query.ToListAsync();
 
             _logger.LogInformation("Tours encontrados en BD: {Count}", tours.Count);
 
@@ -425,6 +498,433 @@ public class ToursController : ControllerBase
             throw;
         }
     }
+
+    /// <summary>
+    /// Búsqueda avanzada de tours con múltiples filtros
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<ActionResult<SearchToursResponseDto>> SearchTours(
+        [FromQuery] string? q = null,
+        [FromQuery] decimal? minPrice = null,
+        [FromQuery] decimal? maxPrice = null,
+        [FromQuery] int? minDuration = null,
+        [FromQuery] int? maxDuration = null,
+        [FromQuery] string? location = null,
+        [FromQuery] string? category = null,
+        [FromQuery] DateTime? availableDate = null,
+        [FromQuery] string? sortBy = "created",
+        [FromQuery] string? sortOrder = "desc",
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var query = _context.Tours
+                .Include(t => t.TourImages)
+                .Where(t => t.IsActive);
+
+            // Búsqueda por texto
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var searchLower = q.ToLower();
+                query = query.Where(t => 
+                    t.Name.ToLower().Contains(searchLower) ||
+                    (t.Description != null && t.Description.ToLower().Contains(searchLower)) ||
+                    (t.Location != null && t.Location.ToLower().Contains(searchLower)) ||
+                    (t.Itinerary != null && t.Itinerary.ToLower().Contains(searchLower)));
+            }
+
+            // Filtros
+            if (minPrice.HasValue)
+                query = query.Where(t => t.Price >= minPrice.Value);
+            if (maxPrice.HasValue)
+                query = query.Where(t => t.Price <= maxPrice.Value);
+            if (minDuration.HasValue)
+                query = query.Where(t => t.DurationHours >= minDuration.Value);
+            if (maxDuration.HasValue)
+                query = query.Where(t => t.DurationHours <= maxDuration.Value);
+            if (!string.IsNullOrWhiteSpace(location))
+            {
+                var locationLower = location.ToLower();
+                query = query.Where(t => t.Location != null && t.Location.ToLower().Contains(locationLower));
+            }
+
+            // Filtro por fecha disponible
+            if (availableDate.HasValue)
+            {
+                var date = availableDate.Value.Date;
+                query = query.Where(t => 
+                    t.TourDates.Any(td => td.TourDateTime.Date == date && td.IsActive && td.AvailableSpots > 0) ||
+                    (t.TourDate.HasValue && t.TourDate.Value.Date == date && t.AvailableSpots > 0));
+            }
+
+            // Ordenamiento
+            query = sortBy.ToLower() switch
+            {
+                "price" => sortOrder.ToLower() == "asc" 
+                    ? query.OrderBy(t => t.Price)
+                    : query.OrderByDescending(t => t.Price),
+                "duration" => sortOrder.ToLower() == "asc"
+                    ? query.OrderBy(t => t.DurationHours)
+                    : query.OrderByDescending(t => t.DurationHours),
+                "name" => sortOrder.ToLower() == "asc"
+                    ? query.OrderBy(t => t.Name)
+                    : query.OrderByDescending(t => t.Name),
+                "popularity" => query.OrderByDescending(t => t.Bookings.Count(b => b.Status == BookingStatus.Confirmed)),
+                _ => sortOrder.ToLower() == "asc"
+                    ? query.OrderBy(t => t.CreatedAt)
+                    : query.OrderByDescending(t => t.CreatedAt)
+            };
+
+            // Paginación
+            var totalCount = await query.CountAsync();
+            var tours = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = tours.Select(t => new TourDto
+            {
+                Id = t.Id,
+                Name = t.Name ?? string.Empty,
+                Description = t.Description ?? string.Empty,
+                Itinerary = t.Itinerary,
+                Includes = t.Includes,
+                Price = t.Price >= 0 ? t.Price : 0,
+                DurationHours = t.DurationHours,
+                Location = t.Location ?? string.Empty,
+                TourDate = t.TourDate,
+                AvailableSpots = t.AvailableSpots,
+                MaxCapacity = t.MaxCapacity,
+                IsActive = t.IsActive,
+                TourImages = t.TourImages.Select(i => new TourImageDto
+                {
+                    ImageUrl = i.ImageUrl ?? string.Empty,
+                    IsPrimary = i.IsPrimary
+                }).ToList()
+            }).ToList();
+
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            return Ok(new SearchToursResponseDto
+            {
+                Tours = result,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages,
+                HasPreviousPage = page > 1
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en búsqueda de tours");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene tours relacionados/recomendados
+    /// </summary>
+    [HttpGet("{id}/related")]
+    public async Task<ActionResult<IEnumerable<TourDto>>> GetRelatedTours(Guid id, [FromQuery] int limit = 4)
+    {
+        try
+        {
+            var tour = await _context.Tours
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (tour == null)
+                return NotFound(new { message = "Tour no encontrado" });
+
+            // Buscar tours similares por ubicación
+            var relatedTours = await _context.Tours
+                .Include(t => t.TourImages)
+                .Where(t => t.Id != id && 
+                           t.IsActive &&
+                           (t.Location == tour.Location || 
+                            (tour.Location != null && t.Location != null && t.Location.Contains(tour.Location))))
+                .OrderByDescending(t => t.CreatedAt)
+                .Take(limit)
+                .ToListAsync();
+
+            // Si no hay suficientes por ubicación, completar con tours recientes
+            if (relatedTours.Count < limit)
+            {
+                var additionalTours = await _context.Tours
+                    .Include(t => t.TourImages)
+                    .Where(t => t.Id != id && 
+                               t.IsActive &&
+                               !relatedTours.Any(rt => rt.Id == t.Id))
+                    .OrderByDescending(t => t.CreatedAt)
+                    .Take(limit - relatedTours.Count)
+                    .ToListAsync();
+
+                relatedTours.AddRange(additionalTours);
+            }
+
+            var result = relatedTours.Select(t => new TourDto
+            {
+                Id = t.Id,
+                Name = t.Name ?? string.Empty,
+                Description = t.Description ?? string.Empty,
+                Itinerary = t.Itinerary,
+                Includes = t.Includes,
+                Price = t.Price >= 0 ? t.Price : 0,
+                DurationHours = t.DurationHours,
+                Location = t.Location ?? string.Empty,
+                TourDate = t.TourDate,
+                AvailableSpots = t.AvailableSpots,
+                MaxCapacity = t.MaxCapacity,
+                IsActive = t.IsActive,
+                TourImages = t.TourImages.Select(i => new TourImageDto
+                {
+                    ImageUrl = i.ImageUrl ?? string.Empty,
+                    IsPrimary = i.IsPrimary
+                }).ToList()
+            }).ToList();
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tours relacionados");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene tours destacados/populares
+    /// </summary>
+    [HttpGet("featured")]
+    public async Task<ActionResult<IEnumerable<TourDto>>> GetFeaturedTours([FromQuery] int limit = 6)
+    {
+        try
+        {
+            var featuredTours = await _context.Tours
+                .Include(t => t.TourImages)
+                .Where(t => t.IsActive)
+                .OrderByDescending(t => t.Bookings.Count(b => b.Status == BookingStatus.Confirmed))
+                .ThenByDescending(t => t.CreatedAt)
+                .Take(limit)
+                .ToListAsync();
+
+            var result = featuredTours.Select(t => new TourDto
+            {
+                Id = t.Id,
+                Name = t.Name ?? string.Empty,
+                Description = t.Description ?? string.Empty,
+                Itinerary = t.Itinerary,
+                Includes = t.Includes,
+                Price = t.Price >= 0 ? t.Price : 0,
+                DurationHours = t.DurationHours,
+                Location = t.Location ?? string.Empty,
+                TourDate = t.TourDate,
+                AvailableSpots = t.AvailableSpots,
+                MaxCapacity = t.MaxCapacity,
+                IsActive = t.IsActive,
+                TourImages = t.TourImages.Select(i => new TourImageDto
+                {
+                    ImageUrl = i.ImageUrl ?? string.Empty,
+                    IsPrimary = i.IsPrimary
+                }).ToList()
+            }).ToList();
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tours destacados");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Agrega un tour a favoritos (requiere autenticación)
+    /// </summary>
+    [HttpPost("{id}/favorite")]
+    [Authorize(Policy = "AdminOrCustomer")]
+    public async Task<ActionResult> AddToFavorites(Guid id)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                             User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            // Verificar que el tour existe
+            var tour = await _context.Tours.FindAsync(id);
+            if (tour == null)
+            {
+                return NotFound(new { message = "Tour no encontrado" });
+            }
+
+            // Verificar que no esté ya en favoritos
+            var existingFavorite = await _context.UserFavorites
+                .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.TourId == id);
+
+            if (existingFavorite != null)
+            {
+                return BadRequest(new { message = "Este tour ya está en tus favoritos" });
+            }
+
+            var favorite = new UserFavorite
+            {
+                UserId = userId,
+                TourId = id
+            };
+
+            _context.UserFavorites.Add(favorite);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Tour agregado a favoritos" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al agregar tour a favoritos {TourId}", id);
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Elimina un tour de favoritos (requiere autenticación)
+    /// </summary>
+    [HttpDelete("{id}/favorite")]
+    [Authorize(Policy = "AdminOrCustomer")]
+    public async Task<ActionResult> RemoveFromFavorites(Guid id)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                             User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var favorite = await _context.UserFavorites
+                .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.TourId == id);
+
+            if (favorite == null)
+            {
+                return NotFound(new { message = "Este tour no está en tus favoritos" });
+            }
+
+            _context.UserFavorites.Remove(favorite);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Tour eliminado de favoritos" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar tour de favoritos {TourId}", id);
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene los tours favoritos del usuario actual
+    /// </summary>
+    [HttpGet("favorites")]
+    [Authorize(Policy = "AdminOrCustomer")]
+    public async Task<ActionResult<IEnumerable<TourDto>>> GetFavorites()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                             User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var favoriteTourIds = await _context.UserFavorites
+                .Where(uf => uf.UserId == userId)
+                .Select(uf => uf.TourId)
+                .ToListAsync();
+
+            var tours = await _context.Tours
+                .Include(t => t.TourImages)
+                .Where(t => favoriteTourIds.Contains(t.Id) && t.IsActive)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            var result = tours.Select(t => new TourDto
+            {
+                Id = t.Id,
+                Name = t.Name ?? string.Empty,
+                Description = t.Description ?? string.Empty,
+                Itinerary = t.Itinerary,
+                Includes = t.Includes,
+                Price = t.Price >= 0 ? t.Price : 0,
+                DurationHours = t.DurationHours,
+                Location = t.Location ?? string.Empty,
+                TourDate = t.TourDate,
+                AvailableSpots = t.AvailableSpots,
+                MaxCapacity = t.MaxCapacity,
+                IsActive = t.IsActive,
+                TourImages = t.TourImages.Select(i => new TourImageDto
+                {
+                    ImageUrl = i.ImageUrl ?? string.Empty,
+                    IsPrimary = i.IsPrimary
+                }).ToList()
+            }).ToList();
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener tours favoritos");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Verifica si un tour está en favoritos del usuario actual
+    /// </summary>
+    [HttpGet("{id}/favorite/check")]
+    [Authorize(Policy = "AdminOrCustomer")]
+    public async Task<ActionResult<bool>> CheckFavorite(Guid id)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                             User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var isFavorite = await _context.UserFavorites
+                .AnyAsync(uf => uf.UserId == userId && uf.TourId == id);
+
+            return Ok(isFavorite);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al verificar favorito {TourId}", id);
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+}
+
+public class SearchToursResponseDto
+{
+    public List<TourDto> Tours { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
+    public bool HasNextPage { get; set; }
+    public bool HasPreviousPage { get; set; }
 }
 
 public class TourDateDto

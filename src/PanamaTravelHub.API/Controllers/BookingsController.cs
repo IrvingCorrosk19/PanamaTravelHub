@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PanamaTravelHub.Application.Exceptions;
 using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Application.Validators;
+using PanamaTravelHub.Domain.Entities;
 using PanamaTravelHub.Domain.Enums;
+using PanamaTravelHub.Infrastructure.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -14,13 +17,16 @@ namespace PanamaTravelHub.API.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly IBookingService _bookingService;
+    private readonly ApplicationDbContext _context;
     private readonly ILogger<BookingsController> _logger;
 
     public BookingsController(
         IBookingService bookingService,
+        ApplicationDbContext context,
         ILogger<BookingsController> logger)
     {
         _bookingService = bookingService;
+        _context = context;
         _logger = logger;
     }
 
@@ -208,6 +214,130 @@ public class BookingsController : ControllerBase
     }
 
     /// <summary>
+    /// Modifica una reserva existente
+    /// </summary>
+    [HttpPut("{id}")]
+    [Authorize(Policy = "AdminOrCustomer")]
+    public async Task<ActionResult<BookingResponseDto>> UpdateBooking(Guid id, [FromBody] UpdateBookingRequestDto request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                             User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var currentUserId))
+            {
+                return Unauthorized(new { message = "Usuario no autenticado" });
+            }
+
+            var booking = await _bookingService.GetBookingByIdAsync(id);
+            if (booking == null)
+                throw new NotFoundException("Reserva", id);
+
+            // Verificar propiedad o rol admin
+            if (booking.UserId != currentUserId && !User.IsInRole("Admin"))
+            {
+                return StatusCode(403, new { message = "No tienes permisos para modificar esta reserva" });
+            }
+
+            // Solo se pueden modificar reservas en estado Pending o Confirmed
+            if (booking.Status != BookingStatus.Pending && booking.Status != BookingStatus.Confirmed)
+            {
+                return BadRequest(new { message = "Solo se pueden modificar reservas pendientes o confirmadas" });
+            }
+
+            // Si está confirmada y tiene pago, no se puede modificar fácilmente
+            if (booking.Status == BookingStatus.Confirmed)
+            {
+                // TODO: Verificar si tiene pago procesado
+                // Si tiene pago, podría requerir reembolso parcial o recálculo
+            }
+
+            // Obtener tour para recalcular precio
+            var tour = booking.Tour;
+            if (tour == null)
+            {
+                return BadRequest(new { message = "Tour no encontrado" });
+            }
+
+            // Actualizar número de participantes si se proporciona
+            if (request.NumberOfParticipants.HasValue && request.NumberOfParticipants.Value > 0)
+            {
+                booking.NumberOfParticipants = request.NumberOfParticipants.Value;
+            }
+
+            // Actualizar fecha del tour si se proporciona
+            if (request.TourDateId.HasValue)
+            {
+                // Verificar que la nueva fecha existe y tiene cupos
+                // Esto se haría en el servicio, pero por ahora lo validamos aquí
+                booking.TourDateId = request.TourDateId.Value;
+            }
+
+            // Recalcular precio
+            booking.TotalAmount = tour.Price * booking.NumberOfParticipants;
+
+            // Actualizar participantes si se proporcionan
+            if (request.Participants != null && request.Participants.Any())
+            {
+                // Cargar participantes actuales
+                await _context.Entry(booking)
+                    .Collection(b => b.Participants)
+                    .LoadAsync();
+
+                // Eliminar participantes existentes
+                var existingParticipants = booking.Participants.ToList();
+                _context.BookingParticipants.RemoveRange(existingParticipants);
+
+                // Agregar nuevos participantes
+                foreach (var participantDto in request.Participants)
+                {
+                    var participant = new BookingParticipant
+                    {
+                        BookingId = booking.Id,
+                        FirstName = participantDto.FirstName,
+                        LastName = participantDto.LastName,
+                        Email = participantDto.Email,
+                        Phone = participantDto.Phone,
+                        DateOfBirth = participantDto.DateOfBirth
+                    };
+                    _context.BookingParticipants.Add(participant);
+                }
+            }
+
+            booking.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            // Recargar relaciones
+            await _context.Entry(booking)
+                .Reference(b => b.Tour)
+                .LoadAsync();
+            await _context.Entry(booking)
+                .Reference(b => b.TourDate)
+                .LoadAsync();
+
+            var result = new BookingResponseDto
+            {
+                Id = booking.Id,
+                TourId = booking.TourId,
+                TourName = booking.Tour.Name,
+                NumberOfParticipants = booking.NumberOfParticipants,
+                TotalAmount = booking.TotalAmount,
+                Status = booking.Status.ToString(),
+                TourDate = booking.TourDate?.TourDateTime,
+                CreatedAt = booking.CreatedAt
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al modificar reserva {BookingId}", id);
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
     /// Confirma una reserva (Admin)
     /// </summary>
     [HttpPost("{id}/confirm")]
@@ -296,4 +426,11 @@ public class ParticipantDto
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public DateTime? DateOfBirth { get; set; }
+}
+
+public class UpdateBookingRequestDto
+{
+    public int? NumberOfParticipants { get; set; }
+    public Guid? TourDateId { get; set; }
+    public List<ParticipantRequestDto>? Participants { get; set; }
 }

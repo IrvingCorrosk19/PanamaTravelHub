@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
   <link rel="stylesheet" href="/css/detail.css" />
+  <link rel="stylesheet" href="/css/carousel.css" />
   <link rel="stylesheet" href="/css/loading.css" />
   <link rel="stylesheet" href="/css/enhancements.css" />
 </head>
@@ -73,10 +74,58 @@
         </div>
       </div>
 
-      <!-- Image Gallery Section -->
+      <!-- Image Gallery Section - Carrusel Mejorado -->
       <div id="imageGallerySection" class="image-gallery-section" style="display:none;">
         <h2 class="gallery-title">Galería de Imágenes</h2>
-        <div id="imageGallery" class="image-gallery"></div>
+        <div class="image-carousel-container">
+          <!-- Carrusel Principal -->
+          <div class="carousel-main">
+            <button class="carousel-nav carousel-prev" id="carouselPrev" aria-label="Imagen anterior">
+              <span>‹</span>
+            </button>
+            <div class="carousel-viewport">
+              <div class="carousel-track" id="carouselTrack"></div>
+            </div>
+            <button class="carousel-nav carousel-next" id="carouselNext" aria-label="Imagen siguiente">
+              <span>›</span>
+            </button>
+            <!-- Indicador de posición -->
+            <div class="carousel-indicator">
+              <span id="currentImageIndex">1</span>
+              <span class="separator">/</span>
+              <span id="totalImages">1</span>
+            </div>
+            <!-- Botón de zoom/pantalla completa -->
+            <button class="carousel-zoom" id="carouselZoom" aria-label="Ver en pantalla completa">
+              <span>🔍</span>
+            </button>
+          </div>
+          
+          <!-- Thumbnails Deslizables -->
+          <div class="carousel-thumbnails-wrapper">
+            <button class="thumb-nav thumb-prev" id="thumbPrev" aria-label="Ver thumbnails anteriores">
+              <span>‹</span>
+            </button>
+            <div class="carousel-thumbnails" id="carouselThumbnails"></div>
+            <button class="thumb-nav thumb-next" id="thumbNext" aria-label="Ver thumbnails siguientes">
+              <span>›</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Imagen en Pantalla Completa -->
+      <div id="imageModal" class="image-modal" style="display:none;">
+        <div class="modal-overlay" onclick="closeImageModal()"></div>
+        <div class="modal-content">
+          <button class="modal-close" onclick="closeImageModal()" aria-label="Cerrar">✕</button>
+          <button class="modal-nav modal-prev" id="modalPrev" aria-label="Imagen anterior">‹</button>
+          <img id="modalImage" class="modal-image" src="" alt="" />
+          <button class="modal-nav modal-next" id="modalNext" aria-label="Imagen siguiente">›</button>
+          <div class="modal-info">
+            <span id="modalImageIndex">1</span> / <span id="modalTotalImages">1</span>
+          </div>
+        </div>
       </div>
 
       <!-- Main Content Grid -->
@@ -178,12 +227,20 @@
     </div>
   </footer>
 
-  <script src="/js/loading.js"></script>
-  <script src="/js/logger.js"></script>
-  <script src="/js/notifications.js"></script>
-  <script src="/js/api.js"></script>
+    <script src="/js/loading.js"></script>
+    <script src="/js/logger.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/api.js"></script>
+    <!-- Variables globales para el carrusel -->
+    <script>
+      // Variables globales para el carrusel (se inicializarán en loadTour)
+      window.carouselImages = [];
+      window.currentCarouselIndex = 0;
+    </script>
   <script>
     let currentTour = null;
+    let currentCarouselIndex = 0;
+    let carouselImages = [];
 
     async function loadTour() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -357,35 +414,71 @@
           this.src = getDefaultTourImage(currentTour.id);
         };
 
-        // Mostrar galería si hay más de una imagen
-        if (tourImages.length > 1) {
-          const gallerySection = document.getElementById('imageGallerySection');
-          const gallery = document.getElementById('imageGallery');
-          
-          // Limpiar galería anterior
-          gallery.innerHTML = '';
-          
-          // Agregar todas las imágenes a la galería
-          // Priorizar PascalCase (ImageUrl) que es lo que devuelve el backend
-          tourImages.forEach((image, index) => {
+        // Inicializar carrusel de imágenes (siempre mostrar, incluso con una sola imagen)
+        const gallerySection = document.getElementById('imageGallerySection');
+        const carouselTrack = document.getElementById('carouselTrack');
+        const carouselThumbnails = document.getElementById('carouselThumbnails');
+        
+        // Limpiar carrusel anterior
+        if (carouselTrack) carouselTrack.innerHTML = '';
+        if (carouselThumbnails) carouselThumbnails.innerHTML = '';
+        
+        // Filtrar imágenes válidas
+        const validImages = tourImages.filter(image => {
+          const imgUrl = image.ImageUrl || image.imageUrl;
+          return imgUrl && imgUrl.trim() !== '';
+        });
+        
+        // Si hay imágenes, inicializar carrusel
+        if (validImages.length > 0) {
+          // Crear slides del carrusel principal
+          validImages.forEach((image, index) => {
             const imgUrl = image.ImageUrl || image.imageUrl;
-            if (imgUrl) {
-              const galleryItem = document.createElement('div');
-              galleryItem.className = 'gallery-item';
-              galleryItem.innerHTML = `
-                <img src="${imgUrl}" alt="${tourName} - Imagen ${index + 1}" class="gallery-image" />
-              `;
-              galleryItem.onclick = () => {
-                // Al hacer clic, cambiar la imagen del hero
-                img.src = imgUrl;
-                // Scroll suave al hero
-                document.querySelector('.tour-hero').scrollIntoView({ behavior: 'smooth', block: 'start' });
-              };
-              gallery.appendChild(galleryItem);
-            }
+            const altText = image.AltText || image.altText || `${tourName} - Imagen ${index + 1}`;
+            
+            // Slide principal
+            const slide = document.createElement('div');
+            slide.className = 'carousel-slide';
+            slide.dataset.index = index;
+            slide.innerHTML = `<img src="${imgUrl}" alt="${altText}" loading="lazy" />`;
+            if (carouselTrack) carouselTrack.appendChild(slide);
+            
+            // Thumbnail
+            const thumbnail = document.createElement('div');
+            thumbnail.className = 'carousel-thumbnail';
+            thumbnail.dataset.index = index;
+            if (index === 0) thumbnail.classList.add('active');
+            thumbnail.innerHTML = `<img src="${imgUrl}" alt="${altText}" loading="lazy" />`;
+            thumbnail.onclick = () => goToImage(index);
+            if (carouselThumbnails) carouselThumbnails.appendChild(thumbnail);
           });
           
-          gallerySection.style.display = 'block';
+          // Actualizar indicadores
+          const totalImagesEl = document.getElementById('totalImages');
+          const modalTotalImagesEl = document.getElementById('modalTotalImages');
+          if (totalImagesEl) totalImagesEl.textContent = validImages.length;
+          if (modalTotalImagesEl) modalTotalImagesEl.textContent = validImages.length;
+          
+          // Guardar imágenes para uso global y local
+          const imagesData = validImages.map(img => ({
+            url: img.ImageUrl || img.imageUrl,
+            alt: img.AltText || img.altText || tourName
+          }));
+          window.carouselImages = imagesData;
+          window.currentCarouselIndex = 0;
+          
+          // Asignar a variables locales para usar en funciones del carrusel
+          carouselImages = imagesData;
+          currentCarouselIndex = 0;
+          
+          // Inicializar navegación
+          initCarouselNavigation();
+          
+          // Mostrar sección de galería
+          if (gallerySection) gallerySection.style.display = 'block';
+        } else {
+          // Si no hay imágenes, ocultar sección
+          if (gallerySection) gallerySection.style.display = 'none';
         }
 
         // Itinerario (priorizar PascalCase del backend)
@@ -562,6 +655,176 @@
         localStorage.removeItem('userName');
       }
     }
+
+    // Funcionalidad del Carrusel (variables declaradas arriba, solo funciones aquí)
+    function initCarouselNavigation() {
+      const prevBtn = document.getElementById('carouselPrev');
+      const nextBtn = document.getElementById('carouselNext');
+      const thumbPrevBtn = document.getElementById('thumbPrev');
+      const thumbNextBtn = document.getElementById('thumbNext');
+      const zoomBtn = document.getElementById('carouselZoom');
+      
+      if (prevBtn) prevBtn.onclick = () => previousImage();
+      if (nextBtn) nextBtn.onclick = () => nextImage();
+      if (thumbPrevBtn) thumbPrevBtn.onclick = () => scrollThumbnails(-1);
+      if (thumbNextBtn) thumbNextBtn.onclick = () => scrollThumbnails(1);
+      if (zoomBtn) zoomBtn.onclick = () => openImageModal(currentCarouselIndex);
+      
+      // Navegación con teclado
+      document.addEventListener('keydown', (e) => {
+        if (document.getElementById('imageModal')?.style.display === 'block') {
+          // En modal: navegar con flechas
+          if (e.key === 'ArrowLeft') previousImageModal();
+          if (e.key === 'ArrowRight') nextImageModal();
+          if (e.key === 'Escape') closeImageModal();
+        } else if (document.getElementById('imageGallerySection')?.style.display === 'block') {
+          // En carrusel: navegar con flechas
+          if (e.key === 'ArrowLeft') previousImage();
+          if (e.key === 'ArrowRight') nextImage();
+        }
+      });
+      
+      updateCarouselState();
+    }
+
+    function goToImage(index) {
+      const totalImages = carouselImages?.length || 0;
+      if (totalImages === 0) return;
+      
+      currentCarouselIndex = Math.max(0, Math.min(index, totalImages - 1));
+      updateCarouselPosition();
+      updateCarouselState();
+      updateActiveThumbnail();
+    }
+
+    function nextImage() {
+      const totalImages = carouselImages?.length || 0;
+      if (totalImages === 0) return;
+      
+      currentCarouselIndex = (currentCarouselIndex + 1) % totalImages;
+      updateCarouselPosition();
+      updateCarouselState();
+      updateActiveThumbnail();
+    }
+
+    function previousImage() {
+      const totalImages = carouselImages?.length || 0;
+      if (totalImages === 0) return;
+      
+      currentCarouselIndex = currentCarouselIndex === 0 ? totalImages - 1 : currentCarouselIndex - 1;
+      updateCarouselPosition();
+      updateCarouselState();
+      updateActiveThumbnail();
+    }
+
+    function updateCarouselPosition() {
+      const carouselTrack = document.getElementById('carouselTrack');
+      if (!carouselTrack) return;
+      
+      const translateX = -(currentCarouselIndex * 100);
+      carouselTrack.style.transform = `translateX(${translateX}%)`;
+    }
+
+    function updateCarouselState() {
+      const totalImages = carouselImages?.length || 0;
+      const currentIndexEl = document.getElementById('currentImageIndex');
+      const prevBtn = document.getElementById('carouselPrev');
+      const nextBtn = document.getElementById('carouselNext');
+      
+      if (currentIndexEl) currentIndexEl.textContent = currentCarouselIndex + 1;
+      
+      // Actualizar estado de botones (siempre habilitados para carrusel infinito)
+      if (prevBtn) prevBtn.disabled = false;
+      if (nextBtn) nextBtn.disabled = false;
+    }
+
+    function updateActiveThumbnail() {
+      const thumbnails = document.querySelectorAll('.carousel-thumbnail');
+      thumbnails.forEach((thumb, index) => {
+        if (index === currentCarouselIndex) {
+          thumb.classList.add('active');
+          // Scroll automático al thumbnail activo
+          thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } else {
+          thumb.classList.remove('active');
+        }
+      });
+    }
+
+    function scrollThumbnails(direction) {
+      const thumbnailsContainer = document.getElementById('carouselThumbnails');
+      if (!thumbnailsContainer) return;
+      
+      const scrollAmount = 140; // 120px (thumbnail) + 20px (gap)
+      thumbnailsContainer.scrollBy({
+        left: direction * scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+
+    // Modal de Imagen en Pantalla Completa
+    function openImageModal(index) {
+      const modal = document.getElementById('imageModal');
+      const modalImage = document.getElementById('modalImage');
+      const modalImageIndex = document.getElementById('modalImageIndex');
+      
+      if (!modal || !modalImage || !carouselImages || carouselImages.length === 0) return;
+      
+      currentCarouselIndex = Math.max(0, Math.min(index, carouselImages.length - 1));
+      const image = carouselImages[currentCarouselIndex];
+      
+      modalImage.src = image.url;
+      modalImage.alt = image.alt;
+      if (modalImageIndex) modalImageIndex.textContent = currentCarouselIndex + 1;
+      
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      
+      // Inicializar navegación del modal
+      const modalPrev = document.getElementById('modalPrev');
+      const modalNext = document.getElementById('modalNext');
+      if (modalPrev) modalPrev.onclick = previousImageModal;
+      if (modalNext) modalNext.onclick = nextImageModal;
+    }
+
+    function closeImageModal() {
+      const modal = document.getElementById('imageModal');
+      if (modal) modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function nextImageModal() {
+      const totalImages = carouselImages?.length || 0;
+      if (totalImages === 0) return;
+      
+      currentCarouselIndex = (currentCarouselIndex + 1) % totalImages;
+      const image = carouselImages[currentCarouselIndex];
+      const modalImage = document.getElementById('modalImage');
+      const modalImageIndex = document.getElementById('modalImageIndex');
+      
+      if (modalImage) modalImage.src = image.url;
+      if (modalImageIndex) modalImageIndex.textContent = currentCarouselIndex + 1;
+    }
+
+    function previousImageModal() {
+      const totalImages = carouselImages?.length || 0;
+      if (totalImages === 0) return;
+      
+      currentCarouselIndex = currentCarouselIndex === 0 ? totalImages - 1 : currentCarouselIndex - 1;
+      const image = carouselImages[currentCarouselIndex];
+      const modalImage = document.getElementById('modalImage');
+      const modalImageIndex = document.getElementById('modalImageIndex');
+      
+      if (modalImage) modalImage.src = image.url;
+      if (modalImageIndex) modalImageIndex.textContent = currentCarouselIndex + 1;
+    }
+
+    // Hacer funciones globales para onclick
+    window.goToImage = goToImage;
+    window.openImageModal = openImageModal;
+    window.closeImageModal = closeImageModal;
+    window.previousImageModal = previousImageModal;
+    window.nextImageModal = nextImageModal;
 
     document.addEventListener('DOMContentLoaded', () => {
       loadTour();

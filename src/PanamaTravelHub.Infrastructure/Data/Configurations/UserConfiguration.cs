@@ -61,6 +61,21 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                 v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null,
                 v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
 
+        builder.Property(u => u.EmailVerified)
+            .HasColumnName("email_verified")
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(u => u.EmailVerifiedAt)
+            .HasColumnName("email_verified_at")
+            .HasConversion(
+                v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null,
+                v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : (DateTime?)null);
+
+        builder.Property(u => u.EmailVerificationToken)
+            .HasColumnName("email_verification_token")
+            .HasMaxLength(100);
+
         builder.Property(u => u.CreatedAt)
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP")

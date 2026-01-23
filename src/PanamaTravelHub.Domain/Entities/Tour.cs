@@ -18,4 +18,5 @@ public class Tour : BaseEntity
     public ICollection<TourImage> TourImages { get; set; } = new List<TourImage>();
     public ICollection<TourDate> TourDates { get; set; } = new List<TourDate>();
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+    public ICollection<TourReview> Reviews { get; set; } = new List<TourReview>();
 }
