@@ -78,6 +78,28 @@
           <span class="field-error" id="lastNameError"></span>
         </div>
 
+        <!-- 2FA Verification (hidden by default) -->
+        <div class="form-group" id="twoFactorGroup" style="display:none;">
+          <label class="form-label" for="twoFactorCode">Código de Autenticación</label>
+          <input type="text" id="twoFactorCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" autocomplete="one-time-code" />
+          <span class="field-error" id="twoFactorError"></span>
+          <p style="font-size: 0.875rem; color: #666; margin-top: 8px;">
+            Ingresa el código de 6 dígitos de tu aplicación de autenticación (Google Authenticator, Authy, etc.)
+          </p>
+          <p style="font-size: 0.875rem; color: #666; margin-top: 4px;">
+            <a href="#" id="useBackupCodeLink" onclick="toggleBackupCode(event)">¿No tienes acceso? Usa código de respaldo</a>
+          </p>
+        </div>
+
+        <div class="form-group" id="backupCodeGroup" style="display:none;">
+          <label class="form-label" for="backupCode">Código de Respaldo</label>
+          <input type="text" id="backupCode" class="form-input" placeholder="ABCD1234" maxlength="8" pattern="[A-Z0-9]{8}" />
+          <span class="field-error" id="backupCodeError"></span>
+          <p style="font-size: 0.875rem; color: #666; margin-top: 8px;">
+            Usa uno de tus códigos de respaldo de 8 caracteres
+          </p>
+        </div>
+
         <button type="submit" class="btn-primary" style="width: 100%; margin-top: 8px;">
           <span id="submitText">Iniciar Sesión</span>
         </button>
@@ -99,6 +121,9 @@
   <script src="/js/api.js"></script>
   <script>
     let isLoginMode = true;
+    let requires2FA = false;
+    let pendingLoginEmail = null;
+    let pendingLoginPassword = null;
 
     function toggleMode(e) {
       e.preventDefault();
@@ -517,55 +542,86 @@
         };
 
         if (isLoginMode) {
-          const loginResponse = await api.login(email, password);
-          // La respuesta ya se guardó en localStorage dentro de api.login()
-          logger.success('Login exitoso', loginResponse);
-          
-          // Usar RedirectUrl del backend (determinado por roles)
-          // ASP.NET Core serializa en camelCase, así que la propiedad será 'redirectUrl'
-          const redirectUrl = loginResponse?.redirectUrl || loginResponse?.RedirectUrl || '/Reservas';
-          const userRoles = loginResponse?.user?.roles || loginResponse?.user?.Roles || [];
-          
-          console.log('🔐 [login] ========== DEBUGGING LOGIN ==========');
-          console.log('🔐 [login] LoginResponse completo:', loginResponse);
-          console.log('🔐 [login] redirectUrl (camelCase):', loginResponse?.redirectUrl);
-          console.log('🔐 [login] RedirectUrl (PascalCase):', loginResponse?.RedirectUrl);
-          console.log('🔐 [login] Roles del usuario:', userRoles);
-          console.log('🔐 [login] RedirectUrl final a usar:', redirectUrl);
-          console.log('👤 [login] Estoy redirigiendo a:', redirectUrl, 'y su rol es:', userRoles.join(', '));
-          console.log('🔐 [login] ========================================');
-          
-          // Verificar que el token esté guardado antes de redirigir
-          let attempts = 0;
-          while (attempts < 10) {
-            const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-            if (token) {
-              console.log('✅ Token verificado en localStorage antes de redirigir');
-              break;
+          // Si requiere 2FA, verificar código primero
+          if (requires2FA) {
+            const twoFactorCode = document.getElementById('twoFactorCode')?.value?.trim();
+            const backupCode = document.getElementById('backupCode')?.value?.trim();
+            
+            if (!twoFactorCode && !backupCode) {
+              cleanupLoading();
+              document.getElementById('twoFactorError').textContent = 'Ingresa el código de autenticación o código de respaldo';
+              return;
             }
-            await new Promise(resolve => setTimeout(resolve, 50));
-            attempts++;
+
+            try {
+              await api.verifyLogin2FA(pendingLoginEmail, twoFactorCode || '', backupCode || null);
+              // Si la verificación es exitosa, continuar con el login normal
+              // El backend debería devolver los tokens después de verificar 2FA
+              // Por ahora, asumimos que el login inicial ya fue exitoso y solo faltaba 2FA
+              logger.success('2FA verificado exitosamente');
+              
+              // Continuar con el flujo normal de login
+              // (En producción, el backend debería manejar esto en un solo paso)
+              const loginResponse = await api.login(pendingLoginEmail, pendingLoginPassword);
+              completeLogin(loginResponse, cleanupLoading);
+              return;
+            } catch (error) {
+              cleanupLoading();
+              const errorMsg = error.message || 'Código 2FA inválido';
+              document.getElementById('twoFactorError').textContent = errorMsg;
+              if (backupCode) {
+                document.getElementById('backupCodeError').textContent = errorMsg;
+              }
+              return;
+            }
           }
-          
-          // Verificar una última vez
-          const finalToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-          if (!finalToken) {
-            console.error('❌ Token no encontrado después de intentos, redirigiendo de todas formas');
+
+          // Login normal
+          try {
+            const loginResponse = await api.login(email, password);
+            logger.success('Login exitoso', loginResponse);
+            
+            // Verificar si requiere 2FA
+            // (En producción, el backend debería indicar esto en la respuesta)
+            // Por ahora, intentamos verificar el estado de 2FA del usuario
+            try {
+              const twoFactorStatus = await api.get2FAStatus();
+              if (twoFactorStatus?.isEnabled) {
+                // Requiere 2FA - mostrar campo
+                requires2FA = true;
+                pendingLoginEmail = email;
+                pendingLoginPassword = password;
+                document.getElementById('email').disabled = true;
+                document.getElementById('password').disabled = true;
+                document.getElementById('twoFactorGroup').style.display = 'block';
+                document.getElementById('twoFactorCode').focus();
+                document.getElementById('submitText').textContent = 'Verificar Código';
+                cleanupLoading();
+                return;
+              }
+            } catch (error) {
+              // Si falla verificar 2FA, continuar con login normal
+              logger.warn('No se pudo verificar estado 2FA, continuando con login normal', error);
+            }
+            
+            completeLogin(loginResponse, cleanupLoading);
+            return;
+          } catch (error) {
+            // Si el error indica que requiere 2FA
+            if (error.message?.includes('2FA') || error.message?.includes('two factor')) {
+              requires2FA = true;
+              pendingLoginEmail = email;
+              pendingLoginPassword = password;
+              document.getElementById('email').disabled = true;
+              document.getElementById('password').disabled = true;
+              document.getElementById('twoFactorGroup').style.display = 'block';
+              document.getElementById('twoFactorCode').focus();
+              document.getElementById('submitText').textContent = 'Verificar Código';
+              cleanupLoading();
+              return;
+            }
+            throw error;
           }
-          
-          // Desactivar loading antes de redirigir
-          cleanupLoading();
-          
-          // Redirigir según la URL determinada por el backend
-          const fullUrl = window.location.origin + redirectUrl;
-          console.log('👤 [login] ========== REDIRECCIÓN ==========');
-          console.log('👤 [login] RedirectUrl recibido del backend:', redirectUrl);
-          console.log('👤 [login] URL completa será:', fullUrl);
-          console.log('👤 [login] Token disponible:', !!finalToken);
-          console.log('👤 [login] EJECUTANDO: window.location.href =', redirectUrl);
-          console.log('👤 [login] ====================================');
-          window.location.href = redirectUrl;
-          return;
         } else {
           const firstName = document.getElementById('firstName').value.trim();
           const lastName = document.getElementById('lastName').value.trim();
@@ -738,6 +794,102 @@
         updateSubmitButtonState();
       }
     }
+
+    // Función helper para completar el login
+    async function completeLogin(loginResponse, cleanupLoading) {
+      // Usar RedirectUrl del backend (determinado por roles)
+      const redirectUrl = loginResponse?.redirectUrl || loginResponse?.RedirectUrl || '/Reservas';
+      const userRoles = loginResponse?.user?.roles || loginResponse?.user?.Roles || [];
+      
+      console.log('🔐 [login] ========== DEBUGGING LOGIN ==========');
+      console.log('🔐 [login] LoginResponse completo:', loginResponse);
+      console.log('🔐 [login] redirectUrl (camelCase):', loginResponse?.redirectUrl);
+      console.log('🔐 [login] RedirectUrl (PascalCase):', loginResponse?.RedirectUrl);
+      console.log('🔐 [login] Roles del usuario:', userRoles);
+      console.log('🔐 [login] RedirectUrl final a usar:', redirectUrl);
+      console.log('👤 [login] Estoy redirigiendo a:', redirectUrl, 'y su rol es:', userRoles.join(', '));
+      console.log('🔐 [login] ========================================');
+      
+      // Verificar que el token esté guardado antes de redirigir
+      let attempts = 0;
+      while (attempts < 10) {
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+        if (token) {
+          console.log('✅ Token verificado en localStorage antes de redirigir');
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 50));
+        attempts++;
+      }
+      
+      // Verificar una última vez
+      const finalToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+      if (!finalToken) {
+        console.error('❌ Token no encontrado después de intentos, redirigiendo de todas formas');
+      }
+      
+      // Desactivar loading antes de redirigir
+      cleanupLoading();
+      
+      // Redirigir según la URL determinada por el backend
+      const fullUrl = window.location.origin + redirectUrl;
+      console.log('👤 [login] ========== REDIRECCIÓN ==========');
+      console.log('👤 [login] RedirectUrl recibido del backend:', redirectUrl);
+      console.log('👤 [login] URL completa será:', fullUrl);
+      console.log('👤 [login] Token disponible:', !!finalToken);
+      console.log('👤 [login] EJECUTANDO: window.location.href =', redirectUrl);
+      console.log('👤 [login] ====================================');
+      window.location.href = redirectUrl;
+    }
+
+    // Función para alternar entre código 2FA y código de respaldo
+    function toggleBackupCode(e) {
+      e.preventDefault();
+      const twoFactorGroup = document.getElementById('twoFactorGroup');
+      const backupCodeGroup = document.getElementById('backupCodeGroup');
+      const useBackupCodeLink = document.getElementById('useBackupCodeLink');
+      
+      if (backupCodeGroup.style.display === 'none') {
+        backupCodeGroup.style.display = 'block';
+        twoFactorGroup.style.display = 'none';
+        useBackupCodeLink.textContent = 'Usar código de autenticación';
+        document.getElementById('backupCode').focus();
+      } else {
+        backupCodeGroup.style.display = 'none';
+        twoFactorGroup.style.display = 'block';
+        useBackupCodeLink.textContent = '¿No tienes acceso? Usa código de respaldo';
+        document.getElementById('twoFactorCode').focus();
+      }
+    }
+
+    // Validar código 2FA en tiempo real (solo números, 6 dígitos)
+    document.addEventListener('DOMContentLoaded', () => {
+      const twoFactorCode = document.getElementById('twoFactorCode');
+      if (twoFactorCode) {
+        twoFactorCode.addEventListener('input', function() {
+          // Solo permitir números
+          this.value = this.value.replace(/[^0-9]/g, '');
+          // Limitar a 6 dígitos
+          if (this.value.length > 6) {
+            this.value = this.value.substring(0, 6);
+          }
+          updateSubmitButtonState();
+        });
+      }
+
+      const backupCode = document.getElementById('backupCode');
+      if (backupCode) {
+        backupCode.addEventListener('input', function() {
+          // Solo permitir letras mayúsculas y números
+          this.value = this.value.replace(/[^A-Z0-9]/g, '').toUpperCase();
+          // Limitar a 8 caracteres
+          if (this.value.length > 8) {
+            this.value = this.value.substring(0, 8);
+          }
+          updateSubmitButtonState();
+        });
+      }
+    });
   </script>
 </body>
 </html>

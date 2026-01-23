@@ -696,6 +696,184 @@ class ApiClient {
     });
   }
 
+  // 2FA (Two Factor Authentication)
+  async enable2FA() {
+    return this.request('/api/auth/2fa/enable', { method: 'POST' });
+  }
+
+  async verify2FA(code) {
+    return this.request('/api/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  async verifyLogin2FA(email, code, backupCode = null) {
+    return this.request('/api/auth/2fa/verify-login', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, backupCode }),
+    });
+  }
+
+  async disable2FA(code, backupCode = null) {
+    return this.request('/api/auth/2fa/disable', {
+      method: 'POST',
+      body: JSON.stringify({ code, backupCode }),
+    });
+  }
+
+  async get2FAStatus() {
+    return this.request('/api/auth/2fa/status');
+  }
+
+  // Email Verification
+  async sendVerificationEmail() {
+    return this.request('/api/auth/email-verification/send', { method: 'POST' });
+  }
+
+  async verifyEmail(token) {
+    return this.request('/api/auth/email-verification/verify', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async getEmailVerificationStatus() {
+    return this.request('/api/auth/email-verification/status');
+  }
+
+  // Sessions
+  async getSessions() {
+    return this.request('/api/auth/sessions');
+  }
+
+  async closeSession(tokenId) {
+    return this.request(`/api/auth/sessions/${tokenId}`, { method: 'DELETE' });
+  }
+
+  async closeAllOtherSessions() {
+    return this.request('/api/auth/sessions/close-all-others', { method: 'POST' });
+  }
+
+  // Reviews
+  async getTourReviews(tourId, page = 1, pageSize = 10, minRating = null) {
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    if (minRating) params.append('minRating', minRating);
+    return this.request(`/api/tours/${tourId}/reviews?${params.toString()}`);
+  }
+
+  async createReview(tourId, rating, title = null, comment = null) {
+    return this.request(`/api/tours/${tourId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify({ rating, title, comment }),
+    });
+  }
+
+  async deleteReview(tourId, reviewId) {
+    return this.request(`/api/tours/${tourId}/reviews/${reviewId}`, { method: 'DELETE' });
+  }
+
+  // Coupons
+  async validateCoupon(code, purchaseAmount, tourId = null) {
+    return this.request('/api/coupons/validate', {
+      method: 'POST',
+      body: JSON.stringify({ code, purchaseAmount, tourId }),
+    });
+  }
+
+  // Wishlist/Favorites
+  async addToFavorites(tourId) {
+    return this.request(`/api/tours/${tourId}/favorite`, { method: 'POST' });
+  }
+
+  async removeFromFavorites(tourId) {
+    return this.request(`/api/tours/${tourId}/favorite`, { method: 'DELETE' });
+  }
+
+  async getFavorites() {
+    return this.request('/api/tours/favorites');
+  }
+
+  async checkFavorite(tourId) {
+    return this.request(`/api/tours/${tourId}/favorite/check`);
+  }
+
+  // Waitlist
+  async addToWaitlist(tourId, tourDateId = null, numberOfParticipants = 1) {
+    return this.request('/api/waitlist', {
+      method: 'POST',
+      body: JSON.stringify({ tourId, tourDateId, numberOfParticipants }),
+    });
+  }
+
+  async getMyWaitlist() {
+    return this.request('/api/waitlist/my');
+  }
+
+  async removeFromWaitlist(waitlistId) {
+    return this.request(`/api/waitlist/${waitlistId}`, { method: 'DELETE' });
+  }
+
+  // Advanced Search
+  async searchTours(query = '', filters = {}, page = 1, pageSize = 20) {
+    const params = new URLSearchParams();
+    if (query) params.append('q', query);
+    if (filters.minPrice !== null && filters.minPrice !== undefined) params.append('minPrice', filters.minPrice);
+    if (filters.maxPrice !== null && filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice);
+    if (filters.minDuration !== null && filters.minDuration !== undefined) params.append('minDuration', filters.minDuration);
+    if (filters.maxDuration !== null && filters.maxDuration !== undefined) params.append('maxDuration', filters.maxDuration);
+    if (filters.location) params.append('location', filters.location);
+    if (filters.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    const response = await this.request(`/api/tours/search?${params.toString()}`);
+    // El backend puede retornar { tours: [...], totalCount: ... } o directamente un array
+    return response.tours ? response : { tours: response, totalCount: response.length };
+  }
+
+  async getRelatedTours(tourId, limit = 4) {
+    return this.request(`/api/tours/${tourId}/related?limit=${limit}`);
+  }
+
+  async getFeaturedTours(limit = 6) {
+    return this.request(`/api/tours/featured?limit=${limit}`);
+  }
+
+  // Reports (Admin)
+  async getReportsSummary(startDate = null, endDate = null) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return this.request(`/api/admin/reports/summary?${params.toString()}`);
+  }
+
+  async getToursReport(startDate = null, endDate = null, limit = 10) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    params.append('limit', limit);
+    return this.request(`/api/admin/reports/tours?${params.toString()}`);
+  }
+
+  async getTimeseriesReport(startDate = null, endDate = null, groupBy = 'day') {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    params.append('groupBy', groupBy);
+    return this.request(`/api/admin/reports/timeseries?${params.toString()}`);
+  }
+
+  async getCustomersReport(startDate = null, endDate = null, limit = 10) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    params.append('limit', limit);
+    return this.request(`/api/admin/reports/customers?${params.toString()}`);
+  }
+
   // Admin Pages
   async getAdminPages(isPublished = null, page = 1, pageSize = 50) {
     const params = new URLSearchParams();

@@ -10,6 +10,7 @@ public class CreateBookingRequestDto
     public int NumberOfParticipants { get; set; }
     public Guid? CountryId { get; set; } // País desde el cual se realiza la reserva
     public List<ParticipantRequestDto> Participants { get; set; } = new();
+    public string? CouponCode { get; set; } // Código de cupón opcional
 }
 
 public class ParticipantRequestDto

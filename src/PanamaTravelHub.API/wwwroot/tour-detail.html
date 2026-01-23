@@ -171,6 +171,60 @@
               </div>
             </div>
           </section>
+
+          <!-- Reviews Section -->
+          <section class="info-block" id="reviewsSection">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2 class="info-block-title">Reseñas y Calificaciones</h2>
+              <button class="btn-secondary" id="writeReviewBtn" onclick="showReviewForm()" style="display:none;">
+                Escribir Reseña
+              </button>
+            </div>
+            
+            <!-- Review Statistics -->
+            <div id="reviewStats" class="review-stats" style="display:none;">
+              <div class="review-stats-main">
+                <div class="review-average">
+                  <span id="reviewAverage" class="review-average-number">0.0</span>
+                  <div class="review-stars-large" id="reviewStarsLarge"></div>
+                  <span class="review-count-text" id="reviewCountText">0 reseñas</span>
+                </div>
+                <div class="review-distribution" id="reviewDistribution"></div>
+              </div>
+            </div>
+
+            <!-- Review Form (hidden by default) -->
+            <div id="reviewForm" class="review-form" style="display:none;">
+              <h3>Escribe tu Reseña</h3>
+              <div class="form-group">
+                <label>Calificación</label>
+                <div class="star-rating-input" id="starRatingInput">
+                  <span class="star" data-rating="1">☆</span>
+                  <span class="star" data-rating="2">☆</span>
+                  <span class="star" data-rating="3">☆</span>
+                  <span class="star" data-rating="4">☆</span>
+                  <span class="star" data-rating="5">☆</span>
+                </div>
+                <input type="hidden" id="selectedRating" value="0" />
+              </div>
+              <div class="form-group">
+                <label for="reviewTitle">Título (opcional)</label>
+                <input type="text" id="reviewTitle" class="form-input" placeholder="Resumen de tu experiencia" maxlength="200" />
+              </div>
+              <div class="form-group">
+                <label for="reviewComment">Comentario</label>
+                <textarea id="reviewComment" class="form-input" rows="4" placeholder="Comparte tu experiencia..." maxlength="2000"></textarea>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" onclick="submitReview()">Enviar Reseña</button>
+                <button class="btn-secondary" onclick="hideReviewForm()">Cancelar</button>
+              </div>
+            </div>
+
+            <!-- Reviews List -->
+            <div id="reviewsList" class="reviews-list"></div>
+            <div id="reviewsPagination" class="reviews-pagination" style="display:none;"></div>
+          </section>
         </div>
 
         <!-- Right Column - Booking Card -->
@@ -198,6 +252,12 @@
             </div>
 
             <div class="booking-divider"></div>
+
+            <!-- Favorite Button -->
+            <button class="btn-secondary" id="favoriteBtn" onclick="toggleFavorite()" style="width: 100%; margin-bottom: 12px; display:none;">
+              <span id="favoriteBtnText">Agregar a Favoritos</span>
+              <span id="favoriteBtnIcon">♡</span>
+            </button>
 
             <button class="btn-booking" onclick="bookTour()">
               <span class="btn-booking-text">Reservar Ahora</span>
@@ -583,6 +643,10 @@
 
         document.getElementById('loadingState').style.display = 'none';
         document.getElementById('tourContent').style.display = 'block';
+
+        // Cargar reviews y favoritos
+        await loadReviews(tourId);
+        await checkFavoriteStatus(tourId);
       } catch (error) {
         console.error('Error loading tour:', error);
         if (typeof notificationManager !== 'undefined' && notificationManager) {

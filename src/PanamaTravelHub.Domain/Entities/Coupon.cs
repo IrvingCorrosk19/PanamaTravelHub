@@ -1,3 +1,5 @@
+using PanamaTravelHub.Domain.Enums;
+
 namespace PanamaTravelHub.Domain.Entities;
 
 public class Coupon : BaseEntity
@@ -30,10 +32,4 @@ public class Coupon : BaseEntity
     // Navigation properties
     public Tour? ApplicableTour { get; set; }
     public ICollection<CouponUsage> Usages { get; set; } = new List<CouponUsage>();
-}
-
-public enum CouponType
-{
-    Percentage = 1,    // Descuento por porcentaje
-    FixedAmount = 2    // Descuento por monto fijo
 }

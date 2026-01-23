@@ -189,6 +189,61 @@ public class BookingsController : ControllerBase
             DateOfBirth = p.DateOfBirth
         }).ToList();
 
+        // Validar y aplicar cupón si se proporciona
+        decimal discountAmount = 0;
+        Guid? appliedCouponId = null;
+        if (!string.IsNullOrWhiteSpace(request.CouponCode))
+        {
+            try
+            {
+                // Obtener tour para calcular monto de compra
+                var tour = await _context.Tours.FindAsync(request.TourId);
+                if (tour == null)
+                {
+                    return BadRequest(new { message = "Tour no encontrado" });
+                }
+
+                var purchaseAmount = tour.Price * request.NumberOfParticipants;
+                var couponValidation = await _context.Coupons
+                    .FirstOrDefaultAsync(c => c.Code.ToUpper() == request.CouponCode.ToUpper().Trim() && c.IsActive);
+
+                if (couponValidation != null)
+                {
+                    // Validar cupón (simplificado - usar lógica del CouponsController)
+                    var now = DateTime.UtcNow;
+                    if ((!couponValidation.ValidFrom.HasValue || couponValidation.ValidFrom.Value <= now) &&
+                        (!couponValidation.ValidUntil.HasValue || couponValidation.ValidUntil.Value >= now) &&
+                        (!couponValidation.MaxUses.HasValue || couponValidation.CurrentUses < couponValidation.MaxUses.Value))
+                    {
+                        // Calcular descuento
+                        if (couponValidation.DiscountType == Domain.Enums.CouponType.Percentage)
+                        {
+                            discountAmount = purchaseAmount * (couponValidation.DiscountValue / 100);
+                            if (couponValidation.MaximumDiscountAmount.HasValue && discountAmount > couponValidation.MaximumDiscountAmount.Value)
+                            {
+                                discountAmount = couponValidation.MaximumDiscountAmount.Value;
+                            }
+                        }
+                        else if (couponValidation.DiscountType == Domain.Enums.CouponType.FixedAmount)
+                        {
+                            discountAmount = couponValidation.DiscountValue;
+                            if (discountAmount > purchaseAmount)
+                            {
+                                discountAmount = purchaseAmount;
+                            }
+                        }
+
+                        appliedCouponId = couponValidation.Id;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al validar cupón {CouponCode}, continuando sin descuento", request.CouponCode);
+                // Continuar sin descuento si hay error
+            }
+        }
+
         // Crear reserva
         var booking = await _bookingService.CreateBookingAsync(
             userId,
@@ -197,6 +252,34 @@ public class BookingsController : ControllerBase
             request.NumberOfParticipants,
             participants,
             request.CountryId);
+
+        // Aplicar descuento si hay cupón válido
+        if (appliedCouponId.HasValue && discountAmount > 0)
+        {
+            booking.TotalAmount = Math.Max(0, booking.TotalAmount - discountAmount);
+            
+            // Registrar uso del cupón
+            var couponUsage = new CouponUsage
+            {
+                CouponId = appliedCouponId.Value,
+                UserId = userId,
+                BookingId = booking.Id,
+                DiscountAmount = discountAmount,
+                OriginalAmount = booking.TotalAmount + discountAmount,
+                FinalAmount = booking.TotalAmount
+            };
+            _context.CouponUsages.Add(couponUsage);
+            
+            // Incrementar contador de usos
+            var coupon = await _context.Coupons.FindAsync(appliedCouponId.Value);
+            if (coupon != null)
+            {
+                coupon.CurrentUses++;
+                coupon.UpdatedAt = DateTime.UtcNow;
+            }
+            
+            await _context.SaveChangesAsync();
+        }
 
         var result = new BookingResponseDto
         {

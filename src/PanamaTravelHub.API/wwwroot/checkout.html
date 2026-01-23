@@ -233,7 +233,34 @@
             <span class="summary-value" id="summaryUnitPrice">$0.00</span>
           </div>
           
+          <!-- Coupon Section -->
           <div class="summary-divider"></div>
+          <div class="coupon-section">
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label class="form-label" style="font-size: 0.9rem; margin-bottom: 5px;">Código de Cupón</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="couponCode" class="form-input" placeholder="INGRESA CÓDIGO" style="flex: 1; text-transform: uppercase;" maxlength="50" />
+                <button class="btn-secondary" onclick="applyCoupon()" style="white-space: nowrap;">Aplicar</button>
+              </div>
+              <span class="field-error" id="couponError" style="display: none; font-size: 0.85rem;"></span>
+            </div>
+            <div id="couponApplied" style="display: none; padding: 10px; background: #e8f5e9; border-radius: 4px; margin-top: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <strong id="couponName"></strong>
+                  <span id="couponRemove" onclick="removeCoupon()" style="color: #d32f2f; cursor: pointer; margin-left: 10px; font-size: 0.85rem;">✕ Remover</span>
+                </div>
+                <span id="couponDiscount" style="color: #4caf50; font-weight: 600;"></span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="summary-divider"></div>
+          
+          <div class="summary-item" id="discountItem" style="display: none;">
+            <span class="summary-label">Descuento</span>
+            <span class="summary-value" id="summaryDiscount" style="color: #4caf50;">-$0.00</span>
+          </div>
           
           <div class="summary-item summary-total">
             <span class="summary-label">Total</span>

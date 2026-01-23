@@ -666,14 +666,116 @@ function createTourCard(tour) {
   return cardHtml;
 }
 
-// Search Tours
-function searchTours() {
+// Search Tours with Advanced Filters
+let currentSearchQuery = '';
+let currentFilters = {};
+
+async function searchTours() {
   const searchInput = document.getElementById('searchInput');
-  const query = searchInput.value.toLowerCase().trim();
+  const query = searchInput?.value?.trim() || '';
+  currentSearchQuery = query;
   
-  // TODO: Implement actual search when API is ready
-  console.log('Searching for:', query);
-  // For now, just reload all tours
+  const loadingState = document.getElementById('loadingState');
+  const errorState = document.getElementById('errorState');
+  const emptyState = document.getElementById('emptyState');
+  const toursGrid = document.getElementById('toursGrid');
+  
+  try {
+    loadingState.style.display = 'block';
+    errorState.style.display = 'none';
+    emptyState.style.display = 'none';
+    toursGrid.innerHTML = '';
+    
+    const loaderId = loadingManager.showInline(toursGrid, 'Buscando tours...');
+    
+    // Construir filtros
+    const filters = {
+      minPrice: document.getElementById('filterMinPrice')?.value ? parseFloat(document.getElementById('filterMinPrice').value) : null,
+      maxPrice: document.getElementById('filterMaxPrice')?.value ? parseFloat(document.getElementById('filterMaxPrice').value) : null,
+      minDuration: document.getElementById('filterMinDuration')?.value ? parseInt(document.getElementById('filterMinDuration').value) : null,
+      maxDuration: document.getElementById('filterMaxDuration')?.value ? parseInt(document.getElementById('filterMaxDuration').value) : null,
+      location: document.getElementById('filterLocation')?.value?.trim() || null,
+      sortBy: document.getElementById('filterSortBy')?.value || 'created',
+      sortOrder: document.getElementById('filterSortOrder')?.value || 'desc'
+    };
+    
+    currentFilters = filters;
+    
+    // Usar búsqueda avanzada si hay query o filtros
+    let tours = [];
+    if (query || Object.values(filters).some(v => v !== null && v !== '')) {
+      const response = await api.searchTours(query, filters, 1, 50);
+      tours = response.tours || response.data || [];
+    } else {
+      // Si no hay búsqueda ni filtros, cargar todos
+      tours = await api.getTours();
+    }
+    
+    loadingManager.hideInline(toursGrid);
+    loadingState.style.display = 'none';
+    
+    if (!tours || tours.length === 0) {
+      emptyState.style.display = 'block';
+      return;
+    }
+    
+    // Renderizar tours
+    toursGrid.innerHTML = tours.map(tour => {
+      try {
+        return createTourCard(tour);
+      } catch (error) {
+        console.error('Error al crear card del tour:', error, tour);
+        return '';
+      }
+    }).filter(card => card !== '').join('');
+    
+    // Animar cards
+    setTimeout(() => {
+      const cards = toursGrid.querySelectorAll('.tour-card');
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+    }, 100);
+  } catch (error) {
+    console.error('Error searching tours:', error);
+    loadingState.style.display = 'none';
+    errorState.style.display = 'block';
+    loadingManager.hideInline(toursGrid);
+  }
+}
+
+function toggleAdvancedFilters() {
+  const filtersPanel = document.getElementById('advancedFilters');
+  const toggleText = document.getElementById('filtersToggleText');
+  
+  if (filtersPanel.style.display === 'none') {
+    filtersPanel.style.display = 'block';
+    toggleText.textContent = 'Ocultar Filtros Avanzados';
+  } else {
+    filtersPanel.style.display = 'none';
+    toggleText.textContent = 'Mostrar Filtros Avanzados';
+  }
+}
+
+function applyFilters() {
+  searchTours();
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterMinPrice').value = '';
+  document.getElementById('filterMaxPrice').value = '';
+  document.getElementById('filterMinDuration').value = '';
+  document.getElementById('filterMaxDuration').value = '';
+  document.getElementById('filterLocation').value = '';
+  document.getElementById('filterSortBy').value = 'created';
+  document.getElementById('filterSortOrder').value = 'desc';
+  currentSearchQuery = '';
+  currentFilters = {};
   loadTours();
 }
 

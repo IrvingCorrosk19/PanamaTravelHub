@@ -36,6 +36,7 @@ let availableDates = [];
 let stripe = null;
 let stripePublishableKey = null;
 let isStripeEnabled = false; // Flag global para saber si Stripe está habilitado
+let appliedCoupon = null; // Cupón aplicado actualmente
 
 // Cargar información del tour desde URL
 document.addEventListener('DOMContentLoaded', async () => {
@@ -546,7 +547,36 @@ function updateOrderSummary() {
   
   // ✅ Calcular y formatear total de forma segura
   const price = Number(currentTour.Price ?? currentTour.price ?? 0);
-  const total = price * numberOfParticipants;
+  const subtotal = price * numberOfParticipants;
+  
+  // Aplicar descuento si hay cupón
+  let discount = 0;
+  if (appliedCoupon) {
+    if (appliedCoupon.discountType === 'Percentage') {
+      discount = subtotal * (appliedCoupon.discountAmount / 100);
+      if (appliedCoupon.maximumDiscountAmount && discount > appliedCoupon.maximumDiscountAmount) {
+        discount = appliedCoupon.maximumDiscountAmount;
+      }
+    } else if (appliedCoupon.discountType === 'FixedAmount') {
+      discount = appliedCoupon.discountAmount;
+      if (discount > subtotal) {
+        discount = subtotal;
+      }
+    }
+  }
+  
+  const total = subtotal - discount;
+  
+  // Mostrar/ocultar descuento
+  const discountItem = document.getElementById('discountItem');
+  const summaryDiscount = document.getElementById('summaryDiscount');
+  if (discount > 0) {
+    discountItem.style.display = 'flex';
+    summaryDiscount.textContent = `-${formatPrice(discount)}`;
+  } else {
+    discountItem.style.display = 'none';
+  }
+  
   document.getElementById('summaryTotal').textContent = formatPrice(total);
 }
 
@@ -1298,7 +1328,8 @@ async function processPayment() {
       tourDateId: tourDateId,
       numberOfParticipants: finalNumberOfParticipants, // Usar el valor convertido explícitamente
       countryId: countryId || undefined,
-      participants: participants
+      participants: participants,
+      couponCode: appliedCoupon?.code || null // Incluir código de cupón si está aplicado
     };
 
     // 🔍 LOGS DETALLADOS ANTES DE POST /api/bookings
@@ -1693,6 +1724,84 @@ function generateBookingId() {
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+// Coupon Functions
+async function applyCoupon() {
+  const couponCode = document.getElementById('couponCode')?.value?.trim().toUpperCase();
+  const couponError = document.getElementById('couponError');
+  const couponApplied = document.getElementById('couponApplied');
+  
+  if (!couponCode) {
+    couponError.textContent = 'Por favor ingresa un código de cupón';
+    couponError.style.display = 'block';
+    return;
+  }
+  
+  if (!currentTour) {
+    couponError.textContent = 'No hay información del tour disponible';
+    couponError.style.display = 'block';
+    return;
+  }
+  
+  const unitPrice = Number(currentTour.Price ?? currentTour.price ?? 0);
+  const purchaseAmount = unitPrice * numberOfParticipants;
+  const tourId = currentTour.Id || currentTour.id;
+  
+  try {
+    const response = await api.validateCoupon(couponCode, purchaseAmount, tourId);
+    
+    if (response.isValid) {
+      appliedCoupon = {
+        id: response.couponId,
+        code: response.couponCode,
+        discountType: response.discountType,
+        discountAmount: response.discountAmount,
+        maximumDiscountAmount: null // Se obtendría del backend si es necesario
+      };
+      
+      // Mostrar cupón aplicado
+      document.getElementById('couponName').textContent = `Cupón: ${response.couponCode}`;
+      document.getElementById('couponDiscount').textContent = `-${formatPrice(response.discountAmount)}`;
+      couponApplied.style.display = 'block';
+      couponError.style.display = 'none';
+      document.getElementById('couponCode').value = '';
+      
+      // Actualizar resumen
+      updateOrderSummary();
+    } else {
+      couponError.textContent = response.message || 'Código de cupón inválido';
+      couponError.style.display = 'block';
+      couponApplied.style.display = 'none';
+      appliedCoupon = null;
+    }
+  } catch (error) {
+    couponError.textContent = error.message || 'Error al validar el cupón';
+    couponError.style.display = 'block';
+    couponApplied.style.display = 'none';
+    appliedCoupon = null;
+  }
+}
+
+function removeCoupon() {
+  appliedCoupon = null;
+  document.getElementById('couponApplied').style.display = 'none';
+  document.getElementById('couponError').style.display = 'none';
+  document.getElementById('couponCode').value = '';
+  updateOrderSummary();
+}
+
+// Permitir aplicar cupón con Enter
+document.addEventListener('DOMContentLoaded', () => {
+  const couponCodeInput = document.getElementById('couponCode');
+  if (couponCodeInput) {
+    couponCodeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyCoupon();
+      }
+    });
+  }
+});
 
 // Cerrar modal al hacer clic fuera
 document.getElementById('paymentModal')?.addEventListener('click', function(e) {

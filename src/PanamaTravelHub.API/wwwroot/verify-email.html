@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verificar Email — ToursPanama</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/auth.css" />
+  <link rel="stylesheet" href="/css/loading.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner wrap">
+      <div class="brand">
+        <div class="mark"></div>
+        <a href="/"><span class="brand-text">ToursPanama</span></a>
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Tours</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1>Verificar Correo Electrónico</h1>
+        <p id="statusMessage">Verificando tu correo electrónico...</p>
+      </div>
+
+      <div id="errorMessage" class="error-message" style="display:none;"></div>
+      <div id="successMessage" class="success-message" style="display:none;"></div>
+
+      <div id="verificationForm" style="display:none;">
+        <p style="margin-bottom: 20px; color: #666;">
+          Ingresa el código de verificación que enviamos a tu correo electrónico, o haz clic en el enlace del email.
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="verificationToken">Código de Verificación</label>
+          <input type="text" id="verificationToken" class="form-input" placeholder="Pega el código aquí" />
+          <span class="field-error" id="tokenError"></span>
+        </div>
+        <button type="button" class="btn-primary" style="width: 100%;" onclick="verifyEmail()">
+          Verificar Email
+        </button>
+        <div style="margin-top: 20px; text-align: center;">
+          <a href="#" onclick="resendVerificationEmail(event)">¿No recibiste el email? Reenviar</a>
+        </div>
+      </div>
+
+      <div id="successContent" style="display:none; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+        <h2 style="color: #0ea5e9; margin-bottom: 10px;">¡Email Verificado!</h2>
+        <p style="color: #666; margin-bottom: 30px;">
+          Tu correo electrónico ha sido verificado exitosamente. Ya puedes usar todas las funcionalidades de tu cuenta.
+        </p>
+        <a href="/reservas.html" class="btn-primary">Ir a Mis Reservas</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/loading.js"></script>
+  <script src="/js/logger.js"></script>
+  <script src="/js/api.js"></script>
+  <script>
+    // Obtener token de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    // Si hay token en la URL, verificar automáticamente
+    if (token) {
+      verifyEmailWithToken(token);
+    } else {
+      // Mostrar formulario para ingresar token manualmente
+      document.getElementById('verificationForm').style.display = 'block';
+      document.getElementById('statusMessage').textContent = 'Ingresa el código de verificación';
+    }
+
+    async function verifyEmailWithToken(token) {
+      const statusMessage = document.getElementById('statusMessage');
+      const errorMessage = document.getElementById('errorMessage');
+      const successMessage = document.getElementById('successMessage');
+      const verificationForm = document.getElementById('verificationForm');
+      const successContent = document.getElementById('successContent');
+
+      try {
+        statusMessage.textContent = 'Verificando...';
+        const response = await api.verifyEmail(token);
+        
+        // Ocultar formulario y mostrar éxito
+        verificationForm.style.display = 'none';
+        statusMessage.style.display = 'none';
+        successContent.style.display = 'block';
+        
+        logger.success('Email verificado exitosamente');
+      } catch (error) {
+        statusMessage.style.display = 'none';
+        verificationForm.style.display = 'block';
+        errorMessage.textContent = error.message || 'El código de verificación es inválido o ha expirado';
+        errorMessage.style.display = 'block';
+        logger.error('Error al verificar email', error);
+      }
+    }
+
+    async function verifyEmail() {
+      const token = document.getElementById('verificationToken').value.trim();
+      const tokenError = document.getElementById('tokenError');
+      const errorMessage = document.getElementById('errorMessage');
+
+      if (!token) {
+        tokenError.textContent = 'Por favor ingresa el código de verificación';
+        return;
+      }
+
+      tokenError.textContent = '';
+      errorMessage.style.display = 'none';
+
+      await verifyEmailWithToken(token);
+    }
+
+    async function resendVerificationEmail(e) {
+      e.preventDefault();
+      const errorMessage = document.getElementById('errorMessage');
+      const successMessage = document.getElementById('successMessage');
+
+      try {
+        await api.sendVerificationEmail();
+        successMessage.textContent = 'Email de verificación reenviado. Revisa tu bandeja de entrada.';
+        successMessage.style.display = 'block';
+        errorMessage.style.display = 'none';
+      } catch (error) {
+        errorMessage.textContent = error.message || 'Error al reenviar el email de verificación';
+        errorMessage.style.display = 'block';
+        successMessage.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
