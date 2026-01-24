@@ -406,6 +406,7 @@
         <li><a href="#" class="nav-link" data-section="waitlist">⏳ Waitlist</a></li>
         <li><a href="#" class="nav-link" data-section="blog-comments">💬 Comentarios Blog</a></li>
         <li><a href="#" class="nav-link" data-section="homepage">🏠 Homepage</a></li>
+        <li><a href="#" class="nav-link" data-section="email-settings">📧 Configuración de Email</a></li>
         <li><a href="#" class="nav-link" data-section="media">🖼️ Media</a></li>
         <li><a href="#" class="nav-link" data-section="pages">📄 Páginas</a></li>
         <li><a href="#" class="nav-link" data-section="reports">📈 Reportes</a></li>
@@ -665,6 +666,39 @@
           <div id="homepageForm" style="display: grid; gap: 20px;">
             <!-- Se cargará dinámicamente -->
             <div class="loading">Cargando contenido...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Settings Section -->
+      <div id="email-settings-section" class="admin-content">
+        <div class="form-group">
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="loadEmailSettings()">🔄 Recargar</button>
+            <button class="btn btn-success" onclick="saveEmailSettings()">💾 Guardar Cambios</button>
+          </div>
+        </div>
+        <div class="chart-container">
+          <h3>Configuración SMTP / Email</h3>
+          <p class="form-hint">Configura el servidor de correo para notificaciones, reservas y facturas. Si dejas la contraseña en blanco al guardar, se mantiene la actual.</p>
+          <div id="emailSettingsForm" style="display: grid; gap: 20px; max-width: 600px;">
+            <div class="loading">Cargando configuración...</div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <h3>Configuración actual (resumen)</h3>
+          <div class="table-container">
+            <table id="emailSettingsTable">
+              <thead>
+                <tr>
+                  <th>Campo</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody id="emailSettingsTableBody">
+                <tr><td colspan="2" class="loading">Cargando...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

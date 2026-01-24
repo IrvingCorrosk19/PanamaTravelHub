@@ -74,6 +74,7 @@ function showSection(sectionName) {
       'waitlist': 'Lista de Espera',
       'blog-comments': 'Comentarios de Blog',
       'homepage': 'Contenido de Homepage',
+      'email-settings': 'Configuración de Email',
       'media': 'Biblioteca de Media',
       'pages': 'Gestión de Páginas',
       'reports': 'Reportes y Analytics',
@@ -130,6 +131,9 @@ async function loadSectionData(sectionName) {
       break;
     case 'homepage':
       await loadHomepageContent();
+      break;
+    case 'email-settings':
+      await loadEmailSettings();
       break;
     case 'media':
       await loadMedia();
@@ -281,19 +285,27 @@ async function loadTours() {
       return;
     }
     
-    tbody.innerHTML = tours.map(tour => `
+    tbody.innerHTML = tours.map(tour => {
+      const tid = tour.Id || tour.id;
+      const tname = tour.Name || tour.name || '-';
+      const tprice = tour.Price ?? tour.price ?? 0;
+      const tduration = tour.DurationHours ?? tour.durationHours ?? '-';
+      const tactive = tour.IsActive ?? tour.isActive ?? true;
+      return `
       <tr>
-        <td>${escapeHtml(tour.name)}</td>
-        <td>$${formatNumber(tour.price)}</td>
-        <td>${tour.durationHours || '-'}h</td>
-        <td>${tour.isActive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td>${escapeHtml(tname)}</td>
+        <td>$${formatNumber(tprice)}</td>
+        <td>${tduration === '-' ? '-' : tduration + 'h'}</td>
+        <td>${tactive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
         <td>
-          <button class="btn btn-secondary" onclick="editTour('${tour.id}')">Editar</button>
-          <button class="btn btn-primary" onclick="editTourBlocks('${tour.id}')" style="background: #8b5cf6;">📐 Bloques CMS</button>
-          <button class="btn btn-danger" onclick="deleteTour('${tour.id}')">Eliminar</button>
+          <a href="/tour-detail.html?id=${tid}" target="_blank" rel="noopener" class="btn btn-secondary" style="margin-right: 6px;">👁 Ver</a>
+          <button class="btn btn-secondary" onclick="editTour('${tid}')">Editar</button>
+          <button class="btn btn-primary" onclick="editTourBlocks('${tid}')" style="background: #8b5cf6;">📐 Bloques CMS</button>
+          <button class="btn btn-danger" onclick="deleteTour('${tid}')">Eliminar</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   } catch (error) {
     console.error('Error cargando tours:', error);
     showError('Error al cargar tours');
@@ -563,6 +575,95 @@ async function saveHomepageContent() {
   } catch (error) {
     console.error('Error guardando homepage content:', error);
     showError('Error al guardar el contenido de la homepage');
+  }
+}
+
+// Configuración de Email (SMTP)
+async function loadEmailSettings() {
+  try {
+    const s = await api.getAdminEmailSettings();
+    const host = s.SmtpHost ?? s.smtpHost ?? '';
+    const port = s.SmtpPort ?? s.smtpPort ?? 587;
+    const username = s.SmtpUsername ?? s.smtpUsername ?? '';
+    const fromAddr = s.FromAddress ?? s.fromAddress ?? '';
+    const fromName = s.FromName ?? s.fromName ?? '';
+    const enableSsl = (s.EnableSsl ?? s.enableSsl) !== false;
+
+    const form = document.getElementById('emailSettingsForm');
+    const tbody = document.getElementById('emailSettingsTableBody');
+    if (!form || !tbody) return;
+
+    form.innerHTML = `
+      <div class="form-group">
+        <label>Host SMTP</label>
+        <input type="text" id="emailSmtpHost" value="${escapeHtml(host)}" class="form-input" placeholder="smtp.gmail.com" />
+      </div>
+      <div class="form-group">
+        <label>Puerto</label>
+        <input type="number" id="emailSmtpPort" value="${port}" class="form-input" placeholder="587" min="1" max="65535" />
+      </div>
+      <div class="form-group">
+        <label>Usuario SMTP (email)</label>
+        <input type="text" id="emailSmtpUsername" value="${escapeHtml(username)}" class="form-input" placeholder="tu-email@gmail.com" />
+      </div>
+      <div class="form-group">
+        <label>Contraseña / App password</label>
+        <input type="password" id="emailSmtpPassword" class="form-input" placeholder="Dejar en blanco para mantener la actual" autocomplete="new-password" />
+      </div>
+      <div class="form-group">
+        <label>Remitente (From address)</label>
+        <input type="email" id="emailFromAddress" value="${escapeHtml(fromAddr)}" class="form-input" placeholder="noreply@panamatravelhub.com" />
+      </div>
+      <div class="form-group">
+        <label>Nombre del remitente</label>
+        <input type="text" id="emailFromName" value="${escapeHtml(fromName)}" class="form-input" placeholder="Panama Travel Hub" />
+      </div>
+      <div class="form-group">
+        <label><input type="checkbox" id="emailEnableSsl" ${enableSsl ? 'checked' : ''} /> Usar SSL/TLS</label>
+      </div>
+    `;
+
+    const pwdDisplay = username ? '••••••••' : '-';
+    const updatedAt = s.UpdatedAt ?? s.updatedAt ? new Date(s.UpdatedAt ?? s.updatedAt).toLocaleString() : '-';
+    tbody.innerHTML = `
+      <tr><td>Host</td><td>${escapeHtml(host) || '-'}</td></tr>
+      <tr><td>Puerto</td><td>${port}</td></tr>
+      <tr><td>Usuario</td><td>${escapeHtml(username) || '-'}</td></tr>
+      <tr><td>Contraseña</td><td>${pwdDisplay}</td></tr>
+      <tr><td>Remitente</td><td>${escapeHtml(fromAddr) || '-'}</td></tr>
+      <tr><td>Nombre remitente</td><td>${escapeHtml(fromName) || '-'}</td></tr>
+      <tr><td>SSL</td><td>${enableSsl ? 'Sí' : 'No'}</td></tr>
+      <tr><td>Última actualización</td><td>${updatedAt}</td></tr>
+    `;
+  } catch (error) {
+    console.error('Error cargando configuración de email:', error);
+    showError('Error al cargar la configuración de email');
+    const form = document.getElementById('emailSettingsForm');
+    const tbody = document.getElementById('emailSettingsTableBody');
+    if (form) form.innerHTML = '<div class="loading" style="color: var(--color-error);">Error al cargar. Reintenta.</div>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="2">Error al cargar</td></tr>';
+  }
+}
+
+async function saveEmailSettings() {
+  try {
+    const data = {
+      SmtpHost: document.getElementById('emailSmtpHost')?.value?.trim() || null,
+      SmtpPort: parseInt(document.getElementById('emailSmtpPort')?.value, 10) || null,
+      SmtpUsername: document.getElementById('emailSmtpUsername')?.value?.trim() || null,
+      SmtpPassword: document.getElementById('emailSmtpPassword')?.value || null,
+      FromAddress: document.getElementById('emailFromAddress')?.value?.trim() || null,
+      FromName: document.getElementById('emailFromName')?.value?.trim() || null,
+      EnableSsl: document.getElementById('emailEnableSsl')?.checked ?? null
+    };
+    if (data.SmtpPassword === '') data.SmtpPassword = null;
+
+    await api.updateAdminEmailSettings(data);
+    showSuccess('Configuración de email guardada correctamente');
+    await loadEmailSettings();
+  } catch (error) {
+    console.error('Error guardando configuración de email:', error);
+    showError('Error al guardar la configuración de email');
   }
 }
 
@@ -1050,14 +1151,15 @@ function openTourModal(tourId = null) {
   
   if (tourId) {
     modalTitle.textContent = 'Editar Tour';
+    modalBody.innerHTML = '<div class="loading" style="padding: 40px; text-align: center;"><div class="spinner"></div><p>Cargando tour...</p></div>';
+    modal.classList.add('active');
     loadTourForEdit(tourId);
   } else {
     modalTitle.textContent = 'Nuevo Tour';
     modalBody.innerHTML = getTourFormHTML();
     initTinyMCE();
+    modal.classList.add('active');
   }
-  
-  modal.classList.add('active');
 }
 
 function closeTourModal() {
@@ -1134,36 +1236,44 @@ function initTinyMCE() {
 }
 
 async function loadTourForEdit(tourId) {
+  const modalBody = document.getElementById('tourModalBody');
   try {
     const tour = await api.getAdminTour(tourId);
-    const modalBody = document.getElementById('tourModalBody');
     
     modalBody.innerHTML = getTourFormHTML();
     
-    // Llenar formulario
-    document.getElementById('tourName').value = tour.name || '';
-    document.getElementById('tourDescription').value = tour.description || '';
-    document.getElementById('tourItinerary').value = tour.itinerary || '';
-    document.getElementById('tourIncludes').value = tour.includes || '';
-    document.getElementById('tourPrice').value = tour.price || 0;
-    document.getElementById('tourDuration').value = tour.durationHours || 0;
-    document.getElementById('tourCapacity').value = tour.maxCapacity || 0;
-    document.getElementById('tourLocation').value = tour.location || '';
-    document.getElementById('tourIsActive').checked = tour.isActive !== false;
+    const name = tour.Name || tour.name || '';
+    const description = tour.Description || tour.description || '';
+    const itinerary = tour.Itinerary || tour.itinerary || '';
+    const includes = tour.Includes || tour.includes || '';
+    const price = tour.Price ?? tour.price ?? 0;
+    const durationHours = tour.DurationHours ?? tour.durationHours ?? 0;
+    const maxCapacity = tour.MaxCapacity ?? tour.maxCapacity ?? 0;
+    const location = tour.Location || tour.location || '';
+    const isActive = (tour.IsActive ?? tour.isActive) !== false;
     
-    // Inicializar TinyMCE después de llenar el formulario
+    document.getElementById('tourName').value = name;
+    document.getElementById('tourDescription').value = description;
+    document.getElementById('tourItinerary').value = itinerary;
+    document.getElementById('tourIncludes').value = includes;
+    document.getElementById('tourPrice').value = price;
+    document.getElementById('tourDuration').value = durationHours;
+    document.getElementById('tourCapacity').value = maxCapacity;
+    document.getElementById('tourLocation').value = location;
+    document.getElementById('tourIsActive').checked = isActive;
+    
     setTimeout(() => {
       initTinyMCE();
       if (typeof tinymce !== 'undefined' && tinymce.get('tourDescription')) {
-        tinymce.get('tourDescription').setContent(tour.description || '');
+        tinymce.get('tourDescription').setContent(description);
       }
     }, 100);
     
-    // Guardar ID para actualización
     document.getElementById('tourForm').dataset.tourId = tourId;
   } catch (error) {
     console.error('Error cargando tour:', error);
     showError('Error al cargar tour');
+    closeTourModal();
   }
 }
 

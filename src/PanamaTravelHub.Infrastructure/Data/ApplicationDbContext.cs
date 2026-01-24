@@ -45,6 +45,7 @@ public class ApplicationDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<InvoiceSequence> InvoiceSequences { get; set; }
+    public DbSet<EmailSettings> EmailSettings { get; set; }
     
     // Data Protection Keys (para persistencia en PostgreSQL)
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;

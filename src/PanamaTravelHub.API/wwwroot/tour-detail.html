@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/css/carousel.css" />
   <link rel="stylesheet" href="/css/loading.css" />
   <link rel="stylesheet" href="/css/enhancements.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈</text></svg>" type="image/svg+xml" />
 </head>
 <body>
   <nav class="nav">
@@ -191,7 +192,17 @@
     </div>
   </footer>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places" async defer></script>
+    <script>
+      window.GOOGLE_MAPS_KEY = 'YOUR_API_KEY'; /* Sustituir por tu API key de Google Maps */
+      (function() {
+        var k = (window.GOOGLE_MAPS_KEY || '').trim();
+        if (!k || k === 'YOUR_API_KEY' || k.length < 10) return;
+        var s = document.createElement('script');
+        s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(k) + '&libraries=places';
+        s.async = true; s.defer = true;
+        document.head.appendChild(s);
+      })();
+    </script>
     <script src="/js/loading.js"></script>
     <script src="/js/logger.js"></script>
     <script src="/js/notifications.js"></script>
@@ -469,7 +480,7 @@
         return;
       }
 
-      const loaderId = loadingManager.showInElement(document.querySelector('.tour-detail-container') || document.body, 'Cargando información del tour...');
+      const loaderId = loadingManager.showInElement(document.querySelector('.tour-detail') || document.body, 'Cargando información del tour...');
       try {
         // Llamar a la API real
         try {
@@ -493,12 +504,12 @@
           };
         }
 
-        // Track: tour_viewed
-        const tourId = currentTour.Id || currentTour.id;
-        if (window.track && tourId) {
+        // Track: tour_viewed (usar tourId de la URL, ya declarado arriba)
+        const trackTourId = currentTour.Id || currentTour.id || tourId;
+        if (window.track && trackTourId) {
           window.track('tour_viewed', {
             entityType: 'tour',
-            entityId: tourId,
+            entityId: trackTourId,
             metadata: {
               tourName: currentTour.Name || currentTour.name,
               price: currentTour.Price || currentTour.price,
@@ -507,11 +518,7 @@
           });
         }
 
-        // Actualizar UI
-        console.log('🎴 [loadTour] === PROCESANDO TOUR ===', { currentTour });
-        
-        // Normalizar propiedades (el backend ASP.NET Core retorna PascalCase por defecto)
-        // Priorizar PascalCase que es lo que devuelve el backend
+        // Normalizar propiedades (PascalCase / camelCase)
         const tourName = currentTour.Name || currentTour.name || 'Tour sin nombre';
         const tourLocation = currentTour.Location || currentTour.location || 'Ubicación no especificada';
         const tourDescription = currentTour.Description || currentTour.description || 'Sin descripción disponible';
@@ -521,64 +528,12 @@
         const maxCapacity = currentTour.MaxCapacity !== undefined ? currentTour.MaxCapacity : 
                             (currentTour.maxCapacity !== undefined ? currentTour.maxCapacity : 0);
         
-        // ✅ SOLUCIÓN ROBUSTA: Normalizar precio de forma segura
-        // Priorizar PascalCase (backend ASP.NET Core)
-        console.log('💰 [loadTour] === PROCESANDO PRECIO ===');
-        const rawPrice = currentTour.Price ?? currentTour.price ?? null;
-        console.log('1️⃣ [loadTour] Raw price obtenido:', {
-          'currentTour.Price': currentTour.Price,
-          'currentTour.price': currentTour.price,
-          rawPrice,
-          rawPriceType: typeof rawPrice,
-          hasPrice: 'price' in currentTour,
-          hasPriceUpper: 'Price' in currentTour
-        });
-        
-        // Convertir a número con fallback a 0 (evita crash con toFixed)
-        let price = Number(rawPrice ?? 0);
-        console.log('2️⃣ [loadTour] Price después de Number():', {
-          price,
-          priceType: typeof price,
-          isNaN: isNaN(price),
-          isFinite: isFinite(price)
-        });
-        
-        // Validación estricta: asegurar que price es un número válido y finito
-        if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
-          console.warn('⚠️ [loadTour] Precio inválido detectado, usando 0:', { 
-            tourId,
-            tourName, 
-            rawPrice, 
-            rawPriceType: typeof rawPrice,
-            priceBeforeFix: price,
-            priceType: typeof price
-          });
-          price = 0;
-        } else {
-          console.log('✅ [loadTour] Validación pasada: price es número válido');
-        }
-        
-        // 🛡️ VALIDACIÓN FINAL: Asegurar que price es número válido antes de toFixed
-        if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
-          console.error('❌ [loadTour] ERROR CRÍTICO: price inválido antes de toFixed, usando 0', {
-            tourId,
-            tourName,
-            price,
-            priceType: typeof price
-          });
-          price = 0;
-        }
-        
-        // Formatear precio (price siempre es un número válido aquí)
-        console.log('3️⃣ [loadTour] Llamando a toFixed(2) con price:', price);
+        let price = Number(currentTour.Price ?? currentTour.price ?? 0);
+        if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) price = 0;
         const formattedPrice = price.toFixed(2);
-        console.log('✅ [loadTour] formattedPrice obtenido:', formattedPrice);
-        
-        // Fallback visual elegante si el precio es 0
         const priceText = price > 0 ? `$${formattedPrice}` : 'Consultar precio';
-        console.log('4️⃣ [loadTour] priceText final:', priceText);
         
-        // Actualizar breadcrumb (siempre existe)
+        // Actualizar breadcrumb
         const breadcrumbEl = document.getElementById('breadcrumbTourName');
         if (breadcrumbEl) breadcrumbEl.textContent = tourName;
 
@@ -591,17 +546,9 @@
         // Actualizar sticky CTA
         updateStickyCta(currentTour);
 
-        // Cargar reviews y favoritos (después de renderizar bloques)
         const reviewsBlock = document.getElementById('reviewsBlock');
-        if (reviewsBlock) {
-          await loadReviewsForBlock(tourId);
-        }
-        await checkFavoriteStatus(tourId);
-        
-        // Cargar mapa si hay ubicación (se renderiza en bloque CMS)
-        if (tourLocation && tourLocation.trim() !== '') {
-          // El mapa se inicializará en el bloque CMS
-        }
+        if (reviewsBlock) await loadReviewsForBlock(tourId);
+        try { await checkFavoriteStatus(tourId); } catch (_) { /* favoritos opcional */ }
       } catch (error) {
         console.error('Error loading tour:', error);
         const errorMsg = error.message && error.message.includes('401')
@@ -926,12 +873,63 @@
       });
     }
 
-    // Hacer funciones globales para onclick
     window.goToImage = goToImage;
     window.openImageModal = openImageModal;
     window.closeImageModal = closeImageModal;
     window.previousImageModal = previousImageModal;
     window.nextImageModal = nextImageModal;
+    window.bookTour = bookTour;
+    window.toggleFavorite = toggleFavorite;
+
+    async function checkFavoriteStatus(tourId) {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      const btn = document.getElementById('favoriteBtn');
+      const textEl = document.getElementById('favoriteBtnText');
+      const iconEl = document.getElementById('favoriteBtnIcon');
+      if (!btn || !textEl || !iconEl) return;
+      if (!token) { btn.style.display = 'none'; return; }
+      try {
+        const isFav = await api.checkFavorite(tourId);
+        window.currentTourIsFavorite = typeof isFav === 'object' && isFav && 'isFavorite' in isFav
+          ? !!isFav.isFavorite
+          : !!isFav;
+        btn.style.display = 'block';
+        if (window.currentTourIsFavorite) {
+          textEl.textContent = 'Quitar de Favoritos';
+          iconEl.textContent = '♥';
+        } else {
+          textEl.textContent = 'Agregar a Favoritos';
+          iconEl.textContent = '♡';
+        }
+      } catch (_) {
+        btn.style.display = 'none';
+      }
+    }
+
+    async function toggleFavorite() {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      if (!token) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+        return;
+      }
+      const tid = currentTour?.Id || currentTour?.id;
+      if (!tid) return;
+      try {
+        if (window.currentTourIsFavorite) {
+          await api.removeFavorite(tid);
+        } else {
+          await api.addFavorite(tid);
+        }
+        await checkFavoriteStatus(tid);
+        if (typeof notificationManager !== 'undefined' && notificationManager) {
+          notificationManager.success(window.currentTourIsFavorite ? 'Añadido a favoritos' : 'Quitado de favoritos');
+        }
+      } catch (e) {
+        if (typeof notificationManager !== 'undefined' && notificationManager) {
+          notificationManager.error('No se pudo actualizar favoritos');
+        }
+      }
+    }
 
     // Renderizar bloques CMS dinámicamente
     function renderCmsBlocks(tour) {
@@ -1245,11 +1243,7 @@
               <strong class="availability-price-amount" id="totalPriceDisplay">$${pricePerPerson.toFixed(2)}</strong>
             </div>
             
-            ${urgencyMessage ? `
-              <div class="availability-urgency" id="urgencyMsg" data-urgency-tracked="false">
-                ${urgencyMessage}
-              </div>
-            ` : ''}
+            <div class="availability-urgency" id="urgencyMsg" data-urgency-tracked="false" style="display:none;"></div>
             
             <button class="btn-booking btn-reserve" onclick="bookTour()" style="width: 100%; margin-top: var(--space-lg);">
               <span class="btn-booking-text">Reservar Ahora</span>
@@ -1606,57 +1600,38 @@
       window.addEventListener('resize', scrollHandler, { passive: true });
     }
     
-    // Actualizar initTourMap para aceptar coordenadas
     function initTourMap(location, coordinates) {
       const mapDiv = document.getElementById('tourMap');
       if (!mapDiv) return;
-      
+      var fallback = function() {
+        mapDiv.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:var(--bg-secondary);color:var(--text-muted);border-radius:var(--radius);"><div style="text-align:center;padding:24px;"><p>📍 ' + (location || 'Ubicación') + '</p><p style="font-size:0.9rem;margin-top:8px;">Configura <code>GOOGLE_MAPS_KEY</code> en esta página para ver el mapa.</p></div></div>';
+      };
       if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
-        mapDiv.innerHTML = `
-          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: var(--bg-secondary); color: var(--text-muted);">
-            <div style="text-align: center;">
-              <p>📍 ${location || 'Ubicación'}</p>
-              <p style="font-size: var(--text-sm); margin-top: var(--space-sm);">Mapa interactivo disponible con Google Maps API</p>
-            </div>
-          </div>
-        `;
+        fallback();
         return;
       }
-      
-      // Si hay coordenadas, usarlas directamente
-      if (coordinates) {
-        const [lat, lng] = coordinates.split(',').map(c => parseFloat(c.trim()));
-        if (!isNaN(lat) && !isNaN(lng)) {
-          tourMap = new google.maps.Map(mapDiv, {
-            center: { lat, lng },
-            zoom: 14
-          });
-          new google.maps.Marker({
-            position: { lat, lng },
-            map: tourMap,
-            title: currentTour?.Name || currentTour?.name || 'Tour'
-          });
-          return;
-        }
-      }
-      
-      // Si no hay coordenadas, geocodificar ubicación
-      if (location) {
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ address: location }, (results, status) => {
-          if (status === 'OK' && results[0]) {
-            const location_coords = results[0].geometry.location;
-            tourMap = new google.maps.Map(mapDiv, {
-              center: location_coords,
-              zoom: 14
-            });
-            new google.maps.Marker({
-              position: location_coords,
-              map: tourMap,
-              title: currentTour?.Name || currentTour?.name || 'Tour'
-            });
+      try {
+        if (coordinates) {
+          var parts = coordinates.split(',').map(function(c) { return parseFloat(c.trim()); });
+          var lat = parts[0], lng = parts[1];
+          if (!isNaN(lat) && !isNaN(lng)) {
+            tourMap = new google.maps.Map(mapDiv, { center: { lat: lat, lng: lng }, zoom: 14 });
+            new google.maps.Marker({ position: { lat: lat, lng: lng }, map: tourMap, title: currentTour?.Name || currentTour?.name || 'Tour' });
+            return;
           }
-        });
+        }
+        if (location) {
+          var geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ address: location }, function(results, status) {
+            if (status === 'OK' && results[0]) {
+              var loc = results[0].geometry.location;
+              tourMap = new google.maps.Map(mapDiv, { center: loc, zoom: 14 });
+              new google.maps.Marker({ position: loc, map: tourMap, title: currentTour?.Name || currentTour?.name || 'Tour' });
+            } else { fallback(); }
+          });
+        } else { fallback(); }
+      } catch (e) {
+        fallback();
       }
     }
 

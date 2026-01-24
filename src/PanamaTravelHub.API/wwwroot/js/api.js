@@ -796,6 +796,17 @@ class ApiClient {
     });
   }
 
+  async getAdminEmailSettings() {
+    return this.request('/api/admin/email-settings');
+  }
+
+  async updateAdminEmailSettings(data) {
+    return this.request('/api/admin/email-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Admin Media
   async getAdminMedia(category = null, isImage = null, page = 1, pageSize = 50) {
     const params = new URLSearchParams();

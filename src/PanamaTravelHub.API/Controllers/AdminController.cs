@@ -681,6 +681,101 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene la configuración de email (SMTP). La contraseña no se expone.
+    /// </summary>
+    [HttpGet("email-settings")]
+    public async Task<ActionResult<EmailSettingsDto>> GetEmailSettings()
+    {
+        try
+        {
+            var settings = await _context.EmailSettings.OrderBy(e => e.CreatedAt).FirstOrDefaultAsync();
+            if (settings == null)
+            {
+                settings = new EmailSettings
+                {
+                    Id = Guid.NewGuid(),
+                    CreatedAt = DateTime.UtcNow,
+                    SmtpHost = "smtp.gmail.com",
+                    SmtpPort = 587,
+                    FromAddress = "noreply@panamatravelhub.com",
+                    FromName = "Panama Travel Hub",
+                    EnableSsl = true
+                };
+                _context.EmailSettings.Add(settings);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new EmailSettingsDto
+            {
+                Id = settings.Id,
+                SmtpHost = settings.SmtpHost,
+                SmtpPort = settings.SmtpPort,
+                SmtpUsername = settings.SmtpUsername ?? "",
+                SmtpPassword = "", // nunca exponer
+                FromAddress = settings.FromAddress,
+                FromName = settings.FromName,
+                EnableSsl = settings.EnableSsl,
+                UpdatedAt = settings.UpdatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener configuración de email");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Actualiza la configuración de email (SMTP). Si Password viene vacío, se mantiene la actual.
+    /// </summary>
+    [HttpPut("email-settings")]
+    public async Task<ActionResult<EmailSettingsDto>> UpdateEmailSettings([FromBody] UpdateEmailSettingsDto request)
+    {
+        try
+        {
+            var settings = await _context.EmailSettings.OrderBy(e => e.CreatedAt).FirstOrDefaultAsync();
+            if (settings == null)
+            {
+                settings = new EmailSettings
+                {
+                    Id = Guid.NewGuid(),
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.EmailSettings.Add(settings);
+            }
+
+            settings.SmtpHost = request.SmtpHost ?? settings.SmtpHost;
+            settings.SmtpPort = request.SmtpPort ?? settings.SmtpPort;
+            settings.SmtpUsername = string.IsNullOrWhiteSpace(request.SmtpUsername) ? null : request.SmtpUsername.Trim();
+            if (!string.IsNullOrWhiteSpace(request.SmtpPassword))
+                settings.SmtpPassword = request.SmtpPassword.Trim();
+            settings.FromAddress = request.FromAddress ?? settings.FromAddress;
+            settings.FromName = request.FromName ?? settings.FromName;
+            settings.EnableSsl = request.EnableSsl ?? settings.EnableSsl;
+            settings.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new EmailSettingsDto
+            {
+                Id = settings.Id,
+                SmtpHost = settings.SmtpHost,
+                SmtpPort = settings.SmtpPort,
+                SmtpUsername = settings.SmtpUsername ?? "",
+                SmtpPassword = "",
+                FromAddress = settings.FromAddress,
+                FromName = settings.FromName,
+                EnableSsl = settings.EnableSsl,
+                UpdatedAt = settings.UpdatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar configuración de email");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Sube una imagen para un tour
     /// </summary>
     [HttpPost("upload-image")]
@@ -1783,6 +1878,30 @@ public class HomePageContentDto
     public string? LogoUrlSocial { get; set; }
     public string? HeroImageUrl { get; set; }
     public DateTime? UpdatedAt { get; set; }
+}
+
+public class EmailSettingsDto
+{
+    public Guid Id { get; set; }
+    public string SmtpHost { get; set; } = string.Empty;
+    public int SmtpPort { get; set; }
+    public string SmtpUsername { get; set; } = string.Empty;
+    public string SmtpPassword { get; set; } = string.Empty; // vacío en GET; en PUT solo se envía si se cambia
+    public string FromAddress { get; set; } = string.Empty;
+    public string FromName { get; set; } = string.Empty;
+    public bool EnableSsl { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public class UpdateEmailSettingsDto
+{
+    public string? SmtpHost { get; set; }
+    public int? SmtpPort { get; set; }
+    public string? SmtpUsername { get; set; }
+    public string? SmtpPassword { get; set; }
+    public string? FromAddress { get; set; }
+    public string? FromName { get; set; }
+    public bool? EnableSsl { get; set; }
 }
 
 public class UpdateHomePageContentDto
