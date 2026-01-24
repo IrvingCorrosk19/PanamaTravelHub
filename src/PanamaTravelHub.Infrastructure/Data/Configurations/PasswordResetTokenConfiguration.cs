@@ -71,8 +71,9 @@ public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<Password
 
         // Relaciones
         builder.HasOne(prt => prt.User)
-            .WithMany()
+            .WithMany(u => u.PasswordResetTokens)
             .HasForeignKey(prt => prt.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
     }
 }

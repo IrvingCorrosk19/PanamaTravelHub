@@ -56,15 +56,32 @@ async function loadHomePageContent() {
       const absoluteHeroImageUrl = heroImageUrl.startsWith('http') 
         ? heroImageUrl 
         : `${window.location.origin}${heroImageUrl.startsWith('/') ? '' : '/'}${heroImageUrl}`;
-      heroSection.style.backgroundImage = `url('${absoluteHeroImageUrl}')`;
+      
+      // Aplicar imagen manteniendo los gradientes superpuestos
+      heroSection.style.backgroundImage = `
+        radial-gradient(circle at 20% 30%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(11, 18, 32, 0.5) 0%, rgba(6, 182, 212, 0.3) 100%),
+        url('${absoluteHeroImageUrl}')
+      `;
       heroSection.style.backgroundSize = 'cover';
       heroSection.style.backgroundPosition = 'center';
       heroSection.style.backgroundRepeat = 'no-repeat';
       console.log('✅ [loadHomePageContent] Imagen del hero aplicada:', absoluteHeroImageUrl);
     } else if (heroSection && !heroImageUrl) {
-      // Si no hay imagen, mantener la imagen por defecto del CSS o eliminar el estilo inline
+      // Si no hay imagen, mantener la imagen por defecto del CSS
       // El CSS ya tiene una imagen por defecto: background-image: url('/images/Hero Image 19369.png');
       console.log('ℹ️ [loadHomePageContent] No hay imagen del hero configurada, usando imagen por defecto del CSS');
+      // Asegurar que se use la imagen por defecto con gradientes
+      heroSection.style.backgroundImage = `
+        radial-gradient(circle at 20% 30%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(11, 18, 32, 0.5) 0%, rgba(6, 182, 212, 0.3) 100%),
+        url('/images/Hero Image 19369.png')
+      `;
+      heroSection.style.backgroundSize = 'cover';
+      heroSection.style.backgroundPosition = 'center';
+      heroSection.style.backgroundRepeat = 'no-repeat';
     }
     
     // Actualizar título y meta description

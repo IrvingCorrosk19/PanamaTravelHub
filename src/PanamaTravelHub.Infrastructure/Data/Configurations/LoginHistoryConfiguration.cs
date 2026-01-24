@@ -50,9 +50,10 @@ public class LoginHistoryConfiguration : IEntityTypeConfiguration<LoginHistory>
 
         // Relationships
         builder.HasOne(lh => lh.User)
-            .WithMany()
+            .WithMany(u => u.LoginHistories)
             .HasForeignKey(lh => lh.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         // Indexes
         builder.HasIndex(lh => lh.UserId);

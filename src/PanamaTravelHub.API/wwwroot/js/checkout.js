@@ -1108,26 +1108,103 @@ async function processPayment() {
   // Limpiar errores previos
   document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
 
-  // Validar fecha seleccionada
-  if (!selectedTourDateId) {
+  // Validar fecha seleccionada (solo si hay fechas disponibles)
+  // Si no hay fechas disponibles, el tour puede no requerir fecha específica
+  if (availableDates && availableDates.length > 0 && !selectedTourDateId) {
     const dateError = document.getElementById('dateError');
-    dateError.textContent = 'Por favor selecciona una fecha para el tour';
-    dateError.style.display = 'block';
-    document.getElementById('dateSelection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (dateError) {
+      dateError.textContent = 'Por favor selecciona una fecha para el tour';
+      dateError.style.display = 'block';
+    }
+    const dateSelection = document.getElementById('dateSelection');
+    if (dateSelection) {
+      dateSelection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     return;
   }
   
-  // Validar que la fecha tenga cupos suficientes
-  // Nota: selectedTourDateId puede ser null si se seleccionó la fecha principal del tour
-  const selectedDate = availableDates.find(d => {
-    const dateId = d.Id || d.id;
-    return dateId === selectedTourDateId || (selectedTourDateId === 'tour-main-date' && dateId === null);
-  });
+  // Si no hay fechas disponibles pero el tour tiene fecha principal, usar esa
+  if (!selectedTourDateId && currentTour && (currentTour.TourDate || currentTour.tourDate)) {
+    // Usar fecha principal del tour
+    selectedTourDateId = 'tour-main-date';
+    console.log('📅 [processPayment] Usando fecha principal del tour');
+  }
   
+  // Validar que la fecha tenga cupos suficientes
+  // Nota: selectedTourDateId puede ser null o 'tour-main-date' si se seleccionó la fecha principal del tour
+  let selectedDate = null;
+  if (selectedTourDateId) {
+    if (selectedTourDateId === 'tour-main-date') {
+      // Buscar fecha principal del tour en availableDates (creada virtualmente)
+      selectedDate = availableDates.find(d => {
+        const dateId = d.Id || d.id;
+        return dateId === null || dateId === undefined;
+      });
+      
+      // Si no está en availableDates pero el tour tiene fecha principal, crear objeto virtual
+      if (!selectedDate && currentTour && (currentTour.TourDate || currentTour.tourDate)) {
+        selectedDate = {
+          Id: null,
+          id: null,
+          TourDateTime: currentTour.TourDate || currentTour.tourDate,
+          tourDateTime: currentTour.TourDate || currentTour.tourDate,
+          AvailableSpots: currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0,
+          availableSpots: currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0,
+          IsActive: true,
+          isActive: true
+        };
+      }
+    } else {
+      // Buscar fecha específica
+      selectedDate = availableDates.find(d => {
+        const dateId = d.Id || d.id;
+        return dateId === selectedTourDateId;
+      });
+    }
+  } else if (availableDates && availableDates.length > 0) {
+    // Si hay fechas disponibles pero no se seleccionó ninguna, mostrar error
+    const dateError = document.getElementById('dateError');
+    if (dateError) {
+      dateError.textContent = 'Por favor selecciona una fecha para el tour';
+      dateError.style.display = 'block';
+    }
+    return;
+  }
+  
+  // Si no hay fecha seleccionada y no hay fechas disponibles, verificar si el tour permite reservas sin fecha
+  if (!selectedDate && (!availableDates || availableDates.length === 0)) {
+    // Si el tour no tiene fecha principal, no se puede reservar
+    if (!currentTour || (!currentTour.TourDate && !currentTour.tourDate)) {
+      const dateError = document.getElementById('dateError');
+      if (dateError) {
+        dateError.textContent = 'Este tour no tiene fechas disponibles en este momento. Por favor, contacta con nosotros.';
+        dateError.style.display = 'block';
+      }
+      return;
+    }
+    
+    // Si el tour tiene fecha principal, usar esa
+    selectedDate = {
+      Id: null,
+      id: null,
+      TourDateTime: currentTour.TourDate || currentTour.tourDate,
+      tourDateTime: currentTour.TourDate || currentTour.tourDate,
+      AvailableSpots: currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0,
+      availableSpots: currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0,
+      IsActive: true,
+      isActive: true
+    };
+    selectedTourDateId = 'tour-main-date';
+    console.log('📅 [processPayment] Usando fecha principal del tour (sin fechas específicas disponibles)');
+  }
+  
+  // Si aún no hay fecha seleccionada después de todos los intentos, mostrar error
   if (!selectedDate) {
     const dateError = document.getElementById('dateError');
-    dateError.textContent = 'La fecha seleccionada ya no está disponible';
-    dateError.style.display = 'block';
+    if (dateError) {
+      dateError.textContent = 'La fecha seleccionada ya no está disponible. Por favor, selecciona otra fecha.';
+      dateError.style.display = 'block';
+    }
     return;
   }
   
@@ -1152,33 +1229,15 @@ async function processPayment() {
     console.log('🔍 [processPayment] Usando fecha principal del tour, cupos se validarán con los del tour');
   }
   
-  // Validar participantes
-  if (!validateParticipants()) {
-    return;
-  }
+  // ✅ PREMIUM: Ya no validamos participantes aquí porque se crean automáticamente
+  // La validación se hace en el backend
+  // if (!validateParticipants()) {
+  //   return;
+  // }
 
   // Verificar que el usuario esté autenticado
-  let userId = localStorage.getItem('userId');
-  
-  // Si no hay userId pero hay token, intentar obtener el usuario actual
-  if (!userId) {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
-    if (token) {
-      try {
-        console.log('🔍 [processPayment] No hay userId en localStorage, obteniendo usuario actual...');
-        const currentUser = await api.getCurrentUser();
-        userId = currentUser?.Id || currentUser?.id;
-        if (userId) {
-          localStorage.setItem('userId', userId);
-          console.log('✅ [processPayment] userId obtenido y guardado:', userId);
-        }
-      } catch (error) {
-        console.warn('⚠️ [processPayment] Error al obtener usuario actual:', error);
-      }
-    }
-  }
-  
-  if (!userId) {
+  const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+  if (!token) {
     const msg = 'Debes iniciar sesión para realizar una reserva';
     showNotificationError(msg);
     setTimeout(() => {
@@ -1186,6 +1245,45 @@ async function processPayment() {
     }, 2000);
     return;
   }
+  
+  // Obtener userId del token JWT o del localStorage
+  let userId = localStorage.getItem('userId');
+  
+  // Si no hay userId pero hay token, intentar obtener el usuario actual
+  if (!userId) {
+    try {
+      console.log('🔍 [processPayment] No hay userId en localStorage, obteniendo usuario actual...');
+      const currentUser = await api.getCurrentUser();
+      userId = currentUser?.Id || currentUser?.id;
+      if (userId) {
+        localStorage.setItem('userId', userId);
+        console.log('✅ [processPayment] userId obtenido y guardado:', userId);
+      } else {
+        throw new Error('No se pudo obtener userId del usuario');
+      }
+    } catch (error) {
+      console.error('❌ [processPayment] Error al obtener usuario actual:', error);
+      const msg = 'Error al verificar tu sesión. Por favor, inicia sesión nuevamente.';
+      showNotificationError(msg);
+      setTimeout(() => {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+      }, 2000);
+      return;
+    }
+  }
+  
+  // Validar que userId sea un GUID válido
+  if (!userId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+    const msg = 'Error: ID de usuario inválido. Por favor, inicia sesión nuevamente.';
+    console.error('❌ [processPayment]', msg, { userId });
+    showNotificationError(msg);
+    setTimeout(() => {
+      window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+    }, 2000);
+    return;
+  }
+  
+  console.log('✅ [processPayment] Usuario autenticado:', userId);
 
   // Verificar que haya cupos disponibles
   if (!currentTour) {
@@ -1196,8 +1294,8 @@ async function processPayment() {
   
   // Determinar cupos disponibles: si hay fecha seleccionada, usar cupos de esa fecha, sino usar cupos del tour
   let availableSpotsCheck = 0;
-  if (selectedTourDateId && selectedDate) {
-    // Si hay una fecha específica seleccionada, usar sus cupos
+  if (selectedDate) {
+    // Si hay una fecha seleccionada (específica o principal), usar sus cupos
     const dateSpots = selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0;
     availableSpotsCheck = Number(dateSpots) || 0;
     console.log('🔍 [processPayment] Verificando cupos de fecha seleccionada:', {
@@ -1210,7 +1308,7 @@ async function processPayment() {
       typeRequired: typeof numberOfParticipants
     });
   } else {
-    // Si no hay fecha específica, usar cupos del tour general
+    // Si no hay fecha seleccionada, usar cupos del tour general
     const tourSpots = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
     availableSpotsCheck = Number(tourSpots) || 0;
     console.log('🔍 [processPayment] Verificando cupos del tour general:', {
@@ -1256,6 +1354,31 @@ async function processPayment() {
     comparison: `${availableSpotsCheck} >= ${numParticipants} = ${availableSpotsCheck >= numParticipants}`
   });
 
+  // Función helper para calcular total
+  function calculateTotal() {
+    if (!currentTour) return 0;
+    const unitPrice = Number(currentTour.Price ?? currentTour.price ?? 0);
+    const subtotal = unitPrice * numParticipants;
+    
+    // Aplicar descuento si hay cupón
+    let discount = 0;
+    if (appliedCoupon) {
+      if (appliedCoupon.discountType === 'Percentage') {
+        discount = subtotal * (appliedCoupon.discountAmount / 100);
+        if (appliedCoupon.maximumDiscountAmount && discount > appliedCoupon.maximumDiscountAmount) {
+          discount = appliedCoupon.maximumDiscountAmount;
+        }
+      } else if (appliedCoupon.discountType === 'FixedAmount') {
+        discount = appliedCoupon.discountAmount;
+        if (discount > subtotal) {
+          discount = subtotal;
+        }
+      }
+    }
+    
+    return subtotal - discount;
+  }
+
   // Track: payment_started
   const tourId = currentTour?.Id || currentTour?.id;
   if (window.track && tourId) {
@@ -1276,13 +1399,75 @@ async function processPayment() {
   statusText.textContent = 'Creando reserva...';
 
   try {
-    // ✅ PREMIUM: NO recopilar datos de participantes antes del pago
-    // Los participantes se completarán después del pago en booking-success.html
-    const participants = []; // Array vacío - se completará post-pago
+    // ✅ PREMIUM: Crear participantes básicos con datos del usuario autenticado
+    // Los detalles adicionales se completarán después del pago en booking-success.html
+    let participants = [];
+    
+    // Obtener datos del usuario actual para crear participantes básicos
+    try {
+      const currentUser = await api.getCurrentUser();
+      if (currentUser) {
+        const firstName = currentUser.FirstName || currentUser.firstName || '';
+        const lastName = currentUser.LastName || currentUser.lastName || '';
+        const email = currentUser.Email || currentUser.email || '';
+        
+        // Crear participantes básicos (el primero con datos del usuario, los demás con datos mínimos)
+        for (let i = 0; i < numParticipantsFinal; i++) {
+          if (i === 0) {
+            // Primer participante (titular) con datos del usuario
+            participants.push({
+              firstName: firstName || 'Usuario',
+              lastName: lastName || 'Cliente',
+              email: email || null,
+              phone: null,
+              dateOfBirth: null
+            });
+          } else {
+            // Participantes adicionales con datos mínimos (se completarán después)
+            participants.push({
+              firstName: `Participante`,
+              lastName: `${i + 1}`,
+              email: null,
+              phone: null,
+              dateOfBirth: null
+            });
+          }
+        }
+      } else {
+        // Si no se puede obtener el usuario, crear participantes genéricos
+        for (let i = 0; i < numParticipantsFinal; i++) {
+          participants.push({
+            firstName: `Participante`,
+            lastName: `${i + 1}`,
+            email: null,
+            phone: null,
+            dateOfBirth: null
+          });
+        }
+      }
+    } catch (userError) {
+      console.warn('⚠️ [processPayment] No se pudo obtener datos del usuario, creando participantes genéricos:', userError);
+      // Crear participantes genéricos como fallback
+      for (let i = 0; i < numParticipantsFinal; i++) {
+        participants.push({
+          firstName: `Participante`,
+          lastName: `${i + 1}`,
+          email: null,
+          phone: null,
+          dateOfBirth: null
+        });
+      }
+    }
+    
+    console.log('👥 [processPayment] Participantes creados:', {
+      count: participants.length,
+      expected: numParticipantsFinal,
+      participants: participants.map(p => ({ firstName: p.firstName, lastName: p.lastName }))
+    });
 
     // Validar que el tour tenga cupos disponibles (usar la misma lógica que arriba)
     let availableSpotsForBooking = 0;
-    if (selectedTourDateId && selectedDate) {
+    if (selectedDate) {
       const rawSpots = selectedDate.AvailableSpots ?? selectedDate.availableSpots ?? 0;
       availableSpotsForBooking = Number(rawSpots) || 0;
     } else {
@@ -1290,8 +1475,7 @@ async function processPayment() {
       availableSpotsForBooking = Number(rawSpots) || 0;
     }
     
-    // Asegurar que numberOfParticipants sea un número
-    const numParticipantsFinal = Number(numberOfParticipants) || 1;
+    // Usar finalNumberOfParticipants que ya está declarado arriba
     
     console.log('🔍 [processPayment] Validación final de cupos antes de crear reserva:', {
       available: availableSpotsForBooking,
@@ -1307,6 +1491,7 @@ async function processPayment() {
       await sleep(2000);
       modal.style.display = 'none';
       btn.disabled = false;
+      loadingManager.hideGlobal();
       return;
     }
 
@@ -1385,7 +1570,9 @@ async function processPayment() {
     }
 
     // Asegurar que numberOfParticipants sea un número explícito y consistente
+    // Esta variable se usa en todo el proceso de pago
     const finalNumberOfParticipants = Number(numberOfParticipants) || 1;
+    const numParticipantsFinal = finalNumberOfParticipants; // Alias para compatibilidad
     
     // Validar que tenemos tourId válido
     const tourIdForBooking = currentTour?.Id || currentTour?.id;
@@ -1414,13 +1601,13 @@ async function processPayment() {
     const countryId = countrySelect?.value || null;
     
     // Preparar payload de booking con valores explícitos y consistentes
-    // ✅ PREMIUM: participants vacío - se completará después del pago
+    // ✅ PREMIUM: participants con datos básicos del usuario - se completarán después del pago
     const bookingData = {
       tourId: tourIdForBooking,
       tourDateId: tourDateId,
       numberOfParticipants: finalNumberOfParticipants, // Usar el valor convertido explícitamente
       countryId: countryId || undefined,
-      participants: [], // Array vacío - se completará post-pago en booking-success
+      participants: participants, // Array con participantes básicos - se completarán post-pago en booking-success
       couponCode: appliedCoupon?.code || null // Incluir código de cupón si está aplicado
     };
 
@@ -1464,7 +1651,17 @@ async function processPayment() {
       });
       
       // Validar que numberOfParticipants coincida con la cantidad de participantes
-      if (bookingData.participants && bookingData.participants.length !== bookingData.numberOfParticipants) {
+      if (!bookingData.participants || bookingData.participants.length === 0) {
+        const errorMsg = 'Error: No se pudieron crear los participantes. Por favor, recarga la página e intenta de nuevo.';
+        console.error('❌ [processPayment]', errorMsg);
+        showNotificationError(errorMsg);
+        modal.style.display = 'none';
+        btn.disabled = false;
+        loadingManager.hideGlobal();
+        return;
+      }
+      
+      if (bookingData.participants.length !== bookingData.numberOfParticipants) {
         const errorMsg = `El número de participantes (${bookingData.numberOfParticipants}) no coincide con la lista proporcionada (${bookingData.participants.length}). Por favor, verifica los datos.`;
         console.error('❌ [processPayment]', errorMsg);
         showNotificationError(errorMsg);
@@ -1475,19 +1672,17 @@ async function processPayment() {
       }
       
       // Validar que todos los participantes tengan nombre y apellido
-      if (bookingData.participants) {
-        const invalidParticipants = bookingData.participants.filter(p => 
-          !p.firstName || !p.lastName || p.firstName.trim() === '' || p.lastName.trim() === ''
-        );
-        if (invalidParticipants.length > 0) {
-          const errorMsg = `Por favor, completa el nombre y apellido de todos los participantes.`;
-          console.error('❌ [processPayment]', errorMsg, invalidParticipants);
-          showNotificationError(errorMsg);
-          modal.style.display = 'none';
-          btn.disabled = false;
-          loadingManager.hideGlobal();
-          return;
-        }
+      const invalidParticipants = bookingData.participants.filter(p => 
+        !p.firstName || !p.lastName || p.firstName.trim() === '' || p.lastName.trim() === ''
+      );
+      if (invalidParticipants.length > 0) {
+        const errorMsg = `Por favor, completa el nombre y apellido de todos los participantes.`;
+        console.error('❌ [processPayment]', errorMsg, invalidParticipants);
+        showNotificationError(errorMsg);
+        modal.style.display = 'none';
+        btn.disabled = false;
+        loadingManager.hideGlobal();
+        return;
       }
       
       bookingResponse = await api.createBooking(bookingData);

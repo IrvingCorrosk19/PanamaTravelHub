@@ -31,6 +31,7 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .HasColumnName("status")
             .HasConversion<int>()
             .HasDefaultValue(BookingStatus.Pending)
+            .HasSentinel(BookingStatus.Pending)
             .IsRequired();
 
         builder.Property(b => b.NumberOfParticipants)

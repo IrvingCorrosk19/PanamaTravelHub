@@ -731,7 +731,8 @@ class ApiClient {
     const params = new URLSearchParams({ page, pageSize });
     if (isApproved !== null) params.append('isApproved', isApproved);
     if (tourId) params.append('tourId', tourId);
-    return this.request(`/api/tours/reviews/admin?${params}`);
+    // Usar la ruta admin que no requiere tourId en la ruta
+    return this.request(`/api/admin/reviews?${params}`);
   }
 
   async approveReview(reviewId, tourId) {
@@ -741,6 +742,9 @@ class ApiClient {
   async rejectReview(reviewId, tourId) {
     return this.request(`/api/tours/${tourId}/reviews/${reviewId}/reject`, { method: 'POST' });
   }
+
+  // Admin Users (método completo)
+  async getAdminUsers(search = '', isActive = null, role = '') {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (isActive !== null) params.append('isActive', isActive);

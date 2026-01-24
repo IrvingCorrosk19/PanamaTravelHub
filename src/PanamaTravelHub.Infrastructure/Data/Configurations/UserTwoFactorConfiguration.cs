@@ -57,9 +57,10 @@ public class UserTwoFactorConfiguration : IEntityTypeConfiguration<UserTwoFactor
 
         // Relationships
         builder.HasOne(ut => ut.User)
-            .WithOne()
+            .WithOne(u => u.TwoFactor)
             .HasForeignKey<UserTwoFactor>(ut => ut.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         // Indexes
         builder.HasIndex(ut => ut.UserId).IsUnique();

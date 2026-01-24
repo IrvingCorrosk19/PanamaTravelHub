@@ -58,14 +58,16 @@ public class TourReviewConfiguration : IEntityTypeConfiguration<TourReview>
 
         // Relationships
         builder.HasOne(tr => tr.Tour)
-            .WithMany()
+            .WithMany(t => t.Reviews)
             .HasForeignKey(tr => tr.TourId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         builder.HasOne(tr => tr.User)
             .WithMany()
             .HasForeignKey(tr => tr.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         builder.HasOne(tr => tr.Booking)
             .WithMany()

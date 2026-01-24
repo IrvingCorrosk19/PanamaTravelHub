@@ -31,6 +31,7 @@ public class EmailNotificationConfiguration : IEntityTypeConfiguration<EmailNoti
             .HasColumnName("status")
             .HasConversion<int>()
             .HasDefaultValue(EmailNotificationStatus.Pending)
+            .HasSentinel(EmailNotificationStatus.Pending)
             .IsRequired();
 
         builder.Property(en => en.ToEmail)

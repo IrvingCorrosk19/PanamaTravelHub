@@ -29,6 +29,7 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .HasColumnName("status")
             .HasConversion<int>()
             .HasDefaultValue(PaymentStatus.Initiated)
+            .HasSentinel(PaymentStatus.Initiated)
             .IsRequired();
 
         builder.Property(p => p.Amount)

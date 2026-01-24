@@ -31,6 +31,7 @@ public class SmsNotificationConfiguration : IEntityTypeConfiguration<SmsNotifica
             .HasColumnName("status")
             .HasConversion<int>()
             .HasDefaultValue(SmsNotificationStatus.Pending)
+            .HasSentinel(SmsNotificationStatus.Pending)
             .IsRequired();
 
         builder.Property(sn => sn.ToPhoneNumber)
