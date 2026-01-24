@@ -546,16 +546,16 @@ async function loadHomepageContent() {
 async function saveHomepageContent() {
   try {
     const data = {
-      heroTitle: document.getElementById('homepageHeroTitle')?.value || '',
-      heroSubtitle: document.getElementById('homepageHeroSubtitle')?.value || '',
-      heroImageUrl: document.getElementById('homepageHeroImageUrl')?.value || '',
-      heroSearchPlaceholder: document.getElementById('homepageHeroSearchPlaceholder')?.value || '',
-      toursSectionTitle: document.getElementById('homepageToursSectionTitle')?.value || '',
-      toursSectionSubtitle: document.getElementById('homepageToursSectionSubtitle')?.value || '',
-      pageTitle: document.getElementById('homepagePageTitle')?.value || '',
-      metaDescription: document.getElementById('homepageMetaDescription')?.value || '',
-      logoUrl: document.getElementById('homepageLogoUrl')?.value || '',
-      faviconUrl: document.getElementById('homepageFaviconUrl')?.value || ''
+      HeroTitle: document.getElementById('homepageHeroTitle')?.value || '',
+      HeroSubtitle: document.getElementById('homepageHeroSubtitle')?.value || '',
+      HeroImageUrl: document.getElementById('homepageHeroImageUrl')?.value || '',
+      HeroSearchPlaceholder: document.getElementById('homepageHeroSearchPlaceholder')?.value || '',
+      ToursSectionTitle: document.getElementById('homepageToursSectionTitle')?.value || '',
+      ToursSectionSubtitle: document.getElementById('homepageToursSectionSubtitle')?.value || '',
+      PageTitle: document.getElementById('homepagePageTitle')?.value || '',
+      MetaDescription: document.getElementById('homepageMetaDescription')?.value || '',
+      LogoUrl: document.getElementById('homepageLogoUrl')?.value || '',
+      FaviconUrl: document.getElementById('homepageFaviconUrl')?.value || ''
     };
     
     await api.updateAdminHomePageContent(data);
