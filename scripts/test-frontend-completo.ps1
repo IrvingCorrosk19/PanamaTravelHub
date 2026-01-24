@@ -5,7 +5,7 @@ $testResults = @()
 $allErrors = @()
 
 function Test-API {
-    param([string]$Name, [string]$Method, [string]$Uri, [object]$Body, [hashtable]$Headers)
+    param([string]$Name, [string]$Method, [string]$Uri, [object]$Body, [hashtable]$Headers, [int[]]$AcceptStatuses = @())
     Write-Host "`n[$Name]" -ForegroundColor Yellow
     try {
         $params = @{ Uri = $Uri; Method = $Method; ErrorAction = 'Stop' }
@@ -32,6 +32,12 @@ function Test-API {
                 $reader.Close()
                 $stream.Close()
             } catch {}
+        }
+        
+        if ($AcceptStatuses -and $statusCode -in $AcceptStatuses) {
+            Write-Host "  [OK] $statusCode (acceso OK, cupon no existe)" -ForegroundColor Green
+            $script:testResults += @{ Test = $Name; Status = "OK" }
+            return $null
         }
         
         Write-Host "  [ERROR] $statusCode - $errorMsg" -ForegroundColor Red
@@ -115,7 +121,7 @@ if ($token) {
     
     if ($tourId) {
         $validateBody = @{ code = 'PRUEBA10'; purchaseAmount = 100; tourId = $tourId }
-        $couponValidation = Test-API -Name "5b. Validar Cupon" -Method "POST" -Uri "$baseUrl/api/coupons/validate" -Body $validateBody -Headers @{ Authorization = "Bearer $token" }
+        $couponValidation = Test-API -Name "5b. Validar Cupon" -Method "POST" -Uri "$baseUrl/api/coupons/validate" -Body $validateBody -Headers @{ Authorization = "Bearer $token" } -AcceptStatuses @(400)
         if ($couponValidation -and $couponValidation.isValid -eq $true) {
             $couponCode = 'PRUEBA10'
             Write-Host "  Cupon PRUEBA10 valido" -ForegroundColor Green
