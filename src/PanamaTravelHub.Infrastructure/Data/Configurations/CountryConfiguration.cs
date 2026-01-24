@@ -50,6 +50,12 @@ public class CountryConfiguration : IEntityTypeConfiguration<Country>
 
         builder.HasIndex(c => new { c.IsActive, c.DisplayOrder })
             .HasDatabaseName("idx_countries_active_order");
+
+        // Relación inversa con Bookings (opcional, pero ayuda a EF Core)
+        builder.HasMany(c => c.Bookings)
+            .WithOne(b => b.Country)
+            .HasForeignKey(b => b.CountryId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 
