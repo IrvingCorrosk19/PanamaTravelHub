@@ -1,0 +1,40 @@
+﻿[
+    {
+        "Test":  "1. Homepage Content",
+        "Status":  "OK"
+    },
+    {
+        "Status":  "ERROR",
+        "Code":  500,
+        "Error":  "The remote server returned an error: (500) Internal Server Error.",
+        "Test":  "2. Listar Tours"
+    },
+    {
+        "Status":  "ERROR",
+        "Code":  500,
+        "Error":  "The remote server returned an error: (500) Internal Server Error.",
+        "Test":  "2b. Buscar Tours"
+    },
+    {
+        "Test":  "4. Login",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "4b. Usuario Actual",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "5. Listar Cupones",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "6. Listar Paises",
+        "Status":  "OK"
+    },
+    {
+        "Status":  "ERROR",
+        "Code":  500,
+        "Error":  "The remote server returned an error: (500) Internal Server Error.",
+        "Test":  "8. Mis Reservas"
+    }
+]
