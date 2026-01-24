@@ -201,8 +201,17 @@ BEGIN
     -- parent_payment_id
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'payments' AND column_name = 'parent_payment_id') THEN
-        ALTER TABLE payments ADD COLUMN parent_payment_id UUID REFERENCES payments(id) ON DELETE SET NULL;
+        ALTER TABLE payments ADD COLUMN parent_payment_id UUID;
         RAISE NOTICE 'Columna parent_payment_id agregada a payments';
+        
+        -- Agregar foreign key después si la tabla payments tiene primary key en id
+        IF EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE table_name = 'payments' AND constraint_type = 'PRIMARY KEY') THEN
+            ALTER TABLE payments 
+            ADD CONSTRAINT fk_payments_parent 
+            FOREIGN KEY (parent_payment_id) REFERENCES payments(id) ON DELETE SET NULL;
+            RAISE NOTICE 'Foreign key agregada a parent_payment_id';
+        END IF;
     END IF;
     
 END $$;
