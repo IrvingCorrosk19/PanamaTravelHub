@@ -483,46 +483,58 @@ async function loadHomepageContent() {
     
     if (!form) return;
     
+    // Normalizar propiedades (PascalCase o camelCase)
+    const heroTitle = content.HeroTitle || content.heroTitle || '';
+    const heroSubtitle = content.HeroSubtitle || content.heroSubtitle || '';
+    const heroImageUrl = content.HeroImageUrl || content.heroImageUrl || '';
+    const heroSearchPlaceholder = content.HeroSearchPlaceholder || content.heroSearchPlaceholder || '';
+    const toursSectionTitle = content.ToursSectionTitle || content.toursSectionTitle || '';
+    const toursSectionSubtitle = content.ToursSectionSubtitle || content.toursSectionSubtitle || '';
+    const pageTitle = content.PageTitle || content.pageTitle || '';
+    const metaDescription = content.MetaDescription || content.metaDescription || '';
+    const logoUrl = content.LogoUrl || content.logoUrl || '';
+    const faviconUrl = content.FaviconUrl || content.faviconUrl || '';
+    
     form.innerHTML = `
       <div class="form-group">
         <label>Hero Title</label>
-        <input type="text" id="homepageHeroTitle" value="${content.heroTitle || ''}" class="form-input" />
+        <input type="text" id="homepageHeroTitle" value="${escapeHtml(heroTitle)}" class="form-input" />
       </div>
       <div class="form-group">
         <label>Hero Subtitle</label>
-        <textarea id="homepageHeroSubtitle" class="form-input" rows="3">${content.heroSubtitle || ''}</textarea>
+        <textarea id="homepageHeroSubtitle" class="form-input" rows="3">${escapeHtml(heroSubtitle)}</textarea>
       </div>
       <div class="form-group">
         <label>Hero Image URL</label>
-        <input type="url" id="homepageHeroImageUrl" value="${content.heroImageUrl || ''}" class="form-input" />
+        <input type="url" id="homepageHeroImageUrl" value="${escapeHtml(heroImageUrl)}" class="form-input" />
       </div>
       <div class="form-group">
         <label>Hero Search Placeholder</label>
-        <input type="text" id="homepageHeroSearchPlaceholder" value="${content.heroSearchPlaceholder || ''}" class="form-input" />
+        <input type="text" id="homepageHeroSearchPlaceholder" value="${escapeHtml(heroSearchPlaceholder)}" class="form-input" />
       </div>
       <div class="form-group">
         <label>Tours Section Title</label>
-        <input type="text" id="homepageToursSectionTitle" value="${content.toursSectionTitle || ''}" class="form-input" />
+        <input type="text" id="homepageToursSectionTitle" value="${escapeHtml(toursSectionTitle)}" class="form-input" />
       </div>
       <div class="form-group">
         <label>Tours Section Subtitle</label>
-        <input type="text" id="homepageToursSectionSubtitle" value="${content.toursSectionSubtitle || ''}" class="form-input" />
+        <input type="text" id="homepageToursSectionSubtitle" value="${escapeHtml(toursSectionSubtitle)}" class="form-input" />
       </div>
       <div class="form-group">
         <label>Page Title (SEO)</label>
-        <input type="text" id="homepagePageTitle" value="${content.pageTitle || ''}" class="form-input" />
+        <input type="text" id="homepagePageTitle" value="${escapeHtml(pageTitle)}" class="form-input" />
       </div>
       <div class="form-group">
         <label>Meta Description (SEO)</label>
-        <textarea id="homepageMetaDescription" class="form-input" rows="3">${content.metaDescription || ''}</textarea>
+        <textarea id="homepageMetaDescription" class="form-input" rows="3">${escapeHtml(metaDescription)}</textarea>
       </div>
       <div class="form-group">
         <label>Logo URL</label>
-        <input type="url" id="homepageLogoUrl" value="${content.logoUrl || ''}" class="form-input" />
+        <input type="url" id="homepageLogoUrl" value="${escapeHtml(logoUrl)}" class="form-input" />
       </div>
       <div class="form-group">
         <label>Favicon URL</label>
-        <input type="url" id="homepageFaviconUrl" value="${content.faviconUrl || ''}" class="form-input" />
+        <input type="url" id="homepageFaviconUrl" value="${escapeHtml(faviconUrl)}" class="form-input" />
       </div>
     `;
   } catch (error) {
