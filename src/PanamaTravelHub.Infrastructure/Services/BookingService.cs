@@ -436,12 +436,13 @@ public class BookingService : IBookingService
 
     public async Task<IEnumerable<Booking>> GetAllBookingsAsync(CancellationToken cancellationToken = default)
     {
+        // Cargar bookings con todas las relaciones necesarias
+        // Usar consulta normal en lugar de split query para evitar problemas con relaciones opcionales
         return await _context.Bookings
             .Include(b => b.Tour)
             .Include(b => b.User)
             .Include(b => b.TourDate)
             .Include(b => b.Country)
-            .AsSplitQuery() // Mejorar performance con múltiples relaciones
             .OrderByDescending(b => b.CreatedAt)
             .ToListAsync(cancellationToken);
     }
