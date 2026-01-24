@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/css/design-system.css" />
   <link rel="stylesheet" href="/css/loading.css" />
   <link rel="stylesheet" href="/css/enhancements.css" />
+  <link rel="stylesheet" href="/css/homepage-premium.css" />
 </head>
 <body>
   <!-- Navigation -->
@@ -47,22 +48,32 @@
   </nav>
 
   <!-- Hero Section -->
-  <section class="hero">
-    <div class="hero-content wrap">
-      <h1 class="hero-title" id="heroTitle">Descubre Panamá</h1>
-      <p class="hero-subtitle" id="heroSubtitle">Explora los destinos más increíbles con nuestros tours exclusivos</p>
-      <div class="hero-search">
-        <input type="text" id="searchInput" placeholder="Buscar tours..." class="search-input" onkeypress="if(event.key==='Enter') searchTours()" />
-        <button class="btn-primary" id="searchButton" onclick="searchTours()">Buscar</button>
+  <section class="hero hero-premium">
+    <div class="hero-content hero-content-premium wrap">
+      <div class="hero-text-wrapper">
+        <h1 class="hero-title hero-title-premium" id="heroTitle">Descubre Panamá</h1>
+        <p class="hero-subtitle hero-subtitle-premium" id="heroSubtitle">Explora los destinos más increíbles con nuestros tours exclusivos</p>
       </div>
-      <div style="margin-top: 16px; text-align: center;">
-        <button class="btn-secondary" onclick="toggleAdvancedFilters()" style="font-size: 0.9rem;">
-          <span id="filtersToggleText">Mostrar Filtros Avanzados</span>
+      <div class="hero-search hero-search-premium">
+        <div class="search-wrapper-premium">
+          <svg class="search-icon-premium" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM18 18l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <input type="text" id="searchInput" placeholder="¿Dónde quieres explorar?" class="search-input search-input-premium" onkeypress="if(event.key==='Enter') searchTours()" />
+        </div>
+        <button class="btn-primary btn-search-premium" id="searchButton" onclick="searchTours()">Buscar</button>
+      </div>
+      <div class="hero-filters-wrapper">
+        <button class="btn-filter-toggle" onclick="toggleAdvancedFilters()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span id="filtersToggleText">Filtros</span>
         </button>
       </div>
       
       <!-- Advanced Filters Panel -->
-      <div id="advancedFilters" class="advanced-filters-panel" style="display:none; margin-top: 20px; padding: 20px; background: rgba(255,255,255,0.95); border-radius: 12px; backdrop-filter: blur(10px);">
+      <div id="advancedFilters" class="advanced-filters-panel advanced-filters-premium" style="display:none;">
         <div class="filters-grid">
           <div class="filter-group">
             <label class="filter-label">Precio Mínimo</label>
@@ -102,7 +113,7 @@
             </select>
           </div>
         </div>
-        <div style="display: flex; gap: 10px; margin-top: 16px; justify-content: center;">
+        <div class="filters-actions-premium">
           <button class="btn-primary" onclick="applyFilters()">Aplicar Filtros</button>
           <button class="btn-secondary" onclick="clearFilters()">Limpiar</button>
         </div>
@@ -115,10 +126,10 @@
   </section>
 
   <!-- Tours Grid -->
-  <main class="main wrap">
-    <div class="section-header">
-      <h2 id="toursSectionTitle">Tours Disponibles</h2>
-      <p class="section-subtitle" id="toursSectionSubtitle">Selecciona tu próxima aventura</p>
+  <main class="main main-premium wrap">
+    <div class="section-header section-header-premium">
+      <h2 class="section-title-premium" id="toursSectionTitle">Tours Disponibles</h2>
+      <p class="section-subtitle section-subtitle-premium" id="toursSectionSubtitle">Selecciona tu próxima aventura</p>
     </div>
 
     <!-- Loading State -->
@@ -133,7 +144,7 @@
     </div>
 
     <!-- Tours Grid -->
-    <div id="toursGrid" class="tours-grid"></div>
+    <div id="toursGrid" class="tours-grid tours-grid-premium"></div>
 
     <!-- Empty State -->
     <div id="emptyState" class="empty-state" style="display:none;">
@@ -160,37 +171,6 @@
   <script src="/js/logger.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/main.js"></script>
-  <style>
-    .advanced-filters-panel {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .filters-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-    }
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-    }
-    .filter-label {
-      font-size: 0.9rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #333;
-    }
-    .filter-input {
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 0.95rem;
-    }
-    @media (max-width: 768px) {
-      .filters-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  <script src="/js/chatbot.js"></script>
 </body>
 </html>

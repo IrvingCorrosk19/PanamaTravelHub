@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,22 +12,31 @@ namespace PanamaTravelHub.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "countries",
-                columns: table => new
-                {
-                    id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "uuid_generate_v4()"),
-                    code = table.Column<string>(type: "character varying(2)", maxLength: 2, nullable: false),
-                    name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    display_order = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_countries", x => x.id);
-                });
+            // Marcar migración como aplicada si las tablas principales ya existen
+            // Esto permite aplicar la migración cuando algunas tablas ya fueron creadas con scripts SQL manuales
+            migrationBuilder.Sql(@"
+                DO $$
+                DECLARE
+                    tables_exist BOOLEAN;
+                    migration_exists BOOLEAN;
+                BEGIN
+                    SELECT EXISTS (
+                        SELECT 1 FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name IN ('countries', 'users', 'tours', 'bookings', 'payments')
+                    ) INTO tables_exist;
+                    
+                    SELECT EXISTS (
+                        SELECT 1 FROM ""__EFMigrationsHistory"" 
+                        WHERE ""MigrationId"" = '20260124171843_AddInvoicesBlogCommentsAnalytics'
+                    ) INTO migration_exists;
+                    
+                    IF tables_exist AND NOT migration_exists THEN
+                        INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+                        VALUES ('20260124171843_AddInvoicesBlogCommentsAnalytics', '8.0.0');
+                    END IF;
+                END $$;
+            ");
 
             migrationBuilder.CreateTable(
                 name: "DataProtectionKeys",
