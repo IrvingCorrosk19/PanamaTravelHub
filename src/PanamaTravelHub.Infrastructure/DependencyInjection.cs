@@ -47,6 +47,8 @@ public static class DependencyInjection
 
         // Registrar servicios de aplicación
         services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<InvoicePdfService>();
+        services.AddScoped<IInvoiceService, InvoiceService>();
 
         // Registrar servicios de autenticación
         services.AddScoped<PanamaTravelHub.Application.Services.IPasswordHasher, PanamaTravelHub.Application.Services.PasswordHasher>();

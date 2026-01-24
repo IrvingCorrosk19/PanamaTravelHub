@@ -7,10 +7,520 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
-  <link rel="stylesheet" href="/css/reservations.css" />
+  <link rel="stylesheet" href="/css/design-system.css" />
   <link rel="stylesheet" href="/css/loading.css" />
   <link rel="stylesheet" href="/css/enhancements.css" />
   <style>
+    .reservations-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-xl) var(--space-lg);
+    }
+
+    .section-header {
+      margin-bottom: var(--space-xl);
+    }
+
+    .section-header h1 {
+      font-size: 2rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin: 0 0 var(--space-sm) 0;
+    }
+
+    .section-subtitle {
+      color: var(--text-muted);
+      font-size: var(--text-base);
+      margin: 0;
+    }
+
+    /* Loading State */
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-xxl);
+      min-height: 400px;
+    }
+
+    /* Empty State */
+    .empty-state-container {
+      text-align: center;
+      padding: var(--space-xxl);
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-lg);
+      opacity: 0.5;
+    }
+
+    .empty-state-title {
+      font-size: 1.5rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin-bottom: var(--space-md);
+    }
+
+    .empty-state-message {
+      color: var(--text-muted);
+      margin-bottom: var(--space-xl);
+    }
+
+    /* Error State */
+    .error-state {
+      text-align: center;
+      padding: var(--space-xxl);
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      border: 2px solid var(--danger-light);
+    }
+
+    .error-state-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-lg);
+      color: var(--danger);
+    }
+
+    /* Reservations List */
+    .reservations-list {
+      display: grid;
+      gap: var(--space-lg);
+    }
+
+    .reservation-card {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      box-shadow: var(--shadow);
+      transition: all var(--transition-base);
+      border: 2px solid transparent;
+    }
+
+    .reservation-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary-50);
+    }
+
+    .reservation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: var(--space-lg);
+      flex-wrap: wrap;
+      gap: var(--space-md);
+    }
+
+    .reservation-title-section {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .reservation-title {
+      font-size: 1.5rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin: 0 0 var(--space-xs) 0;
+    }
+
+    .reservation-id {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      font-family: 'Courier New', monospace;
+    }
+
+    .reservation-status-badge {
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .status-pending {
+      background: var(--warning-light);
+      color: var(--warning-dark);
+    }
+
+    .status-confirmed {
+      background: var(--accent);
+      color: white;
+    }
+
+    .status-completed {
+      background: var(--primary-50);
+      color: var(--primary-dark);
+    }
+
+    .status-cancelled {
+      background: var(--danger-light);
+      color: var(--danger);
+    }
+
+    .status-expired {
+      background: var(--text-muted);
+      color: white;
+    }
+
+    .reservation-details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-label {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: var(--space-xs);
+    }
+
+    .detail-value {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+    }
+
+    .reservation-actions {
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      padding-top: var(--space-lg);
+      border-top: 2px solid var(--border);
+    }
+
+    .btn-action {
+      padding: var(--space-md) var(--space-xl);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      font-size: var(--text-base);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+
+    .btn-action-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-action-primary:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-action-secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-action-secondary:hover:not(:disabled) {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-action:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-lg);
+      overflow-y: auto;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-xl);
+      border-bottom: 2px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--card);
+      z-index: 10;
+    }
+
+    .modal-title {
+      font-size: 1.75rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin: 0;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-base);
+    }
+
+    .modal-close:hover {
+      background: var(--bg-secondary);
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: var(--space-xl);
+    }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: var(--space-xl);
+      margin: var(--space-xl) 0;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: var(--space-xl);
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -24px;
+      top: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--card);
+      border: 3px solid var(--border);
+      z-index: 1;
+    }
+
+    .timeline-item.completed::before {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .timeline-item.active::before {
+      background: var(--primary);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--primary-50);
+    }
+
+    .timeline-content {
+      background: var(--bg-secondary);
+      padding: var(--space-md);
+      border-radius: var(--radius-sm);
+    }
+
+    .timeline-title {
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+      margin-bottom: var(--space-xs);
+    }
+
+    .timeline-date {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+    }
+
+    /* Info Grid */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .info-card {
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+    }
+
+    .info-label {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: var(--space-xs);
+    }
+
+    .info-value {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+    }
+
+    /* Participants */
+    .participants-section {
+      margin-top: var(--space-xl);
+    }
+
+    .participant-card {
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-md);
+    }
+
+    .participant-name {
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+      margin-bottom: var(--space-xs);
+    }
+
+    .participant-detail {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      margin-top: var(--space-xs);
+    }
+
+    /* Invoice Link */
+    .invoice-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--primary-50);
+      color: var(--primary-dark);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      font-weight: var(--font-weight-semibold);
+      transition: all var(--transition-base);
+    }
+
+    .invoice-link:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Auth Required */
+    .auth-required-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      padding: var(--space-xl);
+    }
+
+    .auth-required-content {
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .auth-required-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-lg);
+    }
+
+    .auth-required-title {
+      font-size: 1.5rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin-bottom: var(--space-md);
+    }
+
+    .auth-required-message {
+      color: var(--text-muted);
+      margin-bottom: var(--space-xl);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .reservations-container {
+        padding: var(--space-lg) var(--space-md);
+      }
+
+      .reservation-header {
+        flex-direction: column;
+      }
+
+      .reservation-details-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .reservation-actions {
+        flex-direction: column;
+      }
+
+      .btn-action {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .modal {
+        padding: var(--space-md);
+      }
+
+      .modal-content {
+        max-height: 95vh;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -25,12 +535,13 @@
         <a href="/reservas.html" class="nav-link active">Mis Reservas</a>
         <span class="nav-user-greeting" id="userGreeting" style="display:none;"></span>
         <a href="/login.html" class="nav-link" id="loginLink">Iniciar Sesión</a>
+        <a href="/profile.html" class="nav-link" id="profileLink" style="display:none;">Mi Perfil</a>
         <button class="btn-primary" id="logoutBtn" style="display:none;">Cerrar Sesión</button>
       </div>
     </div>
   </nav>
 
-  <main class="reservations-container wrap">
+  <main class="reservations-container">
     <div class="section-header">
       <h1>Mis Reservas</h1>
       <p class="section-subtitle">Gestiona tus reservas de tours</p>
@@ -40,36 +551,59 @@
     <div id="authRequired" class="auth-required-container" style="display:none;">
       <div class="auth-required-content">
         <div class="auth-required-icon">🔒</div>
-        <h2 class="auth-required-title">
-          Inicia Sesión para Ver tus Reservas
-        </h2>
+        <h2 class="auth-required-title">Inicia Sesión para Ver tus Reservas</h2>
         <p class="auth-required-message">
           Necesitas iniciar sesión para acceder a tus reservas y gestionar tus tours.
         </p>
-        <a href="/login.html?redirect=/reservas.html" class="btn-primary">
-          Iniciar Sesión
-        </a>
+        <a href="/login.html?redirect=/reservas.html" class="btn-primary">Iniciar Sesión</a>
       </div>
     </div>
 
     <!-- Contenido cuando está autenticado -->
     <div id="authenticatedContent" style="display:none;">
-      <div id="loadingState" class="loading" style="display:none;">
+      <!-- Loading State -->
+      <div id="loadingState" class="loading-container" style="display:none;">
         <div class="spinner"></div>
-        <p>Cargando reservas...</p>
+        <p>Cargando tus reservas...</p>
       </div>
 
-      <div id="reservationsList"></div>
+      <!-- Error State -->
+      <div id="errorState" class="error-state" style="display:none;">
+        <div class="error-state-icon">⚠️</div>
+        <h2 class="empty-state-title">Error al cargar reservas</h2>
+        <p class="empty-state-message">
+          No pudimos cargar tus reservas. Por favor, intenta nuevamente.
+        </p>
+        <button class="btn-primary" onclick="loadReservations()">Reintentar</button>
+      </div>
 
-      <div id="emptyState" class="empty-state empty-state-container" style="display:none;">
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state-container" style="display:none;">
         <div class="empty-state-icon">📋</div>
-        <h2 class="empty-state-title">
-          No tienes reservas aún
-        </h2>
+        <h2 class="empty-state-title">No tienes reservas aún</h2>
         <p class="empty-state-message">
           Explora nuestros tours y reserva tu próxima aventura en Panamá.
         </p>
         <a href="/" class="btn-primary">Explorar Tours</a>
+      </div>
+
+      <!-- Reservations List -->
+      <div id="reservationsList" class="reservations-list"></div>
+    </div>
+
+    <!-- Modal de Detalle de Reserva -->
+    <div id="bookingModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modalBookingTitle">Detalle de Reserva</h2>
+          <button class="modal-close" onclick="closeBookingModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBookingContent">
+          <div class="loading-container">
+            <div class="spinner"></div>
+            <p>Cargando detalles...</p>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -77,172 +611,174 @@
   <script src="/js/loading.js"></script>
   <script src="/js/logger.js"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/notifications.js"></script>
   <script>
-    // ✅ Función helper para formatear precios de forma segura
-    function formatPrice(value, fallbackText = '$0.00') {
-      const rawPrice = value ?? null;
-      let price = Number(rawPrice ?? 0);
-      
-      // Validación: asegurar que price es un número válido y finito
-      if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
-        console.warn('⚠️ [formatPrice] Precio inválido, usando 0:', { value, rawPrice, price });
-        price = 0;
-      }
-      
-      // Formatear precio
-      const formattedPrice = price.toFixed(2);
-      return price > 0 ? `$${formattedPrice}` : fallbackText;
+    let allReservations = [];
+    let allInvoices = [];
+
+    // Helper para obtener valores (manejar PascalCase y camelCase)
+    const getValue = (obj, pascalKey, camelKey, defaultValue = null) => {
+      return obj[pascalKey] ?? obj[camelKey] ?? defaultValue;
+    };
+
+    // Formatear precio
+    function formatPrice(value, currency = 'USD') {
+      const price = Number(value ?? 0);
+      const currencySymbol = currency === 'USD' ? '$' : currency;
+      return price > 0 ? `${currencySymbol}${price.toFixed(2)}` : `${currencySymbol}0.00`;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      // Primero verificar autenticación
-      const isAuthenticated = checkAuth();
-      // Solo cargar reservas si está autenticado
-      if (isAuthenticated) {
-        loadReservations();
-      }
-    });
-
-    // Cargar información del usuario autenticado
-    async function loadUserInfo() {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
-      const userGreeting = document.getElementById('userGreeting');
-      
-      if (!token || !userGreeting) {
-        if (userGreeting) userGreeting.style.display = 'none';
-        return;
-      }
-
+    // Formatear fecha
+    function formatDate(dateStr, includeTime = false) {
+      if (!dateStr) return 'Por definir';
       try {
-        // Intentar obtener el nombre desde localStorage primero
-        let userName = localStorage.getItem('userName');
-        
-        // Si no hay nombre guardado, obtenerlo de la API
-        if (!userName) {
-          const currentUser = await api.getCurrentUser();
-          if (currentUser) {
-            const firstName = currentUser.FirstName || currentUser.firstName || '';
-            const lastName = currentUser.LastName || currentUser.lastName || '';
-            userName = `${firstName} ${lastName}`.trim();
-            
-            // Guardar en localStorage para futuras cargas
-            if (userName) {
-              localStorage.setItem('userName', userName);
-            }
-          }
+        const date = new Date(dateStr);
+        const options = {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        };
+        if (includeTime) {
+          options.hour = '2-digit';
+          options.minute = '2-digit';
         }
-        
-        // Mostrar el saludo si hay nombre
-        if (userName) {
-          userGreeting.textContent = `Hola, ${userName}`;
-          userGreeting.style.display = 'inline-flex';
-        } else {
-          userGreeting.style.display = 'none';
-        }
-      } catch (error) {
-        console.warn('No se pudo cargar la información del usuario:', error);
-        if (userGreeting) userGreeting.style.display = 'none';
-        localStorage.removeItem('userName');
+        return date.toLocaleDateString('es-PA', options);
+      } catch (e) {
+        return dateStr;
       }
     }
 
+    // Verificar autenticación
     function checkAuth() {
       const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
       const loginLink = document.getElementById('loginLink');
       const logoutBtn = document.getElementById('logoutBtn');
+      const profileLink = document.getElementById('profileLink');
       const authRequired = document.getElementById('authRequired');
       const authenticatedContent = document.getElementById('authenticatedContent');
       const userGreeting = document.getElementById('userGreeting');
 
       if (!token) {
-        // No autenticado: mostrar mensaje de login
-        authRequired.style.display = 'block';
+        authRequired.style.display = 'flex';
         authenticatedContent.style.display = 'none';
         if (loginLink) loginLink.style.display = 'block';
         if (logoutBtn) logoutBtn.style.display = 'none';
+        if (profileLink) profileLink.style.display = 'none';
         if (userGreeting) userGreeting.style.display = 'none';
-        localStorage.removeItem('userName');
         return false;
       }
 
-      // Verificar si el usuario es admin - si es admin, redirigir al panel de administración
+      // Verificar si es admin
       const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
       const isAdmin = Array.isArray(userRoles) && (
         userRoles.some(role => role && role.toLowerCase() === 'admin')
       );
 
       if (isAdmin) {
-        console.log('⚠️ [reservas] Usuario admin intentando acceder a reservas, redirigiendo a Admin');
         window.location.href = '/Admin';
         return false;
       }
 
-      // Autenticado y NO es admin: mostrar contenido
+      // Autenticado y NO es admin
       authRequired.style.display = 'none';
       authenticatedContent.style.display = 'block';
       if (loginLink) loginLink.style.display = 'none';
       if (logoutBtn) logoutBtn.style.display = 'block';
-      
-      // Cargar información del usuario para mostrar su nombre
+      if (profileLink) profileLink.style.display = 'block';
       loadUserInfo();
-      
       return true;
     }
 
-    async function loadReservations() {
-      // Verificar autenticación primero
-      const isAuthenticated = checkAuth();
-      if (!isAuthenticated) {
-        return; // No cargar nada si no está autenticado
+    // Cargar información del usuario
+    async function loadUserInfo() {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      const userGreeting = document.getElementById('userGreeting');
+      
+      if (!token || !userGreeting) return;
+
+      try {
+        let userName = localStorage.getItem('userName');
+        if (!userName) {
+          const currentUser = await api.getCurrentUser();
+          const firstName = getValue(currentUser, 'FirstName', 'firstName', '');
+          const lastName = getValue(currentUser, 'LastName', 'lastName', '');
+          userName = `${firstName} ${lastName}`.trim();
+          if (userName) localStorage.setItem('userName', userName);
+        }
+        if (userName) {
+          userGreeting.textContent = `Hola, ${userName}`;
+          userGreeting.style.display = 'inline-flex';
+        }
+      } catch (error) {
+        console.warn('Error loading user info:', error);
       }
+    }
+
+    // Cargar reservas
+    async function loadReservations() {
+      if (!checkAuth()) return;
 
       const loadingState = document.getElementById('loadingState');
       const emptyState = document.getElementById('emptyState');
+      const errorState = document.getElementById('errorState');
       const reservationsList = document.getElementById('reservationsList');
 
       try {
-        loadingState.style.display = 'block';
+        loadingState.style.display = 'flex';
         emptyState.style.display = 'none';
-        const loaderId = loadingManager.showInline(reservationsList, 'Cargando tus reservas...');
+        errorState.style.display = 'none';
+        reservationsList.innerHTML = '';
 
-        // Llamar a la API real
-        let reservations = [];
-        try {
-          reservations = await api.getMyBookings();
-          loadingManager.hideInline(reservationsList);
-        } catch (error) {
-          console.warn('Error al cargar reservas:', error);
-          // Si es error 401 (no autorizado), limpiar token y redirigir
-          if (error.message && error.message.includes('401')) {
-            await api.logout();
-            window.location.href = '/';
-            return;
-          }
-          reservations = [];
-        }
+        // Cargar reservas e facturas en paralelo
+        const [reservations, invoices] = await Promise.all([
+          api.getMyBookings().catch(() => []),
+          api.getMyInvoices().catch(() => [])
+        ]);
+
+        allReservations = reservations || [];
+        allInvoices = invoices || [];
 
         loadingState.style.display = 'none';
 
-        if (reservations.length === 0) {
+        if (allReservations.length === 0) {
           emptyState.style.display = 'block';
           return;
         }
 
-        reservationsList.innerHTML = reservations.map(res => createReservationCard(res)).join('');
+        renderReservations();
       } catch (error) {
         console.error('Error loading reservations:', error);
         loadingState.style.display = 'none';
-        emptyState.style.display = 'block';
+        const errorMsg = error.message && error.message.includes('401')
+          ? 'Tu sesión expiró. Por favor, inicia sesión nuevamente.'
+          : error.message && (error.message.includes('network') || error.message.includes('fetch'))
+          ? 'Algo salió mal. Inténtalo de nuevo en unos segundos.'
+          : 'Error al cargar reservas. Por favor intenta de nuevo.';
+        const errorStateTitle = document.querySelector('#errorState .empty-state-title');
+        const errorStateMessage = document.querySelector('#errorState .empty-state-message');
+        if (errorStateTitle) errorStateTitle.textContent = 'Error al cargar reservas';
+        if (errorStateMessage) errorStateMessage.textContent = errorMsg;
+        errorState.style.display = 'block';
       }
     }
 
+    // Renderizar reservas
+    function renderReservations() {
+      const reservationsList = document.getElementById('reservationsList');
+      const emptyState = document.getElementById('emptyState');
+
+      if (allReservations.length === 0) {
+        emptyState.style.display = 'block';
+        reservationsList.innerHTML = '';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      reservationsList.innerHTML = allReservations.map(res => createReservationCard(res)).join('');
+    }
+
+    // Crear card de reserva
     function createReservationCard(reservation) {
-      // Helper para obtener valores manejando PascalCase y camelCase
-      const getValue = (obj, pascalKey, camelKey, defaultValue = null) => {
-        return obj[pascalKey] ?? obj[camelKey] ?? defaultValue;
-      };
-      
-      // Extraer valores manejando ambos casos
       const status = getValue(reservation, 'Status', 'status', 'Pending');
       const tourName = getValue(reservation, 'TourName', 'tourName', 'Tour sin nombre');
       const reservationId = getValue(reservation, 'Id', 'id', '');
@@ -250,12 +786,11 @@
       const numberOfParticipants = getValue(reservation, 'NumberOfParticipants', 'numberOfParticipants', 0);
       const totalAmount = getValue(reservation, 'TotalAmount', 'totalAmount', 0);
       const tourDate = getValue(reservation, 'TourDate', 'tourDate');
-      
-      // Normalizar status a minúsculas para la clase CSS
+      const currency = getValue(reservation, 'Currency', 'currency', 'USD');
+
       const statusLower = (status || '').toLowerCase();
       const statusClass = `status-${statusLower}`;
       
-      // Mapeo de estados
       const statusText = {
         'pending': 'Pendiente',
         'confirmed': 'Confirmada',
@@ -264,52 +799,272 @@
         'completed': 'Completada'
       }[statusLower] || status || 'Desconocido';
 
-      // Formatear ID de reserva (solo si existe)
-      const reservationIdDisplay = reservationId ? `#${reservationId.substring(0, 8)}` : '#N/A';
-      
-      // Formatear fecha de creación
-      const createdAtDisplay = createdAt ? new Date(createdAt).toLocaleDateString('es-PA') : 'N/A';
-      
-      // Formatear fecha del tour
-      const tourDateDisplay = tourDate ? new Date(tourDate).toLocaleDateString('es-PA') : 'Por definir';
+      // CTA según estado
+      let ctaButton = '';
+      if (statusLower === 'pending') {
+        ctaButton = `<button class="btn-action btn-action-primary" onclick="completePayment('${reservationId}')">Completar Pago</button>`;
+      } else if (statusLower === 'confirmed') {
+        ctaButton = `<button class="btn-action btn-action-primary" onclick="viewBookingDetail('${reservationId}')">Ver Detalles</button>`;
+      } else if (statusLower === 'completed') {
+        ctaButton = `<button class="btn-action btn-action-primary" onclick="leaveReview('${reservationId}')">Dejar Reseña</button>`;
+      } else if (statusLower === 'cancelled') {
+        ctaButton = `<button class="btn-action btn-action-secondary" onclick="contactSupport()">Contactar Soporte</button>`;
+      }
+
+      // Buscar factura asociada
+      const invoice = allInvoices.find(inv => 
+        getValue(inv, 'BookingId', 'bookingId') === reservationId
+      );
+      const invoiceLink = invoice 
+        ? `<a href="/profile.html" class="invoice-link" onclick="event.stopPropagation();">📄 Ver Factura</a>`
+        : '';
 
       return `
-        <div class="reservation-card">
+        <div class="reservation-card" onclick="viewBookingDetail('${reservationId}')">
           <div class="reservation-header">
-            <div>
-              <h3 style="margin-bottom: var(--spacing-xs);">${tourName}</h3>
-              <p style="color: var(--text-muted);">Reserva ${reservationIdDisplay}</p>
+            <div class="reservation-title-section">
+              <h3 class="reservation-title">${tourName}</h3>
+              <p class="reservation-id">Reserva #${reservationId.substring(0, 8).toUpperCase()}</p>
             </div>
-            <span class="reservation-status ${statusClass}">${statusText}</span>
+            <span class="reservation-status-badge ${statusClass}">${statusText}</span>
           </div>
-          <div class="reservation-details">
+          <div class="reservation-details-grid">
             <div class="detail-item">
-              <div class="detail-label">Fecha de Reserva</div>
-              <div class="detail-value">${createdAtDisplay}</div>
+              <span class="detail-label">Fecha del Tour</span>
+              <span class="detail-value">${formatDate(tourDate)}</span>
             </div>
             <div class="detail-item">
-              <div class="detail-label">Participantes</div>
-              <div class="detail-value">${numberOfParticipants}</div>
+              <span class="detail-label">Participantes</span>
+              <span class="detail-value">${numberOfParticipants}</span>
             </div>
             <div class="detail-item">
-              <div class="detail-label">Total</div>
-              <div class="detail-value">${formatPrice(totalAmount)}</div>
+              <span class="detail-label">Total</span>
+              <span class="detail-value">${formatPrice(totalAmount, currency)}</span>
             </div>
             <div class="detail-item">
-              <div class="detail-label">Fecha del Tour</div>
-              <div class="detail-value">${tourDateDisplay}</div>
+              <span class="detail-label">Fecha de Reserva</span>
+              <span class="detail-value">${formatDate(createdAt)}</span>
             </div>
+          </div>
+          <div class="reservation-actions" onclick="event.stopPropagation();">
+            ${ctaButton}
+            <button class="btn-action btn-action-secondary" onclick="event.stopPropagation(); viewBookingDetail('${reservationId}')">Ver Detalles</button>
+            ${invoiceLink}
           </div>
         </div>
       `;
     }
 
+    // Ver detalle de reserva
+    async function viewBookingDetail(bookingId) {
+      const modal = document.getElementById('bookingModal');
+      const modalContent = document.getElementById('modalBookingContent');
+      const modalTitle = document.getElementById('modalBookingTitle');
+      
+      modal.classList.add('active');
+      modalContent.innerHTML = '<div class="loading-container"><div class="spinner"></div><p>Cargando detalles...</p></div>';
+      
+      try {
+        const booking = await api.getBooking(bookingId);
+        
+        const status = getValue(booking, 'Status', 'status', 'Pending');
+        const tourName = getValue(booking, 'TourName', 'tourName', 'Tour sin nombre');
+        const numberOfParticipants = getValue(booking, 'NumberOfParticipants', 'numberOfParticipants', 0);
+        const totalAmount = getValue(booking, 'TotalAmount', 'totalAmount', 0);
+        const tourDate = getValue(booking, 'TourDate', 'tourDate');
+        const createdAt = getValue(booking, 'CreatedAt', 'createdAt');
+        const participants = getValue(booking, 'Participants', 'participants', []);
+        const currency = getValue(booking, 'Currency', 'currency', 'USD');
+        const payments = getValue(booking, 'Payments', 'payments', []);
+
+        const statusLower = (status || '').toLowerCase();
+        const statusText = {
+          'pending': 'Pendiente',
+          'confirmed': 'Confirmada',
+          'cancelled': 'Cancelada',
+          'expired': 'Expirada',
+          'completed': 'Completada'
+        }[statusLower] || status || 'Desconocido';
+
+        // Buscar factura
+        const invoice = allInvoices.find(inv => 
+          getValue(inv, 'BookingId', 'bookingId') === bookingId
+        );
+
+        // Timeline de estados
+        const timelineItems = [
+          {
+            title: 'Reserva Creada',
+            date: formatDate(createdAt, true),
+            completed: true,
+            active: false
+          },
+          {
+            title: 'Pago Realizado',
+            date: payments.length > 0 ? formatDate(payments[0].CreatedAt || payments[0].createdAt, true) : 'Pendiente',
+            completed: statusLower !== 'pending',
+            active: statusLower === 'pending'
+          },
+          {
+            title: 'Reserva Confirmada',
+            date: statusLower === 'confirmed' || statusLower === 'completed' ? formatDate(createdAt, true) : 'Pendiente',
+            completed: statusLower === 'confirmed' || statusLower === 'completed',
+            active: statusLower === 'confirmed'
+          },
+          {
+            title: 'Tour Completado',
+            date: statusLower === 'completed' ? formatDate(tourDate, true) : 'Pendiente',
+            completed: statusLower === 'completed',
+            active: false
+          }
+        ];
+
+        modalTitle.textContent = `Reserva: ${tourName}`;
+        
+        modalContent.innerHTML = `
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="info-label">Estado</div>
+              <div class="info-value">
+                <span class="reservation-status-badge status-${statusLower}">${statusText}</span>
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">Fecha del Tour</div>
+              <div class="info-value">${formatDate(tourDate)}</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">Participantes</div>
+              <div class="info-value">${numberOfParticipants}</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">Total</div>
+              <div class="info-value">${formatPrice(totalAmount, currency)}</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">Fecha de Reserva</div>
+              <div class="info-value">${formatDate(createdAt, true)}</div>
+            </div>
+            ${invoice ? `
+            <div class="info-card">
+              <div class="info-label">Factura</div>
+              <div class="info-value">
+                <a href="/profile.html" class="invoice-link">📄 ${getValue(invoice, 'InvoiceNumber', 'invoiceNumber')}</a>
+              </div>
+            </div>
+            ` : ''}
+          </div>
+
+          <div class="timeline">
+            ${timelineItems.map((item, index) => `
+              <div class="timeline-item ${item.completed ? 'completed' : ''} ${item.active ? 'active' : ''}">
+                <div class="timeline-content">
+                  <div class="timeline-title">${item.title}</div>
+                  <div class="timeline-date">${item.date}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          ${participants && participants.length > 0 ? `
+            <div class="participants-section">
+              <h3 style="margin-bottom: var(--space-md);">Participantes</h3>
+              ${participants.map(p => {
+                const firstName = getValue(p, 'FirstName', 'firstName', '');
+                const lastName = getValue(p, 'LastName', 'lastName', '');
+                const email = getValue(p, 'Email', 'email', '');
+                const phone = getValue(p, 'Phone', 'phone', '');
+                return `
+                  <div class="participant-card">
+                    <div class="participant-name">${firstName} ${lastName}</div>
+                    ${email ? `<div class="participant-detail">📧 ${email}</div>` : ''}
+                    ${phone ? `<div class="participant-detail">📱 ${phone}</div>` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          ` : ''}
+
+          ${payments && payments.length > 0 ? `
+            <div style="margin-top: var(--space-xl);">
+              <h3 style="margin-bottom: var(--space-md);">Pagos</h3>
+              <div class="info-grid">
+                ${payments.map(p => {
+                  const amount = getValue(p, 'Amount', 'amount', 0);
+                  const status = getValue(p, 'Status', 'status', '');
+                  const createdAt = getValue(p, 'CreatedAt', 'createdAt');
+                  return `
+                    <div class="info-card">
+                      <div class="info-label">Pago</div>
+                      <div class="info-value">${formatPrice(amount, currency)}</div>
+                      <div class="info-label" style="margin-top: var(--space-xs);">${formatDate(createdAt, true)}</div>
+                      <div class="info-value" style="font-size: var(--text-xs);">${status}</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="margin-top: var(--space-xl); padding-top: var(--space-lg); border-top: 2px solid var(--border);">
+            <button class="btn-action btn-action-secondary" onclick="closeBookingModal()">Cerrar</button>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error loading booking details:', error);
+        modalContent.innerHTML = `
+          <div class="error-state">
+            <div class="error-state-icon">⚠️</div>
+            <h2 class="empty-state-title">Error al cargar detalles</h2>
+            <p class="empty-state-message">No pudimos cargar los detalles de esta reserva.</p>
+            <button class="btn-primary" onclick="viewBookingDetail('${bookingId}')">Reintentar</button>
+          </div>
+        `;
+      }
+    }
+
+    // Cerrar modal
+    function closeBookingModal() {
+      document.getElementById('bookingModal').classList.remove('active');
+    }
+
+    // Cerrar modal al hacer clic fuera
+    document.getElementById('bookingModal').addEventListener('click', (e) => {
+      if (e.target.id === 'bookingModal') {
+        closeBookingModal();
+      }
+    });
+
+    // Acciones
+    function completePayment(bookingId) {
+      // Redirigir a página de pago
+      window.location.href = `/booking-success.html?bookingId=${bookingId}&payment=true`;
+    }
+
+    function leaveReview(bookingId) {
+      // TODO: Implementar página de reseñas
+      alert('Próximamente: podrás dejar una reseña sobre este tour.');
+    }
+
+    function contactSupport() {
+      // TODO: Implementar contacto de soporte
+      alert('Para contactar soporte, envía un email a soporte@panamatravelhub.com');
+    }
+
+    // Logout
     if (document.getElementById('logoutBtn')) {
       document.getElementById('logoutBtn').addEventListener('click', async () => {
         await api.logout();
         window.location.href = '/';
       });
     }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+      if (checkAuth()) {
+        loadReservations();
+      }
+    });
   </script>
 </body>
 </html>

@@ -531,8 +531,201 @@ public class AuthController : ControllerBase
             Email = user.Email,
             FirstName = user.FirstName,
             LastName = user.LastName,
-            Roles = roles
+            Phone = user.Phone,
+            Roles = roles,
+            EmailVerified = user.EmailVerified,
+            EmailVerifiedAt = user.EmailVerifiedAt,
+            LastLoginAt = user.LastLoginAt,
+            CreatedAt = user.CreatedAt
         });
+    }
+
+    /// <summary>
+    /// Actualizar perfil del usuario actual
+    /// </summary>
+    [HttpPut("profile")]
+    [Authorize(Policy = "AdminOrCustomer")]
+    public async Task<ActionResult<UserDto>> UpdateProfile([FromBody] UpdateProfileRequestDto request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                             User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            // Actualizar campos si se proporcionan
+            if (!string.IsNullOrWhiteSpace(request.FirstName))
+            {
+                user.FirstName = request.FirstName.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.LastName))
+            {
+                user.LastName = request.LastName.Trim();
+            }
+
+            if (request.Phone != null)
+            {
+                user.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var roles = user.UserRoles
+                .Select(ur => ur.Role.Name)
+                .ToList();
+
+            return Ok(new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Phone = user.Phone,
+                Roles = roles,
+                EmailVerified = user.EmailVerified,
+                EmailVerifiedAt = user.EmailVerifiedAt,
+                LastLoginAt = user.LastLoginAt,
+                CreatedAt = user.CreatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar perfil");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Cambiar contraseña del usuario actual
+    /// </summary>
+    [HttpPost("change-password")]
+    [Authorize(Policy = "AdminOrCustomer")]
+    public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordRequestDto request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                             User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "Usuario no encontrado" });
+            }
+
+            // Verificar contraseña actual
+            var isCurrentPasswordValid = _passwordHasher.VerifyPassword(request.CurrentPassword.Trim(), user.PasswordHash);
+            if (!isCurrentPasswordValid)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Contraseña actual incorrecta",
+                    Detail = "La contraseña actual no es correcta",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Validar que la nueva contraseña sea diferente
+            var isNewPasswordSame = _passwordHasher.VerifyPassword(request.NewPassword.Trim(), user.PasswordHash);
+            if (isNewPasswordSame)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Nueva contraseña inválida",
+                    Detail = "La nueva contraseña debe ser diferente a la actual",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            // Hashear nueva contraseña
+            var newPasswordHash = _passwordHasher.HashPassword(request.NewPassword.Trim());
+            user.PasswordHash = newPasswordHash;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            // Invalidar todos los refresh tokens del usuario (por seguridad)
+            var userRefreshTokens = await _context.RefreshTokens
+                .Where(rt => rt.UserId == userId && !rt.IsRevoked)
+                .ToListAsync();
+
+            foreach (var token in userRefreshTokens)
+            {
+                token.IsRevoked = true;
+                token.RevokedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Contraseña actualizada exitosamente para usuario: {Email}", user.Email);
+
+            return Ok(new { message = "Tu contraseña ha sido actualizada exitosamente" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al cambiar contraseña");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Obtener historial de logins del usuario actual
+    /// </summary>
+    [HttpGet("login-history")]
+    [Authorize(Policy = "AdminOrCustomer")]
+    public async Task<ActionResult<IEnumerable<LoginHistoryDto>>> GetLoginHistory([FromQuery] int limit = 20)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? 
+                             User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var loginHistory = await _context.LoginHistories
+                .Where(lh => lh.UserId == userId)
+                .OrderByDescending(lh => lh.CreatedAt)
+                .Take(limit)
+                .Select(lh => new LoginHistoryDto
+                {
+                    Id = lh.Id,
+                    IpAddress = lh.IpAddress ?? "Unknown",
+                    UserAgent = lh.UserAgent ?? "Unknown",
+                    IsSuccessful = lh.IsSuccessful,
+                    FailureReason = lh.FailureReason,
+                    CreatedAt = lh.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(loginHistory);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener historial de logins");
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
     }
 
     /// <summary>
@@ -778,7 +971,36 @@ public class UserDto
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string? Phone { get; set; }
     public List<string> Roles { get; set; } = new();
+    public bool EmailVerified { get; set; }
+    public DateTime? EmailVerifiedAt { get; set; }
+    public DateTime? LastLoginAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class UpdateProfileRequestDto
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Phone { get; set; }
+}
+
+public class ChangePasswordRequestDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
+public class LoginHistoryDto
+{
+    public Guid Id { get; set; }
+    public string IpAddress { get; set; } = string.Empty;
+    public string UserAgent { get; set; } = string.Empty;
+    public bool IsSuccessful { get; set; }
+    public string? FailureReason { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 // RefreshTokenRequestDto está definido en PanamaTravelHub.Application.Validators

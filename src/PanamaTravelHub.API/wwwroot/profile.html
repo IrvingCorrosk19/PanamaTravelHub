@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Perfil — ToursPanama</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/design-system.css" />
+  <link rel="stylesheet" href="/css/loading.css" />
+  <link rel="stylesheet" href="/css/enhancements.css" />
+  <style>
+    .profile-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-xl) var(--space-lg);
+    }
+
+    /* Header Perfil */
+    .profile-header {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-xl);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: var(--space-lg);
+      flex-wrap: wrap;
+    }
+
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      color: white;
+      font-weight: var(--font-weight-bold);
+      flex-shrink: 0;
+    }
+
+    .profile-info {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .profile-name {
+      font-size: 1.75rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin: 0 0 var(--space-xs) 0;
+    }
+
+    .profile-email {
+      font-size: var(--text-base);
+      color: var(--text-muted);
+      margin: 0 0 var(--space-sm) 0;
+    }
+
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-md);
+      background: var(--accent);
+      color: white;
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .verified-badge.unverified {
+      background: var(--text-muted);
+    }
+
+    /* Cards */
+    .profile-card {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-lg);
+      box-shadow: var(--shadow);
+      transition: all var(--transition-base);
+    }
+
+    .profile-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-lg);
+      padding-bottom: var(--space-md);
+      border-bottom: 2px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin: 0;
+    }
+
+    /* Formulario Información Personal */
+    .form-group {
+      margin-bottom: var(--space-lg);
+    }
+
+    .form-label {
+      display: block;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+      margin-bottom: var(--space-xs);
+      font-size: var(--text-sm);
+    }
+
+    .form-label.readonly {
+      color: var(--text-muted);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: var(--space-md);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-base);
+      transition: all var(--transition-base);
+      background: var(--card);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-50);
+    }
+
+    .form-input:disabled,
+    .form-input[readonly] {
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: var(--space-lg);
+    }
+
+    .btn-save {
+      padding: var(--space-md) var(--space-xl);
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      font-size: var(--text-base);
+    }
+
+    .btn-save:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-save:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-save.saving {
+      position: relative;
+      color: transparent;
+    }
+
+    .btn-save.saving::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      top: 50%;
+      left: 50%;
+      margin-left: -8px;
+      margin-top: -8px;
+      border: 2px solid white;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .save-message {
+      margin-top: var(--space-md);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-sm);
+      display: none;
+    }
+
+    .save-message.success {
+      display: block;
+      background: var(--accent);
+      color: white;
+    }
+
+    .save-message.error {
+      display: block;
+      background: var(--danger);
+      color: white;
+    }
+
+    /* Listado de Reservas */
+    .reservations-list {
+      display: grid;
+      gap: var(--space-md);
+    }
+
+    .reservation-item {
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      transition: all var(--transition-base);
+    }
+
+    .reservation-item:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .reservation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: var(--space-sm);
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .reservation-title {
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+      margin: 0;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .reservation-status {
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+    }
+
+    .status-confirmed {
+      background: var(--accent);
+      color: white;
+    }
+
+    .status-pending {
+      background: var(--warning-light);
+      color: var(--warning);
+    }
+
+    .status-cancelled {
+      background: var(--danger-light);
+      color: var(--danger);
+    }
+
+    .status-completed {
+      background: var(--primary-50);
+      color: var(--primary-dark);
+    }
+
+    .reservation-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-sm);
+      margin-top: var(--space-sm);
+      font-size: var(--text-sm);
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+      margin-bottom: var(--space-xs);
+    }
+
+    .detail-value {
+      color: var(--text);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .btn-view-detail {
+      margin-top: var(--space-md);
+      padding: var(--space-sm) var(--space-md);
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: var(--text-sm);
+      transition: all var(--transition-base);
+    }
+
+    .btn-view-detail:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Pagos */
+    .payments-list {
+      display: grid;
+      gap: var(--space-md);
+    }
+
+    .payment-item {
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      border-left: 4px solid var(--primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+    }
+
+    .payment-info {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .payment-date {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      margin-bottom: var(--space-xs);
+    }
+
+    .payment-amount {
+      font-size: 1.25rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+    }
+
+    .payment-method {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+    }
+
+    .coming-soon {
+      padding: var(--space-xl);
+      text-align: center;
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      border: 2px dashed var(--border);
+    }
+
+    .coming-soon-icon {
+      font-size: 3rem;
+      margin-bottom: var(--space-md);
+    }
+
+    /* Preferencias */
+    .preference-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-md);
+    }
+
+    .preference-label {
+      flex: 1;
+    }
+
+    .preference-label strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: var(--space-xs);
+    }
+
+    .preference-label small {
+      color: var(--text-muted);
+      font-size: var(--text-sm);
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      width: 52px;
+      height: 28px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border);
+      transition: var(--transition-base);
+      border-radius: 28px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: var(--transition-base);
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: var(--primary);
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+    }
+
+    .toggle-switch input:disabled + .toggle-slider {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Facturas */
+    .invoices-table-wrapper {
+      overflow-x: auto;
+      margin-top: var(--space-md);
+    }
+
+    .invoices-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-base);
+    }
+
+    .invoices-table thead {
+      background: var(--bg-secondary);
+      border-bottom: 2px solid var(--border);
+    }
+
+    .invoices-table th {
+      padding: var(--space-md);
+      text-align: left;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+      font-size: var(--text-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .invoices-table td {
+      padding: var(--space-md);
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .invoices-table tbody tr:hover {
+      background: var(--bg-secondary);
+    }
+
+    .invoice-number {
+      font-weight: var(--font-weight-semibold);
+      color: var(--primary);
+      font-family: 'Courier New', monospace;
+    }
+
+    .invoice-date {
+      color: var(--text-muted);
+      font-size: var(--text-sm);
+    }
+
+    .invoice-total {
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+    }
+
+    .invoice-status {
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: var(--font-weight-semibold);
+      display: inline-block;
+    }
+
+    .invoice-status.paid {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-download-pdf {
+      padding: var(--space-sm) var(--space-md);
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: var(--text-sm);
+      transition: all var(--transition-base);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+
+    .btn-download-pdf:hover:not(:disabled) {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-download-pdf:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-download-pdf.downloading {
+      position: relative;
+      color: transparent;
+    }
+
+    .btn-download-pdf.downloading::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      top: 50%;
+      left: 50%;
+      margin-left: -8px;
+      margin-top: -8px;
+      border: 2px solid var(--primary);
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.6s linear infinite;
+    }
+
+    /* Facturas Cards (Mobile) */
+    .invoices-cards {
+      display: grid;
+      gap: var(--space-md);
+      margin-top: var(--space-md);
+    }
+
+    .invoice-card {
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      transition: all var(--transition-base);
+    }
+
+    .invoice-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .invoice-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: var(--space-sm);
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .invoice-card-number {
+      font-weight: var(--font-weight-bold);
+      color: var(--primary);
+      font-family: 'Courier New', monospace;
+      font-size: var(--text-base);
+    }
+
+    .invoice-card-details {
+      display: grid;
+      gap: var(--space-sm);
+      margin-top: var(--space-sm);
+      font-size: var(--text-sm);
+    }
+
+    .invoice-card-detail {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .invoice-card-label {
+      color: var(--text-muted);
+    }
+
+    .invoice-card-value {
+      color: var(--text);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .invoice-card-actions {
+      margin-top: var(--space-md);
+    }
+
+    /* Empty States */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-xl);
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: var(--space-md);
+      opacity: 0.5;
+    }
+
+    .empty-state-title {
+      font-size: 1.25rem;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+      margin-bottom: var(--space-sm);
+    }
+
+    .empty-state-message {
+      color: var(--text-muted);
+      margin-bottom: var(--space-lg);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .profile-header {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .profile-avatar {
+        width: 80px;
+        height: 80px;
+        font-size: 2rem;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .reservation-header {
+        flex-direction: column;
+      }
+
+      .payment-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    /* Auth Required */
+    .auth-required-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      padding: var(--space-xl);
+    }
+
+    .auth-required-content {
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .auth-required-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-lg);
+    }
+
+    .auth-required-title {
+      font-size: 1.5rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin-bottom: var(--space-md);
+    }
+
+    .auth-required-message {
+      color: var(--text-muted);
+      margin-bottom: var(--space-xl);
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner wrap">
+      <div class="brand">
+        <div class="mark"></div>
+        <a href="/"><span class="brand-text">ToursPanama</span></a>
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Tours</a>
+        <a href="/reservas.html" class="nav-link">Mis Reservas</a>
+        <span class="nav-user-greeting" id="userGreeting" style="display:none;"></span>
+        <a href="/login.html" class="nav-link" id="loginLink">Iniciar Sesión</a>
+        <a href="/profile.html" class="nav-link active" id="profileLink" style="display:none;">Mi Perfil</a>
+        <button class="btn-primary" id="logoutBtn" style="display:none;">Cerrar Sesión</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="profile-container">
+    <!-- Mensaje cuando no está autenticado -->
+    <div id="authRequired" class="auth-required-container" style="display:none;">
+      <div class="auth-required-content">
+        <div class="auth-required-icon">🔒</div>
+        <h2 class="auth-required-title">Inicia Sesión para Ver tu Perfil</h2>
+        <p class="auth-required-message">
+          Necesitas iniciar sesión para acceder a tu perfil y gestionar tu información.
+        </p>
+        <a href="/login.html?redirect=/profile.html" class="btn-primary">Iniciar Sesión</a>
+      </div>
+    </div>
+
+    <!-- Contenido cuando está autenticado -->
+    <div id="authenticatedContent" style="display:none;">
+      <!-- Header Perfil -->
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatar">U</div>
+        <div class="profile-info">
+          <h1 class="profile-name" id="profileName">Cargando...</h1>
+          <p class="profile-email" id="profileEmail">cargando@email.com</p>
+          <span class="verified-badge" id="verifiedBadge">
+            <span>✓</span>
+            <span>Cuenta verificada</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Card 1: Información Personal -->
+      <div class="profile-card">
+        <div class="card-header">
+          <h2 class="card-title">Información Personal</h2>
+        </div>
+        <form id="profileForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="firstName">Nombre</label>
+              <input type="text" id="firstName" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lastName">Apellido</label>
+              <input type="text" id="lastName" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="phone">Teléfono</label>
+              <input type="tel" id="phone" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label readonly" for="email">Email (solo lectura)</label>
+              <input type="email" id="email" class="form-input" readonly />
+            </div>
+          </div>
+          <button type="submit" class="btn-save" id="saveProfileBtn">
+            Guardar Cambios
+          </button>
+          <div class="save-message" id="saveMessage"></div>
+        </form>
+      </div>
+
+      <!-- Card 2: Mis Reservas -->
+      <div class="profile-card">
+        <div class="card-header">
+          <h2 class="card-title">Mis Reservas</h2>
+        </div>
+        <div id="reservationsLoading" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <p>Cargando reservas...</p>
+        </div>
+        <div id="reservationsList" class="reservations-list"></div>
+        <div id="reservationsEmpty" class="empty-state" style="display:none;">
+          <div class="empty-state-icon">📋</div>
+          <h3 class="empty-state-title">No tienes reservas aún</h3>
+          <p class="empty-state-message">
+            Explora nuestros tours y reserva tu próxima aventura en Panamá.
+          </p>
+          <a href="/" class="btn-primary">Explorar Tours</a>
+        </div>
+      </div>
+
+      <!-- Card 3: Pagos -->
+      <div class="profile-card">
+        <div class="card-header">
+          <h2 class="card-title">Pagos</h2>
+        </div>
+        <div id="paymentsLoading" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <p>Cargando pagos...</p>
+        </div>
+        <div id="paymentsList" class="payments-list"></div>
+        <div id="paymentsEmpty" class="empty-state" style="display:none;">
+          <div class="empty-state-icon">💳</div>
+          <h3 class="empty-state-title">No hay pagos registrados</h3>
+          <p class="empty-state-message">
+            Tus pagos aparecerán aquí después de realizar una reserva.
+          </p>
+        </div>
+        <div id="paymentsComingSoon" class="coming-soon" style="display:none;">
+          <div class="coming-soon-icon">🚀</div>
+          <h3 style="margin-bottom: var(--space-sm);">Próximamente</h3>
+          <p style="color: var(--text-muted);">
+            Estamos trabajando en el historial completo de pagos y facturas descargables.
+          </p>
+        </div>
+      </div>
+
+      <!-- Card 4: Mis Facturas -->
+      <div class="profile-card">
+        <div class="card-header">
+          <h2 class="card-title">Mis Facturas</h2>
+        </div>
+        <div id="invoicesLoading" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <p>Cargando facturas...</p>
+        </div>
+        <div id="invoicesError" class="empty-state" style="display:none;">
+          <div class="empty-state-icon">⚠️</div>
+          <h3 class="empty-state-title">Error al cargar facturas</h3>
+          <p class="empty-state-message">
+            No pudimos cargar tus facturas. Intenta nuevamente.
+          </p>
+          <button class="btn-primary" onclick="loadInvoices()">Reintentar</button>
+        </div>
+        <div id="invoicesEmpty" class="empty-state" style="display:none;">
+          <div class="empty-state-icon">📄</div>
+          <h3 class="empty-state-title">Aún no tienes facturas generadas</h3>
+          <p class="empty-state-message">
+            Tus facturas aparecerán aquí después de realizar un pago confirmado.
+          </p>
+        </div>
+        <!-- Desktop: Tabla -->
+        <div id="invoicesTableContainer" style="display:none;">
+          <div class="invoices-table-wrapper">
+            <table class="invoices-table">
+              <thead>
+                <tr>
+                  <th>Factura</th>
+                  <th>Fecha</th>
+                  <th>Total</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="invoicesTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Mobile: Cards -->
+        <div id="invoicesCardsContainer" class="invoices-cards" style="display:none;">
+        </div>
+      </div>
+
+      <!-- Card 5: Preferencias -->
+      <div class="profile-card">
+        <div class="card-header">
+          <h2 class="card-title">Preferencias de Notificaciones</h2>
+        </div>
+        <div id="preferencesList">
+          <div class="preference-item">
+            <div class="preference-label">
+              <strong>Notificaciones por Email</strong>
+              <small>Recibe confirmaciones y recordatorios por correo electrónico</small>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="emailNotifications" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="preference-item">
+            <div class="preference-label">
+              <strong>Notificaciones por SMS</strong>
+              <small>Recibe recordatorios importantes por mensaje de texto</small>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="smsNotifications" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="save-message" id="preferencesMessage"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/loading.js"></script>
+  <script src="/js/logger.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script>
+    let currentUser = null;
+    let userReservations = [];
+    let userPayments = [];
+    let userInvoices = [];
+
+    // Verificar autenticación al cargar
+    document.addEventListener('DOMContentLoaded', () => {
+      const isAuthenticated = checkAuth();
+      if (isAuthenticated) {
+        loadUserProfile();
+        loadReservations();
+        loadPayments();
+        loadInvoices();
+        loadPreferences();
+      }
+    });
+
+    function checkAuth() {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      const loginLink = document.getElementById('loginLink');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const profileLink = document.getElementById('profileLink');
+      const authRequired = document.getElementById('authRequired');
+      const authenticatedContent = document.getElementById('authenticatedContent');
+      const userGreeting = document.getElementById('userGreeting');
+
+      if (!token) {
+        authRequired.style.display = 'flex';
+        authenticatedContent.style.display = 'none';
+        if (loginLink) loginLink.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (profileLink) profileLink.style.display = 'none';
+        if (userGreeting) userGreeting.style.display = 'none';
+        return false;
+      }
+
+      // Verificar si el usuario es admin - si es admin, redirigir al panel de administración
+      const userRoles = JSON.parse(localStorage.getItem('userRoles') || '[]');
+      const isAdmin = Array.isArray(userRoles) && (
+        userRoles.some(role => role && role.toLowerCase() === 'admin')
+      );
+
+      if (isAdmin) {
+        console.log('⚠️ [profile] Usuario admin intentando acceder a perfil, redirigiendo a Admin');
+        window.location.href = '/Admin';
+        return false;
+      }
+
+      // Autenticado y NO es admin: mostrar contenido
+      authRequired.style.display = 'none';
+      authenticatedContent.style.display = 'block';
+      if (loginLink) loginLink.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'block';
+      if (profileLink) profileLink.style.display = 'block';
+      
+      // Cargar información del usuario para mostrar su nombre
+      loadUserInfo();
+      
+      return true;
+    }
+
+    async function loadUserInfo() {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      const userGreeting = document.getElementById('userGreeting');
+      
+      if (!token || !userGreeting) {
+        if (userGreeting) userGreeting.style.display = 'none';
+        return;
+      }
+
+      try {
+        let userName = localStorage.getItem('userName');
+        
+        if (!userName && currentUser) {
+          const firstName = currentUser.FirstName || currentUser.firstName || '';
+          const lastName = currentUser.LastName || currentUser.lastName || '';
+          userName = `${firstName} ${lastName}`.trim();
+          
+          if (userName) {
+            localStorage.setItem('userName', userName);
+          }
+        }
+        
+        if (userName) {
+          userGreeting.textContent = `Hola, ${userName}`;
+          userGreeting.style.display = 'inline-flex';
+        } else {
+          userGreeting.style.display = 'none';
+        }
+      } catch (error) {
+        console.warn('No se pudo cargar la información del usuario:', error);
+        if (userGreeting) userGreeting.style.display = 'none';
+      }
+    }
+
+    // Cargar perfil del usuario
+    async function loadUserProfile() {
+      try {
+        currentUser = await api.getCurrentUser();
+        
+        // Actualizar header
+        const firstName = currentUser.FirstName || currentUser.firstName || '';
+        const lastName = currentUser.LastName || currentUser.lastName || '';
+        const email = currentUser.Email || currentUser.email || '';
+        const emailVerified = currentUser.EmailVerified || currentUser.emailVerified || false;
+        
+        document.getElementById('profileName').textContent = `${firstName} ${lastName}`.trim() || 'Usuario';
+        document.getElementById('profileEmail').textContent = email;
+        
+        // Avatar con iniciales
+        const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || 'U';
+        document.getElementById('profileAvatar').textContent = initials;
+        
+        // Badge de verificación
+        const verifiedBadge = document.getElementById('verifiedBadge');
+        if (emailVerified) {
+          verifiedBadge.innerHTML = '<span>✓</span><span>Cuenta verificada</span>';
+          verifiedBadge.classList.remove('unverified');
+        } else {
+          verifiedBadge.innerHTML = '<span>!</span><span>Email no verificado</span>';
+          verifiedBadge.classList.add('unverified');
+        }
+        
+        // Llenar formulario
+        document.getElementById('firstName').value = firstName;
+        document.getElementById('lastName').value = lastName;
+        document.getElementById('phone').value = currentUser.Phone || currentUser.phone || '';
+        document.getElementById('email').value = email;
+        
+        // Guardar nombre en localStorage
+        const userName = `${firstName} ${lastName}`.trim();
+        if (userName) {
+          localStorage.setItem('userName', userName);
+        }
+        
+        loadUserInfo();
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        if (error.message && error.message.includes('401')) {
+          await api.logout();
+          window.location.href = '/';
+        }
+      }
+    }
+
+    // Guardar perfil
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const saveBtn = document.getElementById('saveProfileBtn');
+      const saveMessage = document.getElementById('saveMessage');
+      
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName = document.getElementById('lastName').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      
+      if (!firstName || !lastName) {
+        saveMessage.textContent = 'Por favor completa todos los campos requeridos';
+        saveMessage.className = 'save-message error';
+        return;
+      }
+      
+      try {
+        saveBtn.disabled = true;
+        saveBtn.classList.add('saving');
+        saveMessage.className = 'save-message';
+        saveMessage.textContent = '';
+        
+        await api.updateProfile({
+          FirstName: firstName,
+          LastName: lastName,
+          Phone: phone || null
+        });
+        
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('saving');
+        saveMessage.textContent = '✓ Cambios guardados exitosamente';
+        saveMessage.className = 'save-message success';
+        
+        // Recargar perfil para actualizar header
+        await loadUserProfile();
+        
+        // Ocultar mensaje después de 3 segundos
+        setTimeout(() => {
+          saveMessage.className = 'save-message';
+          saveMessage.textContent = '';
+        }, 3000);
+      } catch (error) {
+        console.error('Error saving profile:', error);
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('saving');
+        const errorMsg = error.message && error.message.includes('401')
+          ? 'Tu sesión expiró. Por favor, inicia sesión nuevamente.'
+          : error.message && (error.message.includes('network') || error.message.includes('fetch'))
+          ? 'Algo salió mal. Inténtalo de nuevo en unos segundos.'
+          : error.message || 'Error al guardar cambios. Por favor intenta de nuevo.';
+        saveMessage.textContent = errorMsg;
+        saveMessage.className = 'save-message error';
+      }
+    });
+
+    // Cargar reservas
+    async function loadReservations() {
+      const loadingState = document.getElementById('reservationsLoading');
+      const emptyState = document.getElementById('reservationsEmpty');
+      const reservationsList = document.getElementById('reservationsList');
+      
+      try {
+        loadingState.style.display = 'block';
+        emptyState.style.display = 'none';
+        reservationsList.innerHTML = '';
+        
+        userReservations = await api.getMyBookings();
+        
+        loadingState.style.display = 'none';
+        
+        if (!userReservations || userReservations.length === 0) {
+          emptyState.style.display = 'block';
+          return;
+        }
+        
+        renderReservations();
+      } catch (error) {
+        console.error('Error loading reservations:', error);
+        loadingState.style.display = 'none';
+        emptyState.style.display = 'block';
+      }
+    }
+
+    function renderReservations() {
+      const reservationsList = document.getElementById('reservationsList');
+      const emptyState = document.getElementById('reservationsEmpty');
+      
+      if (!userReservations || userReservations.length === 0) {
+        emptyState.style.display = 'block';
+        reservationsList.innerHTML = '';
+        return;
+      }
+      
+      emptyState.style.display = 'none';
+      
+      // Mostrar solo las últimas 5 reservas
+      const recentReservations = userReservations.slice(0, 5);
+      
+      reservationsList.innerHTML = recentReservations.map(res => {
+        const getValue = (obj, pascalKey, camelKey, defaultValue = null) => {
+          return obj[pascalKey] ?? obj[camelKey] ?? defaultValue;
+        };
+        
+        const status = getValue(res, 'Status', 'status', 'Pending');
+        const tourName = getValue(res, 'TourName', 'tourName', 'Tour sin nombre');
+        const reservationId = getValue(res, 'Id', 'id', '');
+        const createdAt = getValue(res, 'CreatedAt', 'createdAt');
+        const numberOfParticipants = getValue(res, 'NumberOfParticipants', 'numberOfParticipants', 0);
+        const totalAmount = getValue(res, 'TotalAmount', 'totalAmount', 0);
+        const tourDate = getValue(res, 'TourDate', 'tourDate');
+        
+        const statusLower = (status || '').toLowerCase();
+        const statusClass = `status-${statusLower}`;
+        
+        const statusText = {
+          'pending': 'Pendiente',
+          'confirmed': 'Confirmada',
+          'cancelled': 'Cancelada',
+          'expired': 'Expirada',
+          'completed': 'Completada'
+        }[statusLower] || status || 'Desconocido';
+        
+        const formatPrice = (value) => {
+          const price = Number(value ?? 0);
+          return price > 0 ? `$${price.toFixed(2)}` : '$0.00';
+        };
+        
+        const formatDate = (dateStr) => {
+          if (!dateStr) return 'Por definir';
+          return new Date(dateStr).toLocaleDateString('es-PA', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+        };
+        
+        return `
+          <div class="reservation-item">
+            <div class="reservation-header">
+              <h3 class="reservation-title">${tourName}</h3>
+              <span class="reservation-status ${statusClass}">${statusText}</span>
+            </div>
+            <div class="reservation-details">
+              <div>
+                <div class="detail-label">Fecha de Reserva</div>
+                <div class="detail-value">${formatDate(createdAt)}</div>
+              </div>
+              <div>
+                <div class="detail-label">Fecha del Tour</div>
+                <div class="detail-value">${formatDate(tourDate)}</div>
+              </div>
+              <div>
+                <div class="detail-label">Participantes</div>
+                <div class="detail-value">${numberOfParticipants}</div>
+              </div>
+              <div>
+                <div class="detail-label">Total</div>
+                <div class="detail-value">${formatPrice(totalAmount)}</div>
+              </div>
+            </div>
+            <button class="btn-view-detail" onclick="window.location.href='/reservas.html'">
+              Ver Detalles
+            </button>
+          </div>
+        `;
+      }).join('');
+      
+      // Si hay más de 5, agregar link para ver todas
+      if (userReservations.length > 5) {
+        reservationsList.innerHTML += `
+          <div style="text-align: center; margin-top: var(--space-md);">
+            <a href="/reservas.html" class="btn-primary" style="display: inline-block;">
+              Ver todas las reservas (${userReservations.length})
+            </a>
+          </div>
+        `;
+      }
+    }
+
+    // Cargar pagos
+    async function loadPayments() {
+      const loadingState = document.getElementById('paymentsLoading');
+      const emptyState = document.getElementById('paymentsEmpty');
+      const comingSoon = document.getElementById('paymentsComingSoon');
+      const paymentsList = document.getElementById('paymentsList');
+      
+      try {
+        loadingState.style.display = 'block';
+        emptyState.style.display = 'none';
+        comingSoon.style.display = 'none';
+        paymentsList.innerHTML = '';
+        
+        // Intentar cargar pagos - si no existe el endpoint, mostrar mensaje
+        try {
+          // TODO: Implementar endpoint GET /api/payments/my cuando esté disponible
+          // userPayments = await api.getMyPayments();
+          
+          // Por ahora, mostrar mensaje de "próximamente"
+          loadingState.style.display = 'none';
+          comingSoon.style.display = 'block';
+        } catch (error) {
+          console.warn('Endpoint de pagos no disponible aún:', error);
+          loadingState.style.display = 'none';
+          comingSoon.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error loading payments:', error);
+        loadingState.style.display = 'none';
+        comingSoon.style.display = 'block';
+      }
+    }
+
+    // Cargar y guardar preferencias
+    async function loadPreferences() {
+      try {
+        // Por ahora, cargar desde localStorage o usar valores por defecto
+        const emailNotifications = localStorage.getItem('emailNotifications') !== 'false';
+        const smsNotifications = localStorage.getItem('smsNotifications') === 'true';
+        
+        document.getElementById('emailNotifications').checked = emailNotifications;
+        document.getElementById('smsNotifications').checked = smsNotifications;
+        
+        // Agregar listeners para guardar automáticamente
+        document.getElementById('emailNotifications').addEventListener('change', savePreferences);
+        document.getElementById('smsNotifications').addEventListener('change', savePreferences);
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+      }
+    }
+
+    async function savePreferences() {
+      const emailNotifications = document.getElementById('emailNotifications').checked;
+      const smsNotifications = document.getElementById('smsNotifications').checked;
+      const preferencesMessage = document.getElementById('preferencesMessage');
+      
+      try {
+        // Guardar en localStorage por ahora
+        localStorage.setItem('emailNotifications', emailNotifications.toString());
+        localStorage.setItem('smsNotifications', smsNotifications.toString());
+        
+        // TODO: Implementar endpoint PUT /api/users/preferences cuando esté disponible
+        // await api.updatePreferences({ emailNotifications, smsNotifications });
+        
+        preferencesMessage.textContent = '✓ Preferencias guardadas';
+        preferencesMessage.className = 'save-message success';
+        
+        setTimeout(() => {
+          preferencesMessage.className = 'save-message';
+          preferencesMessage.textContent = '';
+        }, 2000);
+      } catch (error) {
+        console.error('Error saving preferences:', error);
+        preferencesMessage.textContent = 'Error al guardar preferencias';
+        preferencesMessage.className = 'save-message error';
+      }
+    }
+
+    // Cargar facturas
+    async function loadInvoices() {
+      const loadingState = document.getElementById('invoicesLoading');
+      const emptyState = document.getElementById('invoicesEmpty');
+      const errorState = document.getElementById('invoicesError');
+      const tableContainer = document.getElementById('invoicesTableContainer');
+      const cardsContainer = document.getElementById('invoicesCardsContainer');
+      const tableBody = document.getElementById('invoicesTableBody');
+      
+      try {
+        loadingState.style.display = 'block';
+        emptyState.style.display = 'none';
+        errorState.style.display = 'none';
+        tableContainer.style.display = 'none';
+        cardsContainer.style.display = 'none';
+        tableBody.innerHTML = '';
+        cardsContainer.innerHTML = '';
+        
+        userInvoices = await api.getMyInvoices();
+        
+        loadingState.style.display = 'none';
+        
+        if (!userInvoices || userInvoices.length === 0) {
+          emptyState.style.display = 'block';
+          return;
+        }
+        
+        renderInvoices();
+      } catch (error) {
+        console.error('Error loading invoices:', error);
+        loadingState.style.display = 'none';
+        errorState.style.display = 'block';
+      }
+    }
+
+    function renderInvoices() {
+      const emptyState = document.getElementById('invoicesEmpty');
+      const tableContainer = document.getElementById('invoicesTableContainer');
+      const cardsContainer = document.getElementById('invoicesCardsContainer');
+      const tableBody = document.getElementById('invoicesTableBody');
+      
+      if (!userInvoices || userInvoices.length === 0) {
+        emptyState.style.display = 'block';
+        tableContainer.style.display = 'none';
+        cardsContainer.style.display = 'none';
+        return;
+      }
+      
+      emptyState.style.display = 'none';
+      
+      // Helper para obtener valores (manejar PascalCase y camelCase)
+      const getValue = (obj, pascalKey, camelKey, defaultValue = null) => {
+        return obj[pascalKey] ?? obj[camelKey] ?? defaultValue;
+      };
+      
+      // Formatear fecha
+      const formatDate = (dateStr) => {
+        if (!dateStr) return 'N/A';
+        try {
+          return new Date(dateStr).toLocaleDateString('es-PA', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+        } catch (e) {
+          return dateStr;
+        }
+      };
+      
+      // Formatear precio
+      const formatPrice = (value, currency = 'USD') => {
+        const price = Number(value ?? 0);
+        const currencySymbol = currency === 'USD' ? '$' : currency;
+        return price > 0 ? `${currencySymbol}${price.toFixed(2)}` : `${currencySymbol}0.00`;
+      };
+      
+      // Renderizar tabla (Desktop)
+      tableBody.innerHTML = userInvoices.map(invoice => {
+        const invoiceNumber = getValue(invoice, 'InvoiceNumber', 'invoiceNumber', 'N/A');
+        const issuedAt = getValue(invoice, 'IssuedAt', 'issuedAt');
+        const total = getValue(invoice, 'Total', 'total', 0);
+        const currency = getValue(invoice, 'Currency', 'currency', 'USD');
+        const invoiceId = getValue(invoice, 'Id', 'id', '');
+        const status = getValue(invoice, 'Status', 'status', 'Issued');
+        
+        return `
+          <tr>
+            <td>
+              <span class="invoice-number">${invoiceNumber}</span>
+            </td>
+            <td>
+              <span class="invoice-date">${formatDate(issuedAt)}</span>
+            </td>
+            <td>
+              <span class="invoice-total">${formatPrice(total, currency)}</span>
+            </td>
+            <td>
+              <span class="invoice-status paid">Pagada</span>
+            </td>
+            <td>
+              <button class="btn-download-pdf" onclick="downloadInvoicePdf('${invoiceId}')" data-invoice-id="${invoiceId}">
+                ⬇ PDF
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      
+      // Renderizar cards (Mobile)
+      cardsContainer.innerHTML = userInvoices.map(invoice => {
+        const invoiceNumber = getValue(invoice, 'InvoiceNumber', 'invoiceNumber', 'N/A');
+        const issuedAt = getValue(invoice, 'IssuedAt', 'issuedAt');
+        const total = getValue(invoice, 'Total', 'total', 0);
+        const currency = getValue(invoice, 'Currency', 'currency', 'USD');
+        const invoiceId = getValue(invoice, 'Id', 'id', '');
+        
+        return `
+          <div class="invoice-card">
+            <div class="invoice-card-header">
+              <div class="invoice-card-number">${invoiceNumber}</div>
+              <span class="invoice-status paid">Pagada</span>
+            </div>
+            <div class="invoice-card-details">
+              <div class="invoice-card-detail">
+                <span class="invoice-card-label">Fecha:</span>
+                <span class="invoice-card-value">${formatDate(issuedAt)}</span>
+              </div>
+              <div class="invoice-card-detail">
+                <span class="invoice-card-label">Total:</span>
+                <span class="invoice-card-value">${formatPrice(total, currency)} ${currency}</span>
+              </div>
+            </div>
+            <div class="invoice-card-actions">
+              <button class="btn-download-pdf" onclick="downloadInvoicePdf('${invoiceId}')" data-invoice-id="${invoiceId}">
+                Descargar PDF
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // Mostrar según tamaño de pantalla
+      if (window.innerWidth > 768) {
+        tableContainer.style.display = 'block';
+        cardsContainer.style.display = 'none';
+      } else {
+        tableContainer.style.display = 'none';
+        cardsContainer.style.display = 'grid';
+      }
+    }
+
+    // Descargar PDF de factura
+    async function downloadInvoicePdf(invoiceId) {
+      const button = document.querySelector(`[data-invoice-id="${invoiceId}"]`);
+      const originalText = button ? button.innerHTML : '';
+      
+      try {
+        if (button) {
+          button.disabled = true;
+          button.classList.add('downloading');
+        }
+        
+        const blob = await api.downloadInvoicePdf(invoiceId);
+        
+        // Crear URL temporal y descargar
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `factura-${invoiceId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        // Mostrar mensaje de éxito
+        if (typeof showNotification === 'function') {
+          showNotification('PDF descargado exitosamente', 'success');
+        }
+      } catch (error) {
+        console.error('Error downloading invoice PDF:', error);
+        if (typeof showNotification === 'function') {
+          showNotification('Error al descargar PDF. Intenta nuevamente.', 'error');
+        } else {
+          alert('Error al descargar PDF. Intenta nuevamente.');
+        }
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.classList.remove('downloading');
+          button.innerHTML = originalText;
+        }
+      }
+    }
+
+    // Manejar cambio de tamaño de ventana para mostrar tabla/cards
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (userInvoices && userInvoices.length > 0) {
+          const tableContainer = document.getElementById('invoicesTableContainer');
+          const cardsContainer = document.getElementById('invoicesCardsContainer');
+          
+          if (window.innerWidth > 768) {
+            tableContainer.style.display = 'block';
+            cardsContainer.style.display = 'none';
+          } else {
+            tableContainer.style.display = 'none';
+            cardsContainer.style.display = 'grid';
+          }
+        }
+      }, 250);
+    });
+
+    // Logout
+    if (document.getElementById('logoutBtn')) {
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await api.logout();
+        window.location.href = '/';
+      });
+    }
+  </script>
+</body>
+</html>

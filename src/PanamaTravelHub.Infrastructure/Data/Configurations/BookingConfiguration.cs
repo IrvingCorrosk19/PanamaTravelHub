@@ -51,6 +51,16 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(b => b.CountryId)
             .HasColumnName("country_id");
 
+        builder.Property(b => b.AllowPartialPayments)
+            .HasColumnName("allow_partial_payments")
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(b => b.PaymentPlanType)
+            .HasColumnName("payment_plan_type")
+            .HasDefaultValue(0)
+            .IsRequired();
+
         builder.Property(b => b.CreatedAt)
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP")

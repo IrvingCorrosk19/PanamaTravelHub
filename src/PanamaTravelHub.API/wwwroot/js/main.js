@@ -633,7 +633,10 @@ function createTourCard(tour) {
     }
   }
 
-  console.log('🎨 [createTourCard] Generando HTML para card:', {
+    // Alt text para SEO
+    const imageAlt = tourName || 'Tour en Panamá';
+    
+    console.log('🎨 [createTourCard] Generando HTML para card:', {
     finalTourName,
     durationHours,
     finalLocation,

@@ -15,6 +15,9 @@ public class UpdateTourRequestDto
     public DateTime? TourDate { get; set; } // Fecha principal del tour
     public bool? IsActive { get; set; }
     public List<string>? Images { get; set; }
+    // CMS Blocks
+    public string? BlockOrder { get; set; } // JSON array: ["hero", "social", ...]
+    public string? BlockEnabled { get; set; } // JSON object: {"hero": true, "social": false, ...}
 }
 
 public class UpdateTourRequestValidator : AbstractValidator<UpdateTourRequestDto>

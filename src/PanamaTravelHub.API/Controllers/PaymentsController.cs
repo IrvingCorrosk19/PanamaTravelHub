@@ -20,19 +20,22 @@ public class PaymentsController : ControllerBase
     private readonly ILogger<PaymentsController> _logger;
     private readonly IConfiguration _configuration;
     private readonly IEmailNotificationService _emailNotificationService;
+    private readonly IInvoiceService _invoiceService;
 
     public PaymentsController(
         IPaymentProviderFactory paymentProviderFactory,
         ApplicationDbContext context,
         ILogger<PaymentsController> logger,
         IConfiguration configuration,
-        IEmailNotificationService emailNotificationService)
+        IEmailNotificationService emailNotificationService,
+        IInvoiceService invoiceService)
     {
         _paymentProviderFactory = paymentProviderFactory;
         _context = context;
         _logger = logger;
         _configuration = configuration;
         _emailNotificationService = emailNotificationService;
+        _invoiceService = invoiceService;
     }
 
     /// <summary>
@@ -202,6 +205,21 @@ public class PaymentsController : ControllerBase
                     .Reference(b => b.Tour)
                     .LoadAsync();
                 
+                // Generar factura automáticamente (después de confirmar reserva)
+                try
+                {
+                    // Detectar idioma del usuario (por ahora ES por defecto, luego se puede mejorar)
+                    var userLanguage = "ES"; // TODO: Obtener desde preferencias del usuario
+                    var invoice = await _invoiceService.GenerateInvoiceAsync(payment.Booking, userLanguage);
+                    _logger.LogInformation("Factura generada automáticamente: {InvoiceNumber} para reserva {BookingId}", 
+                        invoice.InvoiceNumber, payment.Booking.Id);
+                }
+                catch (Exception ex)
+                {
+                    // No fallar el flujo de pago si la factura falla (se puede regenerar después)
+                    _logger.LogError(ex, "Error al generar factura automática para reserva {BookingId}", payment.Booking.Id);
+                }
+                
                 // Enviar email de confirmación de pago
                 try
                 {
@@ -341,6 +359,28 @@ public class PaymentsController : ControllerBase
                 {
                     payment.CapturedAt = DateTime.UtcNow;
                     payment.Booking.Status = BookingStatus.Confirmed;
+                    
+                    // Cargar relaciones necesarias
+                    await _context.Entry(payment.Booking)
+                        .Reference(b => b.User)
+                        .LoadAsync();
+                    await _context.Entry(payment.Booking)
+                        .Reference(b => b.Tour)
+                        .LoadAsync();
+                    
+                    // Generar factura automáticamente (después de confirmar reserva)
+                    try
+                    {
+                        var userLanguage = "ES"; // TODO: Obtener desde preferencias del usuario
+                        var invoice = await _invoiceService.GenerateInvoiceAsync(payment.Booking, userLanguage);
+                        _logger.LogInformation("Factura generada automáticamente desde webhook: {InvoiceNumber} para reserva {BookingId}", 
+                            invoice.InvoiceNumber, payment.Booking.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        // No fallar el flujo de pago si la factura falla
+                        _logger.LogError(ex, "Error al generar factura automática desde webhook para reserva {BookingId}", payment.Booking.Id);
+                    }
                 }
                 else if (webhookResult.Status == PaymentStatus.Refunded)
                 {

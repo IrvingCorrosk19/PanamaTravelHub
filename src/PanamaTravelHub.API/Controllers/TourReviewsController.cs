@@ -261,6 +261,36 @@ public class TourReviewsController : ControllerBase
     }
 
     /// <summary>
+    /// Rechaza una reseña (Admin)
+    /// </summary>
+    [HttpPost("{reviewId}/reject")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult> RejectReview(Guid tourId, Guid reviewId)
+    {
+        try
+        {
+            var review = await _context.TourReviews
+                .FirstOrDefaultAsync(tr => tr.Id == reviewId && tr.TourId == tourId);
+
+            if (review == null)
+            {
+                return NotFound(new { message = "Reseña no encontrada" });
+            }
+
+            review.IsApproved = false;
+            review.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Reseña rechazada exitosamente" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al rechazar reseña {ReviewId}", reviewId);
+            return StatusCode(500, new { message = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
     /// Elimina una reseña (Admin o el propio usuario)
     /// </summary>
     [HttpDelete("{reviewId}")]
@@ -302,6 +332,98 @@ public class TourReviewsController : ControllerBase
             return StatusCode(500, new { message = "Error interno del servidor" });
         }
     }
+
+    /// <summary>
+    /// Obtiene todas las reviews para moderación (Admin)
+    /// </summary>
+    [HttpGet("admin")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<AdminReviewsResponseDto>> GetAllReviews(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] bool? isApproved = null,
+        [FromQuery] Guid? tourId = null)
+    {
+        try
+        {
+            var query = _context.TourReviews
+                .Include(tr => tr.User)
+                .Include(tr => tr.Tour)
+                .AsQueryable();
+
+            if (isApproved.HasValue)
+            {
+                query = query.Where(tr => tr.IsApproved == isApproved.Value);
+            }
+
+            if (tourId.HasValue)
+            {
+                query = query.Where(tr => tr.TourId == tourId.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+            var reviews = await query
+                .OrderByDescending(tr => tr.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(tr => new AdminReviewDto
+                {
+                    Id = tr.Id,
+                    TourId = tr.TourId,
+                    TourName = tr.Tour.Name,
+                    UserId = tr.UserId,
+                    UserName = $"{tr.User.FirstName} {tr.User.LastName}",
+                    UserEmail = tr.User.Email,
+                    Rating = tr.Rating,
+                    Title = tr.Title,
+                    Comment = tr.Comment,
+                    IsApproved = tr.IsApproved,
+                    IsVerified = tr.IsVerified,
+                    CreatedAt = tr.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new AdminReviewsResponseDto
+            {
+                Reviews = reviews,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener reviews para moderación");
+            return StatusCode(500, new { message = "Error al obtener reviews" });
+        }
+    }
+}
+
+// DTOs adicionales para Admin
+public class AdminReviewDto
+{
+    public Guid Id { get; set; }
+    public Guid TourId { get; set; }
+    public string TourName { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string UserEmail { get; set; } = string.Empty;
+    public int Rating { get; set; }
+    public string? Title { get; set; }
+    public string? Comment { get; set; }
+    public bool IsApproved { get; set; }
+    public bool IsVerified { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class AdminReviewsResponseDto
+{
+    public List<AdminReviewDto> Reviews { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
 }
 
 // DTOs

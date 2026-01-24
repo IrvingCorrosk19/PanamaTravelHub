@@ -43,9 +43,168 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadStripeConfig();
   loadTourFromUrl();
   loadCountries();
-  updateParticipants();
+  updateParticipantsCount(); // Solo actualizar contador, no campos detallados
   setupPaymentInputs();
+  checkAuthInline();
 });
+
+// Login Inline - No redirige, solo muestra/oculta
+async function checkAuthInline() {
+  const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+  const loginSection = document.getElementById('loginInlineSection');
+  
+  if (!token && loginSection) {
+    loginSection.style.display = 'block';
+  } else if (token && loginSection) {
+    loginSection.style.display = 'none';
+  }
+}
+
+async function handleInlineAuth() {
+  const email = document.getElementById('inlineEmail')?.value.trim();
+  const password = document.getElementById('inlinePassword')?.value;
+  const firstName = document.getElementById('inlineFirstName')?.value.trim();
+  const lastName = document.getElementById('inlineLastName')?.value.trim();
+  const registerPassword = document.getElementById('inlineRegisterPassword')?.value;
+  
+  if (!email) {
+    showNotificationError('Por favor ingresa tu email');
+    return;
+  }
+  
+  try {
+    // Verificar si el email existe
+    const emailExists = await api.checkEmail(email);
+    
+    if (emailExists) {
+      // Email existe - mostrar campo de contraseña
+      document.getElementById('passwordField').style.display = 'block';
+      document.getElementById('registerFields').style.display = 'none';
+      document.getElementById('inlineAuthBtn').textContent = 'Iniciar Sesión';
+      
+      if (password) {
+        // Intentar login
+        await api.login(email, password);
+        document.getElementById('loginInlineSection').style.display = 'none';
+        showNotificationSuccess('Sesión iniciada');
+      }
+    } else {
+      // Email no existe - mostrar campos de registro
+      document.getElementById('passwordField').style.display = 'none';
+      document.getElementById('registerFields').style.display = 'block';
+      document.getElementById('inlineAuthBtn').textContent = 'Crear Cuenta';
+      
+      if (firstName && lastName && registerPassword) {
+        // Registrar nuevo usuario
+        await api.register({
+          email,
+          password: registerPassword,
+          confirmPassword: registerPassword,
+          firstName,
+          lastName
+        });
+        document.getElementById('loginInlineSection').style.display = 'none';
+        showNotificationSuccess('Cuenta creada exitosamente');
+      }
+    }
+  } catch (error) {
+    console.error('Error en auth inline:', error);
+    showNotificationError(error.message || 'Error al procesar');
+  }
+}
+
+function showNotificationSuccess(message) {
+  if (typeof notificationManager !== 'undefined') {
+    notificationManager.success(message);
+  }
+}
+
+// Modal de Fechas
+function showDateModal() {
+  document.getElementById('dateModal').style.display = 'flex';
+  // Cargar fechas en el modal si no están cargadas
+  if (availableDates.length === 0 && currentTour) {
+    loadAvailableDates(currentTour.Id || currentTour.id);
+  }
+  renderDateCalendarInModal();
+}
+
+function closeDateModal() {
+  document.getElementById('dateModal').style.display = 'none';
+}
+
+function renderDateCalendarInModal() {
+  const modalContent = document.getElementById('dateModalContent');
+  if (!modalContent) return;
+  
+  // Si ya tenemos fechas cargadas, renderizar directamente
+  if (availableDates && availableDates.length > 0) {
+    // Temporariamente cambiar el target para renderDateCalendar
+    const originalSelection = document.getElementById('dateSelection');
+    const tempDiv = document.createElement('div');
+    tempDiv.id = 'dateSelection';
+    document.body.appendChild(tempDiv);
+    
+    renderDateCalendar();
+    
+    // Mover el contenido al modal
+    modalContent.innerHTML = tempDiv.innerHTML;
+    document.body.removeChild(tempDiv);
+    
+    // Restaurar el selector original
+    if (originalSelection) {
+      updateDateDisplay();
+    }
+    
+    // Re-aplicar event listeners en el modal
+    modalContent.querySelectorAll('.date-card').forEach(card => {
+      const dateId = card.getAttribute('data-date-id');
+      if (dateId) {
+        card.onclick = () => {
+          selectDate(dateId);
+          closeDateModal();
+        };
+      }
+    });
+  } else {
+    // Cargar fechas primero
+    loadAvailableDates(currentTour?.Id || currentTour?.id).then(() => {
+      renderDateCalendarInModal();
+    });
+  }
+}
+
+function updateDateDisplay() {
+  const dateDisplay = document.querySelector('.btn-date-selector');
+  if (!dateDisplay) return;
+  
+  if (selectedTourDateId) {
+    const selectedDate = availableDates.find(d => {
+      const dateId = d.Id || d.id;
+      return dateId === selectedTourDateId || (selectedTourDateId === 'tour-main-date' && !dateId);
+    });
+    
+    if (selectedDate) {
+      const dateObj = new Date(selectedDate.TourDateTime || selectedDate.tourDateTime);
+      if (!isNaN(dateObj.getTime())) {
+        dateDisplay.textContent = dateObj.toLocaleDateString('es-PA', { 
+          weekday: 'short', 
+          day: 'numeric', 
+          month: 'short',
+          year: 'numeric'
+        });
+        dateDisplay.style.borderColor = 'var(--primary)';
+        dateDisplay.style.background = 'var(--primary-50)';
+        dateDisplay.style.color = 'var(--primary)';
+      }
+    }
+  } else {
+    dateDisplay.textContent = 'Seleccionar Fecha';
+    dateDisplay.style.borderColor = '';
+    dateDisplay.style.background = '';
+    dateDisplay.style.color = '';
+  }
+}
 
 async function loadStripeConfig() {
   try {
@@ -91,6 +250,14 @@ function loadTourFromUrl() {
 
 async function loadTour(tourId) {
   try {
+    // Track: checkout_viewed
+    if (window.track && tourId) {
+      window.track('checkout_viewed', {
+        entityType: 'tour',
+        entityId: tourId
+      });
+    }
+    
     // Intentar cargar desde API
     try {
       currentTour = await api.getTour(tourId);
@@ -297,8 +464,10 @@ async function loadAvailableDates(tourId) {
     }
     
     console.log(`📅 [loadAvailableDates] Mostrando ${availableDates.length} fecha(s) disponible(s)`);
-    // Mostrar calendario de fechas disponibles
-    renderDateCalendar();
+    // Mostrar calendario de fechas disponibles (solo si hay modal o selector)
+    if (document.getElementById('dateModalContent') || document.getElementById('dateSelection')) {
+      renderDateCalendar();
+    }
   } catch (error) {
     console.error('❌ [loadAvailableDates] Error loading dates:', error);
     const dateSelection = document.getElementById('dateSelection');
@@ -313,7 +482,10 @@ async function loadAvailableDates(tourId) {
 }
 
 function renderDateCalendar() {
-  const dateSelection = document.getElementById('dateSelection');
+  // Renderizar en el modal si está abierto, sino en el selector compacto
+  const dateSelection = document.getElementById('dateModalContent') || document.getElementById('dateSelection');
+  if (!dateSelection) return;
+  
   const now = new Date();
   
   // Agrupar fechas por mes
@@ -381,8 +553,26 @@ function renderDateCalendar() {
     html += `</div></div>`;
   });
   
-  html += '</div>';
-  dateSelection.innerHTML = html;
+    html += '</div>';
+  
+  // Si es el modal, renderizar ahí, sino actualizar el botón
+  if (dateSelection.id === 'dateModalContent') {
+    dateSelection.innerHTML = html;
+    // Re-aplicar event listeners
+    document.querySelectorAll('.date-card').forEach(card => {
+      const dateId = card.getAttribute('data-date-id');
+      if (dateId && !card.onclick) {
+        card.onclick = () => {
+          selectDate(dateId);
+          closeDateModal();
+          updateDateDisplay();
+        };
+      }
+    });
+  } else {
+    // Solo actualizar el texto del botón
+    updateDateDisplay();
+  }
 }
 
 function selectDate(dateId) {
@@ -396,6 +586,9 @@ function selectDate(dateId) {
   document.querySelectorAll('.date-card').forEach(card => {
     card.classList.remove('selected');
   });
+  
+  // Actualizar display del botón
+  updateDateDisplay();
   
   // Agregar clase 'selected' a la tarjeta seleccionada
   const selectedCard = document.querySelector(`[data-date-id="${dateId}"]`);
@@ -415,10 +608,7 @@ function selectDate(dateId) {
     dateError.style.display = 'none';
   }
   
-  // Actualizar resumen de orden con la fecha seleccionada
-  updateOrderSummary();
-  
-  // Actualizar resumen
+  // Actualizar resumen de orden
   updateOrderSummary();
 }
 
@@ -445,41 +635,38 @@ function updateTourSummary() {
   }
 
   const summaryDiv = document.getElementById('tourSummary');
+  if (!summaryDiv) return;
   
   // Normalizar propiedades (priorizar PascalCase del backend)
   const tourId = currentTour.Id || currentTour.id || '';
   const tourName = currentTour.Name || currentTour.name || 'Tour sin nombre';
   const tourLocation = currentTour.Location || currentTour.location || 'Ubicación no especificada';
-  const durationHours = currentTour.DurationHours ?? currentTour.durationHours ?? 0;
-  const availableSpots = Number(currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0) || 0;
+  
+  // Layout compacto para el resumen premium
+  const imageUrl = currentTour.ImageUrl || currentTour.imageUrl || getDefaultTourImageCheckout(tourId);
   
   // Obtener imagen (priorizar PascalCase)
   const tourImages = currentTour.TourImages || currentTour.tourImages || [];
-  let imageUrl = null;
+  let finalImageUrl = imageUrl;
   if (tourImages && tourImages.length > 0) {
     const primaryImage = tourImages.find(img => img.IsPrimary === true || img.isPrimary === true);
     if (primaryImage) {
-      imageUrl = primaryImage.ImageUrl || primaryImage.imageUrl;
+      finalImageUrl = primaryImage.ImageUrl || primaryImage.imageUrl;
     } else {
-      imageUrl = tourImages[0]?.ImageUrl || tourImages[0]?.imageUrl;
+      finalImageUrl = tourImages[0]?.ImageUrl || tourImages[0]?.imageUrl;
     }
   }
   
-  // Fallbacks
-  if (!imageUrl) {
-    imageUrl = currentTour.ImageUrl || currentTour.imageUrl || getDefaultTourImageCheckout(tourId);
+  // Fallback
+  if (!finalImageUrl) {
+    finalImageUrl = getDefaultTourImageCheckout(tourId);
   }
 
+  // Layout compacto premium
   summaryDiv.innerHTML = `
-    <img src="${imageUrl}" alt="${tourName}" class="tour-summary-image" onerror="this.src='${getDefaultTourImageCheckout(tourId)}'" />
-    <div class="tour-summary-info">
-      <div class="tour-summary-name">${tourName}</div>
-      <div class="tour-summary-details">
-        <div>📍 ${tourLocation}</div>
-        <div>⏱ ${durationHours} horas</div>
-        <div>👥 ${availableSpots} cupos disponibles</div>
-      </div>
-    </div>
+    <img src="${finalImageUrl}" alt="${tourName}" onerror="this.src='${getDefaultTourImageCheckout(tourId)}'" />
+    <h3>${tourName}</h3>
+    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px;">📍 ${tourLocation}</p>
   `;
 }
 
@@ -490,13 +677,7 @@ function updateOrderSummary() {
   }
 
   // Normalizar propiedades (priorizar PascalCase del backend)
-  const tourName = currentTour.Name || currentTour.name || 'Tour sin nombre';
   const unitPrice = currentTour.Price ?? currentTour.price ?? 0;
-  
-  const summaryTourNameEl = document.getElementById('summaryTourName');
-  if (summaryTourNameEl) {
-    summaryTourNameEl.textContent = tourName;
-  }
   
   const summaryParticipantsEl = document.getElementById('summaryParticipants');
   if (summaryParticipantsEl) {
@@ -515,33 +696,20 @@ function updateOrderSummary() {
     return dateId === selectedTourDateId || (selectedTourDateId === 'tour-main-date' && !dateId);
   });
   
+  // Actualizar display en el resumen (ya no existe summaryDate, se usa updateDateDisplay)
+  updateDateDisplay();
+  
   if (selectedDate) {
     const tourDateTime = selectedDate.TourDateTime || selectedDate.tourDateTime;
     if (tourDateTime) {
       try {
         const dateObj = new Date(tourDateTime);
         if (!isNaN(dateObj.getTime())) {
-          const dateDisplay = document.getElementById('summaryDate');
-          if (dateDisplay) {
-            dateDisplay.textContent = dateObj.toLocaleDateString('es-PA', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            });
-          }
+          // Fecha válida, continuar con cálculo
         }
       } catch (e) {
         console.warn('Error al formatear fecha:', e);
       }
-    }
-  } else if (!selectedTourDateId) {
-    // Si no hay fecha seleccionada, mostrar mensaje por defecto
-    const dateDisplay = document.getElementById('summaryDate');
-    if (dateDisplay) {
-      dateDisplay.textContent = 'Selecciona una fecha';
     }
   }
   
@@ -580,53 +748,24 @@ function updateOrderSummary() {
   document.getElementById('summaryTotal').textContent = formatPrice(total);
 }
 
-function updateParticipants() {
-  numberOfParticipants = parseInt(document.getElementById('numberOfParticipants').value) || 1;
+// Función simplificada: solo actualiza el contador, NO crea campos detallados
+function updateParticipantsCount() {
+  numberOfParticipants = parseInt(document.getElementById('numberOfParticipants')?.value) || 1;
   
   // Validar número de participantes
-  if (numberOfParticipants < 1 || numberOfParticipants > 50) {
-    numberOfParticipants = Math.max(1, Math.min(50, numberOfParticipants));
-    document.getElementById('numberOfParticipants').value = numberOfParticipants;
+  if (numberOfParticipants < 1 || numberOfParticipants > 10) {
+    numberOfParticipants = Math.max(1, Math.min(10, numberOfParticipants));
+    const input = document.getElementById('numberOfParticipants');
+    if (input) input.value = numberOfParticipants;
   }
   
-  const participantsList = document.getElementById('participantsList');
-  participantsList.innerHTML = '';
+  // Actualizar resumen
+  updateOrderSummary();
+}
 
-  for (let i = 1; i <= numberOfParticipants; i++) {
-    const participantCard = document.createElement('div');
-    participantCard.className = 'participant-card';
-    participantCard.setAttribute('data-participant-index', i);
-    participantCard.innerHTML = `
-      <div class="participant-header">Participante ${i}${i === 1 ? ' (Titular)' : ''}</div>
-      <div class="form-group">
-        <label class="form-label">Nombre <span class="required">*</span></label>
-        <input type="text" class="form-input participant-firstname" placeholder="Nombre completo" required maxlength="100" pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+" />
-        <span class="field-error participant-firstname-error"></span>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Apellido <span class="required">*</span></label>
-        <input type="text" class="form-input participant-lastname" placeholder="Apellido completo" required maxlength="100" pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+" />
-        <span class="field-error participant-lastname-error"></span>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email ${i === 1 ? '<span class="required">*</span>' : ''}</label>
-        <input type="email" class="form-input participant-email" placeholder="email@ejemplo.com" ${i === 1 ? 'required' : ''} maxlength="255" />
-        <span class="field-error participant-email-error"></span>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Teléfono</label>
-        <input type="tel" class="form-input participant-phone" placeholder="+507 6000-0000" maxlength="20" />
-        <span class="field-error participant-phone-error"></span>
-      </div>
-      ${i > 1 ? `
-      <div class="form-group">
-        <label class="form-label">Fecha de Nacimiento (opcional)</label>
-        <input type="date" class="form-input participant-dob" max="${new Date().toISOString().split('T')[0]}" />
-        <span class="field-error participant-dob-error"></span>
-      </div>
-      ` : ''}
-    `;
-    participantsList.appendChild(participantCard);
+// Función antigua mantenida por compatibilidad (ya no se usa en checkout)
+function updateParticipants() {
+  updateParticipantsCount();
     
     // Agregar validaciones en tiempo real
     setupParticipantValidation(participantCard, i);
@@ -1117,79 +1256,29 @@ async function processPayment() {
     comparison: `${availableSpotsCheck} >= ${numParticipants} = ${availableSpotsCheck >= numParticipants}`
   });
 
+  // Track: payment_started
+  const tourId = currentTour?.Id || currentTour?.id;
+  if (window.track && tourId) {
+    window.track('payment_started', {
+      entityType: 'tour',
+      entityId: tourId,
+      metadata: {
+        paymentMethod: selectedPaymentMethod,
+        participants: numParticipants,
+        totalAmount: calculateTotal()
+      }
+    });
+  }
+
   // Mostrar modal de procesamiento
   modal.style.display = 'flex';
   btn.disabled = true;
   statusText.textContent = 'Creando reserva...';
 
   try {
-    // Obtener datos de participantes
-    const participants = [];
-    const participantCards = document.querySelectorAll('.participant-card');
-    
-    // Asegurar que tenemos exactamente numberOfParticipants participantes
-    if (participantCards.length !== numParticipants) {
-      const errorMsg = `Error: Se esperaban ${numParticipants} participante(s) pero se encontraron ${participantCards.length}. Por favor, recarga la página.`;
-      console.error('❌ [processPayment]', errorMsg);
-      showNotificationError(errorMsg);
-      modal.style.display = 'none';
-      btn.disabled = false;
-      loadingManager.hideGlobal();
-      return;
-    }
-    
-    participantCards.forEach((card, index) => {
-      const firstName = card.querySelector('.participant-firstname')?.value.trim() || '';
-      const lastName = card.querySelector('.participant-lastname')?.value.trim() || '';
-      const email = card.querySelector('.participant-email')?.value.trim() || '';
-      const phone = card.querySelector('.participant-phone')?.value.trim() || '';
-      const dateOfBirth = card.querySelector('.participant-dob')?.value || null;
-
-      // Validar que nombre y apellido estén presentes
-      if (!firstName || !lastName) {
-        const errorMsg = `Participante ${index + 1}: El nombre y apellido son requeridos.`;
-        console.error('❌ [processPayment]', errorMsg);
-        showNotificationError(errorMsg);
-        modal.style.display = 'none';
-        btn.disabled = false;
-        loadingManager.hideGlobal();
-        return;
-      }
-
-      // Construir objeto participante con formato correcto (camelCase para JSON)
-      const participant = {
-        firstName: firstName,
-        lastName: lastName
-      };
-      
-      // Agregar campos opcionales solo si tienen valor
-      if (email) {
-        participant.email = email;
-      }
-      if (phone) {
-        participant.phone = phone;
-      }
-      if (dateOfBirth) {
-        // Convertir fecha a ISO string (el backend espera DateTime)
-        const dobDate = new Date(dateOfBirth);
-        if (!isNaN(dobDate.getTime())) {
-          participant.dateOfBirth = dobDate.toISOString();
-        }
-      }
-      
-      participants.push(participant);
-    });
-    
-    // Validar que tenemos exactamente el número correcto de participantes
-    if (participants.length !== numParticipants) {
-      const errorMsg = `Error: Se esperaban ${numParticipants} participante(s) pero solo se encontraron ${participants.length} válidos. Por favor, completa todos los campos.`;
-      console.error('❌ [processPayment]', errorMsg);
-      showNotificationError(errorMsg);
-      modal.style.display = 'none';
-      btn.disabled = false;
-      loadingManager.hideGlobal();
-      return;
-    }
+    // ✅ PREMIUM: NO recopilar datos de participantes antes del pago
+    // Los participantes se completarán después del pago en booking-success.html
+    const participants = []; // Array vacío - se completará post-pago
 
     // Validar que el tour tenga cupos disponibles (usar la misma lógica que arriba)
     let availableSpotsForBooking = 0;
@@ -1315,20 +1404,23 @@ async function processPayment() {
 
     // Crear la reserva primero
     statusText.textContent = 'Creando reserva...';
-    const countrySelect = document.getElementById('countrySelect');
-    const countryId = countrySelect?.value || null;
     
     // Si selectedTourDateId es 'tour-main-date', significa que se seleccionó la fecha principal del tour
     // En ese caso, no enviar tourDateId (será null)
     const tourDateId = selectedTourDateId === 'tour-main-date' ? null : selectedTourDateId;
     
+    // Obtener país si existe el campo (ahora es opcional)
+    const countrySelect = document.getElementById('countrySelect');
+    const countryId = countrySelect?.value || null;
+    
     // Preparar payload de booking con valores explícitos y consistentes
+    // ✅ PREMIUM: participants vacío - se completará después del pago
     const bookingData = {
       tourId: tourIdForBooking,
       tourDateId: tourDateId,
       numberOfParticipants: finalNumberOfParticipants, // Usar el valor convertido explícitamente
       countryId: countryId || undefined,
-      participants: participants,
+      participants: [], // Array vacío - se completará post-pago en booking-success
       couponCode: appliedCoupon?.code || null // Incluir código de cupón si está aplicado
     };
 
@@ -1508,7 +1600,21 @@ async function processPayment() {
         // Redirigir a página de éxito
         const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
         loadingManager.hideGlobal();
-        window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
+        // Track: payment_success
+        if (window.track && tourId) {
+          window.track('payment_success', {
+            entityType: 'booking',
+            entityId: bookingId,
+            metadata: {
+              tourId: tourId,
+              amount: totalAmount,
+              participants: finalNumberOfParticipants,
+              paymentMethod: selectedPaymentMethod
+            }
+          });
+        }
+        
+        window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}&participants=${finalNumberOfParticipants}`;
         return;
       }
       
@@ -1577,8 +1683,23 @@ async function processPayment() {
 
       // Redirigir a página de éxito
       const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
+      
+      // Track: payment_success (Stripe confirmado)
+      if (window.track && tourId) {
+        window.track('payment_success', {
+          entityType: 'booking',
+          entityId: bookingId,
+          metadata: {
+            tourId: tourId,
+            amount: totalAmount,
+            participants: finalNumberOfParticipants,
+            paymentMethod: 'stripe'
+          }
+        });
+      }
+      
       loadingManager.hideGlobal();
-      window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
+      window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}&participants=${finalNumberOfParticipants}`;
       
     } else if (selectedPaymentMethod === 'paypal') {
       // 🔍 LOG DE PROTECCIÓN: Verificar bookingId antes de crear pago
@@ -1616,7 +1737,7 @@ async function processPayment() {
         
         const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
         loadingManager.hideGlobal();
-        window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
+        window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}&participants=${finalNumberOfParticipants}`;
       } else {
         // Redirigir a PayPal
         loadingManager.hideGlobal();
@@ -1663,12 +1784,40 @@ async function processPayment() {
       await api.confirmPayment(paymentIntentId);
       
       const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
+      
+      // Track: payment_success (Stripe confirmado)
+      if (window.track && tourId) {
+        window.track('payment_success', {
+          entityType: 'booking',
+          entityId: bookingId,
+          metadata: {
+            tourId: tourId,
+            amount: totalAmount,
+            participants: finalNumberOfParticipants,
+            paymentMethod: 'stripe'
+          }
+        });
+      }
+      
       loadingManager.hideGlobal();
-      window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}`;
+      window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}&participants=${finalNumberOfParticipants}`;
     }
 
   } catch (error) {
     console.error('Error processing payment:', error);
+    
+    // Track: payment_failed
+    if (window.track && tourId) {
+      window.track('payment_failed', {
+        entityType: 'tour',
+        entityId: tourId,
+        metadata: {
+          error: error.message || 'Error desconocido',
+          paymentMethod: selectedPaymentMethod
+        }
+      });
+    }
+    
     loadingManager.hideGlobal();
     
     // Manejar específicamente errores de cupos
@@ -1723,6 +1872,22 @@ function generateBookingId() {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Toggle Cupón (mostrar/ocultar)
+function toggleCoupon() {
+  const couponInputs = document.getElementById('couponInputs');
+  const couponToggle = document.getElementById('couponToggle');
+  if (couponInputs && couponToggle) {
+    if (couponInputs.style.display === 'none' || !couponInputs.style.display) {
+      couponInputs.style.display = 'block';
+      couponToggle.style.display = 'none';
+      document.getElementById('couponCode')?.focus();
+    } else {
+      couponInputs.style.display = 'none';
+      couponToggle.style.display = 'block';
+    }
+  }
 }
 
 // Coupon Functions

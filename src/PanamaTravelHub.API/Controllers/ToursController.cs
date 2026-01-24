@@ -936,6 +936,7 @@ public class TourDateDto
 }
 
 // DTOs temporales hasta que se implemente la capa Application
+// Nota: TourDto también está definido en CategoriesController.cs - considerar mover a un archivo compartido
 public class TourDto
 {
     public Guid Id { get; set; }

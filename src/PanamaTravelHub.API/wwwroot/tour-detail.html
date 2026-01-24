@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Detalle del Tour — ToursPanama</title>
+  <title>Detalle del Tour | ToursPanama</title>
+  <meta name="description" content="Descubre los detalles de este tour en Panamá. Reserva ahora y vive una experiencia única." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/design-system.css" />
   <link rel="stylesheet" href="/css/detail.css" />
   <link rel="stylesheet" href="/css/carousel.css" />
   <link rel="stylesheet" href="/css/loading.css" />
@@ -21,9 +23,12 @@
       </div>
       <div class="nav-links">
         <a href="/" class="nav-link">Tours</a>
+        <a href="/blog.html" class="nav-link">Blog</a>
         <a href="/reservas.html" class="nav-link">Mis Reservas</a>
         <span class="nav-user-greeting" id="userGreeting" style="display:none;"></span>
         <a href="/login.html" class="nav-link" id="loginLink">Iniciar Sesión</a>
+        <a href="/profile.html" class="nav-link" id="profileLink" style="display:none;">Mi Perfil</a>
+        <button class="btn-primary" id="logoutBtn" style="display:none;">Cerrar Sesión</button>
       </div>
     </div>
   </nav>
@@ -44,72 +49,46 @@
         <span class="breadcrumb-current" id="breadcrumbTourName">Tour</span>
       </div>
 
-      <!-- Hero Image Section -->
-      <div class="tour-hero">
-        <div class="tour-hero-image-container">
-          <img id="tourImage" class="tour-hero-image" src="" alt="Tour Image" />
-          <div class="tour-hero-overlay"></div>
-          <div class="tour-hero-content">
-            <div class="tour-badge-large" id="tourBadge">Disponible</div>
-            <h1 id="tourTitle" class="tour-hero-title"></h1>
-            <div class="tour-hero-meta">
-              <div class="tour-meta-item">
-                <span class="tour-meta-icon">📍</span>
-                <span id="tourLocation"></span>
-              </div>
-              <div class="tour-meta-item">
-                <span class="tour-meta-icon">⏱</span>
-                <span id="tourDuration"></span>
-              </div>
-              <div class="tour-meta-item">
-                <span class="tour-meta-icon">👥</span>
-                <span id="tourCapacity"></span>
-              </div>
-              <div class="tour-meta-item" id="tourDateMeta" style="display: none;">
-                <span class="tour-meta-icon">📅</span>
-                <span id="tourDateDisplay"></span>
-              </div>
+      <!-- Container para bloques CMS (se renderizan dinámicamente) -->
+      <div id="cmsBlocksContainer"></div>
+      
+      <!-- Sticky CTA de Disponibilidad (siempre visible) -->
+      <div id="stickyAvailabilityCta" class="sticky-availability-cta" style="display:none;">
+        <div class="wrap">
+          <div class="sticky-cta-content">
+            <div class="sticky-cta-info">
+              <span class="sticky-cta-price" id="stickyPrice">$0.00</span>
+              <span class="sticky-cta-availability" id="stickyAvailability">- cupos</span>
             </div>
+            <button class="btn-booking" onclick="bookTour()">
+              <span class="btn-booking-text">Reservar Ahora</span>
+              <span class="btn-booking-icon">→</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Image Gallery Section - Carrusel Mejorado -->
+      <!-- Image Gallery Section - Se puede agregar como bloque CMS adicional si se necesita -->
       <div id="imageGallerySection" class="image-gallery-section" style="display:none;">
         <h2 class="gallery-title">Galería de Imágenes</h2>
         <div class="image-carousel-container">
-          <!-- Carrusel Principal -->
           <div class="carousel-main">
-            <button class="carousel-nav carousel-prev" id="carouselPrev" aria-label="Imagen anterior">
-              <span>‹</span>
-            </button>
+            <button class="carousel-nav carousel-prev" id="carouselPrev" aria-label="Imagen anterior">‹</button>
             <div class="carousel-viewport">
               <div class="carousel-track" id="carouselTrack"></div>
             </div>
-            <button class="carousel-nav carousel-next" id="carouselNext" aria-label="Imagen siguiente">
-              <span>›</span>
-            </button>
-            <!-- Indicador de posición -->
+            <button class="carousel-nav carousel-next" id="carouselNext" aria-label="Imagen siguiente">›</button>
             <div class="carousel-indicator">
               <span id="currentImageIndex">1</span>
               <span class="separator">/</span>
               <span id="totalImages">1</span>
             </div>
-            <!-- Botón de zoom/pantalla completa -->
-            <button class="carousel-zoom" id="carouselZoom" aria-label="Ver en pantalla completa">
-              <span>🔍</span>
-            </button>
+            <button class="carousel-zoom" id="carouselZoom" aria-label="Ver en pantalla completa">🔍</button>
           </div>
-          
-          <!-- Thumbnails Deslizables -->
           <div class="carousel-thumbnails-wrapper">
-            <button class="thumb-nav thumb-prev" id="thumbPrev" aria-label="Ver thumbnails anteriores">
-              <span>‹</span>
-            </button>
+            <button class="thumb-nav thumb-prev" id="thumbPrev">‹</button>
             <div class="carousel-thumbnails" id="carouselThumbnails"></div>
-            <button class="thumb-nav thumb-next" id="thumbNext" aria-label="Ver thumbnails siguientes">
-              <span>›</span>
-            </button>
+            <button class="thumb-nav thumb-next" id="thumbNext">›</button>
           </div>
         </div>
       </div>
@@ -128,149 +107,74 @@
         </div>
       </div>
 
-      <!-- Main Content Grid -->
-      <div class="tour-detail-grid">
-        <!-- Left Column - Information -->
-        <div class="tour-info-section">
-          <!-- Description -->
-          <section class="info-block">
-            <h2 class="info-block-title">Sobre este Tour</h2>
-            <p id="tourDescription" class="info-block-text"></p>
-          </section>
+      <!-- Sidebar de Reserva (Sticky) - Se mantiene para compatibilidad -->
+      <aside class="booking-sidebar" id="bookingSidebar" style="display:none;">
+        <div class="booking-card-sticky">
+          <div class="booking-price-section">
+            <div class="price-label">Precio por persona</div>
+            <div class="price-amount" id="tourPrice"></div>
+            <div class="price-note">Impuestos incluidos</div>
+          </div>
 
-          <!-- Itinerary -->
-          <section class="info-block" id="itinerarySection" style="display:none;">
-            <h2 class="info-block-title">Itinerario</h2>
-            <div id="tourItinerary" class="itinerary-list"></div>
-          </section>
-
-          <!-- What's Included -->
-          <section class="info-block" id="includesSection">
-            <h2 class="info-block-title">Qué Incluye</h2>
-            <ul id="includedList" class="included-list">
-              <!-- Se cargará dinámicamente desde la base de datos -->
-              <li class="included-item">
-                <span class="included-icon">✓</span>
-                <span>Cargando...</span>
-              </li>
-            </ul>
-          </section>
-
-          <!-- Important Information -->
-          <section class="info-block">
-            <h2 class="info-block-title">Información Importante</h2>
-            <div class="important-info">
-              <div class="important-item">
-                <strong>Cancelación:</strong> Gratis hasta 24 horas antes
-              </div>
-              <div class="important-item">
-                <strong>Confirmación:</strong> Recibirás confirmación inmediata
-              </div>
-              <div class="important-item">
-                <strong>Idioma:</strong> Español e Inglés
-              </div>
+          <div class="booking-info-grid">
+            <div class="booking-info-item">
+              <div class="booking-info-label">Duración</div>
+              <div class="booking-info-value" id="bookingDuration"></div>
             </div>
-          </section>
-
-          <!-- Reviews Section -->
-          <section class="info-block" id="reviewsSection">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-              <h2 class="info-block-title">Reseñas y Calificaciones</h2>
-              <button class="btn-secondary" id="writeReviewBtn" onclick="showReviewForm()" style="display:none;">
-                Escribir Reseña
-              </button>
+            <div class="booking-info-item">
+              <div class="booking-info-label">Disponibilidad</div>
+              <div class="booking-info-value" id="bookingAvailability"></div>
             </div>
-            
-            <!-- Review Statistics -->
-            <div id="reviewStats" class="review-stats" style="display:none;">
-              <div class="review-stats-main">
-                <div class="review-average">
-                  <span id="reviewAverage" class="review-average-number">0.0</span>
-                  <div class="review-stars-large" id="reviewStarsLarge"></div>
-                  <span class="review-count-text" id="reviewCountText">0 reseñas</span>
-                </div>
-                <div class="review-distribution" id="reviewDistribution"></div>
-              </div>
-            </div>
-
-            <!-- Review Form (hidden by default) -->
-            <div id="reviewForm" class="review-form" style="display:none;">
-              <h3>Escribe tu Reseña</h3>
-              <div class="form-group">
-                <label>Calificación</label>
-                <div class="star-rating-input" id="starRatingInput">
-                  <span class="star" data-rating="1">☆</span>
-                  <span class="star" data-rating="2">☆</span>
-                  <span class="star" data-rating="3">☆</span>
-                  <span class="star" data-rating="4">☆</span>
-                  <span class="star" data-rating="5">☆</span>
-                </div>
-                <input type="hidden" id="selectedRating" value="0" />
-              </div>
-              <div class="form-group">
-                <label for="reviewTitle">Título (opcional)</label>
-                <input type="text" id="reviewTitle" class="form-input" placeholder="Resumen de tu experiencia" maxlength="200" />
-              </div>
-              <div class="form-group">
-                <label for="reviewComment">Comentario</label>
-                <textarea id="reviewComment" class="form-input" rows="4" placeholder="Comparte tu experiencia..." maxlength="2000"></textarea>
-              </div>
-              <div style="display: flex; gap: 10px;">
-                <button class="btn-primary" onclick="submitReview()">Enviar Reseña</button>
-                <button class="btn-secondary" onclick="hideReviewForm()">Cancelar</button>
-              </div>
-            </div>
-
-            <!-- Reviews List -->
-            <div id="reviewsList" class="reviews-list"></div>
-            <div id="reviewsPagination" class="reviews-pagination" style="display:none;"></div>
-          </section>
-        </div>
-
-        <!-- Right Column - Booking Card -->
-        <aside class="booking-sidebar">
-          <div class="booking-card-sticky">
-            <div class="booking-price-section">
-              <div class="price-label">Precio por persona</div>
-              <div class="price-amount" id="tourPrice"></div>
-              <div class="price-note">Impuestos incluidos</div>
-            </div>
-
-            <div class="booking-info-grid">
-              <div class="booking-info-item">
-                <div class="booking-info-label">Duración</div>
-                <div class="booking-info-value" id="bookingDuration"></div>
-              </div>
-              <div class="booking-info-item">
-                <div class="booking-info-label">Disponibilidad</div>
-                <div class="booking-info-value" id="bookingAvailability"></div>
-              </div>
-              <div class="booking-info-item" id="bookingDateItem" style="display: none;">
-                <div class="booking-info-label">Fecha del Tour</div>
-                <div class="booking-info-value" id="bookingDate"></div>
-              </div>
-            </div>
-
-            <div class="booking-divider"></div>
-
-            <!-- Favorite Button -->
-            <button class="btn-secondary" id="favoriteBtn" onclick="toggleFavorite()" style="width: 100%; margin-bottom: 12px; display:none;">
-              <span id="favoriteBtnText">Agregar a Favoritos</span>
-              <span id="favoriteBtnIcon">♡</span>
-            </button>
-
-            <button class="btn-booking" onclick="bookTour()">
-              <span class="btn-booking-text">Reservar Ahora</span>
-              <span class="btn-booking-icon">→</span>
-            </button>
-
-            <div class="booking-guarantee">
-              <span class="guarantee-icon">🛡️</span>
-              <span class="guarantee-text">Reserva segura con garantía de reembolso</span>
+            <div class="booking-info-item" id="bookingDateItem" style="display: none;">
+              <div class="booking-info-label">Fecha del Tour</div>
+              <div class="booking-info-value" id="bookingDate"></div>
             </div>
           </div>
-        </aside>
-      </div>
+
+          <div class="booking-divider"></div>
+
+          <!-- Favorite Button -->
+          <button class="btn-secondary" id="favoriteBtn" onclick="toggleFavorite()" style="width: 100%; margin-bottom: 12px; display:none;">
+            <span id="favoriteBtnText">Agregar a Favoritos</span>
+            <span id="favoriteBtnIcon">♡</span>
+          </button>
+
+          <!-- Microcopy de riesgo cero -->
+          <div class="risk-free-microcopy" style="margin-bottom: var(--space-md);">
+            <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+              ✔ Cancelación flexible<br>
+              ✔ Sin cargos ocultos<br>
+              ✔ Soporte local en Panamá
+            </div>
+          </div>
+
+          <button class="btn-booking" onclick="bookTour()">
+            <span class="btn-booking-text">Reservar Ahora</span>
+            <span class="btn-booking-icon">→</span>
+          </button>
+
+          <!-- Trust Badges -->
+          <div class="trust-badges" style="margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border);">
+            <div style="display: flex; flex-direction: column; gap: var(--space-xs); font-size: 0.85rem; color: var(--text-muted);">
+              <span>🔒 Pago 100% seguro</span>
+              <span>📧 Confirmación inmediata</span>
+              <span>💳 Stripe · PayPal · Yappy</span>
+            </div>
+          </div>
+
+          <!-- Actividad reciente (oculto si no hay data) -->
+          <div id="recentActivity" class="recent-activity" style="display:none; margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border);">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+              👀 <span id="recentActivityText"></span>
+            </div>
+          </div>
+
+          <div class="booking-guarantee" style="margin-top: var(--space-md);">
+            <span class="guarantee-icon">🛡️</span>
+            <span class="guarantee-text">Reserva segura con garantía de reembolso</span>
+          </div>
+        </div>
+      </aside>
     </div>
   </main>
 
@@ -287,20 +191,274 @@
     </div>
   </footer>
 
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places" async defer></script>
     <script src="/js/loading.js"></script>
     <script src="/js/logger.js"></script>
     <script src="/js/notifications.js"></script>
     <script src="/js/api.js"></script>
+    <style>
+      /* Sticky CTA de Disponibilidad */
+      .sticky-availability-cta {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        border-top: 2px solid var(--border);
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+        z-index: 1000;
+        padding: var(--space-md) 0;
+        display: none; /* Se muestra con JS cuando availability sale de vista */
+      }
+      
+      .sticky-cta-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-lg);
+      }
+      
+      .sticky-cta-info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+      }
+      
+      .sticky-cta-price {
+        font-size: 1.5rem;
+        font-weight: var(--font-weight-bold);
+        color: var(--primary);
+      }
+      
+      .sticky-cta-availability {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+      }
+      
+      /* Bloque Availability Premium */
+      .tour-availability {
+        background: white;
+        padding: var(--space-2xl);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        margin-bottom: var(--space-2xl);
+      }
+      
+      .availability-content {
+        max-width: 500px;
+        margin: 0 auto;
+      }
+      
+      .availability-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-lg);
+      }
+      
+      .availability-label {
+        font-weight: var(--font-weight-semibold);
+        color: var(--text);
+        font-size: 0.95rem;
+      }
+      
+      .availability-input {
+        padding: var(--space-md);
+        border: 2px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 1rem;
+        transition: border-color 0.2s;
+      }
+      
+      .availability-input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+      
+      .availability-price {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-lg);
+        background: var(--bg-secondary);
+        border-radius: var(--radius);
+        margin: var(--space-xl) 0;
+      }
+      
+      .availability-price-label {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+      }
+      
+      .availability-price-amount {
+        font-size: 1.75rem;
+        font-weight: var(--font-weight-bold);
+        color: var(--primary);
+      }
+      
+      .availability-urgency {
+        background: #fff5e5;
+        color: #a85b00;
+        padding: var(--space-md);
+        border-radius: var(--radius);
+        margin-bottom: var(--space-lg);
+        font-size: 0.95rem;
+        text-align: center;
+        border-left: 4px solid #ff9800;
+      }
+      
+      .availability-urgency strong {
+        font-weight: var(--font-weight-bold);
+        color: #d97706;
+      }
+      
+      .availability-microcopy {
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        margin-top: var(--space-md);
+        line-height: 1.6;
+      }
+      
+      @media (max-width: 768px) {
+        .sticky-cta-content {
+          flex-direction: column;
+          gap: var(--space-md);
+        }
+        
+        .tour-availability {
+          padding: var(--space-xl);
+        }
+      }
+      
+      /* Bloques CMS */
+      .cms-block {
+        margin-bottom: var(--space-2xl);
+      }
+      
+      .cms-block-hero {
+        position: relative;
+        margin-bottom: var(--space-2xl);
+      }
+      
+      .cms-block-social-proof {
+        padding: var(--space-xl);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg);
+        text-align: center;
+      }
+      
+      .cms-block-highlights {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--space-lg);
+        padding: var(--space-xl);
+        background: var(--card);
+        border-radius: var(--radius-lg);
+      }
+      
+      .cms-block-story {
+        padding: var(--space-xl);
+      }
+      
+      .cms-block-story h2 {
+        margin-bottom: var(--space-lg);
+      }
+      
+      .cms-block-includes-excludes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-xl);
+        padding: var(--space-xl);
+        background: var(--card);
+        border-radius: var(--radius-lg);
+      }
+      
+      @media (max-width: 768px) {
+        .cms-block-includes-excludes {
+          grid-template-columns: 1fr;
+        }
+        .sticky-cta-content {
+          flex-direction: column;
+        }
+      }
+      
+      .cms-block-final-cta {
+        text-align: center;
+        padding: var(--space-3xl);
+        background: var(--gradient-subtle);
+        border-radius: var(--radius-lg);
+      }
+      
+      .social-badge {
+        padding: var(--space-sm) var(--space-md);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        font-size: 0.9rem;
+        color: var(--text);
+      }
+      
+      .highlight-item {
+        display: flex;
+        gap: var(--space-md);
+        align-items: start;
+      }
+      
+      .highlight-icon {
+        font-size: 2rem;
+        flex-shrink: 0;
+      }
+      
+      .excluded-list {
+        list-style: none;
+        padding: 0;
+      }
+      
+      .excluded-item {
+        display: flex;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-sm);
+        color: var(--text-secondary);
+      }
+      
+      .excluded-icon {
+        color: var(--danger);
+      }
+      
+      .story-content {
+        line-height: 1.8;
+        color: var(--text);
+      }
+      
+      .story-content p {
+        margin-bottom: var(--space-md);
+      }
+      
+      .story-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: var(--radius);
+        margin: var(--space-lg) 0;
+      }
+    </style>
     <!-- Variables globales para el carrusel -->
     <script>
       // Variables globales para el carrusel (se inicializarán en loadTour)
       window.carouselImages = [];
       window.currentCarouselIndex = 0;
+      let tourMap = null;
     </script>
   <script>
     let currentTour = null;
     let currentCarouselIndex = 0;
     let carouselImages = [];
+    
+    // Orden por defecto de bloques CMS
+    const DEFAULT_BLOCK_ORDER = [
+      'hero', 'social', 'highlights', 'story', 
+      'includes', 'availability', 'map', 'reviews', 'faq', 'final_cta'
+    ];
 
     async function loadTour() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -333,6 +491,20 @@
             maxCapacity: 20,
             tourImages: [{ imageUrl: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200', isPrimary: true }]
           };
+        }
+
+        // Track: tour_viewed
+        const tourId = currentTour.Id || currentTour.id;
+        if (window.track && tourId) {
+          window.track('tour_viewed', {
+            entityType: 'tour',
+            entityId: tourId,
+            metadata: {
+              tourName: currentTour.Name || currentTour.name,
+              price: currentTour.Price || currentTour.price,
+              location: currentTour.Location || currentTour.location
+            }
+          });
         }
 
         // Actualizar UI
@@ -406,253 +578,41 @@
         const priceText = price > 0 ? `$${formattedPrice}` : 'Consultar precio';
         console.log('4️⃣ [loadTour] priceText final:', priceText);
         
-        document.getElementById('tourTitle').textContent = tourName;
-        document.getElementById('breadcrumbTourName').textContent = tourName;
-        document.getElementById('tourLocation').textContent = tourLocation;
-        document.getElementById('tourDuration').textContent = `${durationHours} horas`;
-        document.getElementById('tourCapacity').textContent = `${availableSpots} de ${maxCapacity} disponibles`;
-        document.getElementById('tourDescription').textContent = tourDescription;
-        document.getElementById('tourPrice').textContent = priceText;
-        document.getElementById('bookingDuration').textContent = `${durationHours} horas`;
-        document.getElementById('bookingAvailability').textContent = availableSpots > 0 ? `${availableSpots} cupos` : 'Agotado';
-        
-        // Mostrar fecha del tour si existe (priorizar PascalCase del backend)
-        const tourDate = currentTour.TourDate || currentTour.tourDate;
-        if (tourDate) {
-          try {
-            const dateObj = new Date(tourDate);
-            if (!isNaN(dateObj.getTime())) {
-              const formattedDate = dateObj.toLocaleDateString('es-PA', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              });
-              document.getElementById('tourDateDisplay').textContent = formattedDate;
-              document.getElementById('tourDateMeta').style.display = 'flex';
-              document.getElementById('bookingDate').textContent = formattedDate;
-              document.getElementById('bookingDateItem').style.display = 'block';
-            }
-          } catch (e) {
-            console.warn('Error al formatear fecha del tour:', e);
-          }
-        }
-        
-        console.log('✅ [loadTour] === UI ACTUALIZADA EXITOSAMENTE ===');
-        
-        // Imágenes de referencia para fallback
-        const DEFAULT_TOUR_IMAGES = [
-          'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200',
-          'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200',
-          'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200',
-          'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=1200',
-          'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200',
-          'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200'
-        ];
-        
-        function getDefaultTourImage(tourId = '') {
-          if (!tourId) return DEFAULT_TOUR_IMAGES[0];
-          const hash = tourId.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-          return DEFAULT_TOUR_IMAGES[hash % DEFAULT_TOUR_IMAGES.length];
-        }
-        
-        // Normalizar imágenes: el backend ASP.NET Core retorna TourImages (PascalCase) por defecto
-        const tourImages = currentTour.TourImages || currentTour.tourImages || [];
-        
-        // Obtener la imagen principal (IsPrimary = true) o la primera disponible
-        // Priorizar PascalCase que es lo que devuelve el backend
-        let primaryImage = null;
-        if (tourImages && tourImages.length > 0) {
-          primaryImage = tourImages.find(img => img.IsPrimary === true || img.isPrimary === true) || tourImages[0];
-        }
-        const imageUrl = primaryImage?.ImageUrl || primaryImage?.imageUrl || getDefaultTourImage(currentTour.Id || currentTour.id);
-        
-        const img = document.getElementById('tourImage');
-        img.src = imageUrl;
-        img.onerror = function() {
-          this.src = getDefaultTourImage(currentTour.id);
-        };
-
-        // Inicializar carrusel de imágenes (siempre mostrar, incluso con una sola imagen)
-        const gallerySection = document.getElementById('imageGallerySection');
-        const carouselTrack = document.getElementById('carouselTrack');
-        const carouselThumbnails = document.getElementById('carouselThumbnails');
-        
-        // Limpiar carrusel anterior
-        if (carouselTrack) carouselTrack.innerHTML = '';
-        if (carouselThumbnails) carouselThumbnails.innerHTML = '';
-        
-        // Filtrar imágenes válidas
-        const validImages = tourImages.filter(image => {
-          const imgUrl = image.ImageUrl || image.imageUrl;
-          return imgUrl && imgUrl.trim() !== '';
-        });
-        
-        // Si hay imágenes, inicializar carrusel
-        if (validImages.length > 0) {
-          // Crear slides del carrusel principal
-          validImages.forEach((image, index) => {
-            const imgUrl = image.ImageUrl || image.imageUrl;
-            const altText = image.AltText || image.altText || `${tourName} - Imagen ${index + 1}`;
-            
-            // Slide principal
-            const slide = document.createElement('div');
-            slide.className = 'carousel-slide';
-            slide.dataset.index = index;
-            slide.innerHTML = `<img src="${imgUrl}" alt="${altText}" loading="lazy" />`;
-            if (carouselTrack) carouselTrack.appendChild(slide);
-            
-            // Thumbnail
-            const thumbnail = document.createElement('div');
-            thumbnail.className = 'carousel-thumbnail';
-            thumbnail.dataset.index = index;
-            if (index === 0) thumbnail.classList.add('active');
-            thumbnail.innerHTML = `<img src="${imgUrl}" alt="${altText}" loading="lazy" />`;
-            thumbnail.onclick = () => goToImage(index);
-            if (carouselThumbnails) carouselThumbnails.appendChild(thumbnail);
-          });
-          
-          // Actualizar indicadores
-          const totalImagesEl = document.getElementById('totalImages');
-          const modalTotalImagesEl = document.getElementById('modalTotalImages');
-          if (totalImagesEl) totalImagesEl.textContent = validImages.length;
-          if (modalTotalImagesEl) modalTotalImagesEl.textContent = validImages.length;
-          
-          // Guardar imágenes para uso global y local
-          const imagesData = validImages.map(img => ({
-            url: img.ImageUrl || img.imageUrl,
-            alt: img.AltText || img.altText || tourName
-          }));
-          window.carouselImages = imagesData;
-          window.currentCarouselIndex = 0;
-          
-          // Asignar a variables locales para usar en funciones del carrusel
-          carouselImages = imagesData;
-          currentCarouselIndex = 0;
-          
-          // Inicializar navegación
-          initCarouselNavigation();
-          
-          // Mostrar sección de galería
-          if (gallerySection) gallerySection.style.display = 'block';
-        } else {
-          // Si no hay imágenes, ocultar sección
-          if (gallerySection) gallerySection.style.display = 'none';
-        }
-
-        // Itinerario (priorizar PascalCase del backend)
-        const itinerary = currentTour.Itinerary || currentTour.itinerary;
-        if (itinerary) {
-          const itinerarySection = document.getElementById('itinerarySection');
-          const itineraryList = document.getElementById('tourItinerary');
-          
-          // Procesar el itinerario: puede venir con números, guiones, o simplemente texto
-          // Separar por saltos de línea y limpiar formato
-          let items = itinerary.split('\n').filter(item => item.trim());
-          
-          // Limpiar formato común (números al inicio, guiones, etc.)
-          items = items.map(item => {
-            // Remover números al inicio seguidos de punto, guión o espacio
-            item = item.trim().replace(/^\d+[\.\-\s)]+\s*/, '');
-            // Remover guiones al inicio
-            item = item.replace(/^[\-\•]\s*/, '');
-            return item.trim();
-          }).filter(item => item.length > 0);
-          
-          if (items.length > 0) {
-            itineraryList.innerHTML = items.map((item, index) => `
-              <div class="itinerary-item">
-                <div class="itinerary-number">${index + 1}</div>
-                <div class="itinerary-content">${item}</div>
-              </div>
-            `).join('');
-            itinerarySection.style.display = 'block';
-          }
-        }
-
-        // Qué Incluye (priorizar PascalCase del backend)
-        const includes = currentTour.Includes || currentTour.includes;
-        const includedList = document.getElementById('includedList');
-        const includesSection = document.getElementById('includesSection');
-        
-        if (includes && includes.trim()) {
-          // Procesar el contenido: separar por saltos de línea
-          let includeItems = includes.split('\n').filter(item => item.trim());
-          
-          // Limpiar formato común
-          includeItems = includeItems.map(item => {
-            item = item.trim().replace(/^[\-\•\d+[\.\-\s)]+\s*/, '');
-            return item.trim();
-          }).filter(item => item.length > 0);
-          
-          if (includeItems.length > 0) {
-            includedList.innerHTML = includeItems.map(item => `
-              <li class="included-item">
-                <span class="included-icon">✓</span>
-                <span>${item}</span>
-              </li>
-            `).join('');
-          } else {
-            // Si no hay items válidos, ocultar la sección
-            includesSection.style.display = 'none';
-          }
-        } else {
-          // Si no hay contenido, mostrar valores por defecto
-          includedList.innerHTML = `
-            <li class="included-item">
-              <span class="included-icon">✓</span>
-              <span>Guía turístico profesional</span>
-            </li>
-            <li class="included-item">
-              <span class="included-icon">✓</span>
-              <span>Transporte ida y vuelta</span>
-            </li>
-            <li class="included-item">
-              <span class="included-icon">✓</span>
-              <span>Entradas a atracciones</span>
-            </li>
-            <li class="included-item">
-              <span class="included-icon">✓</span>
-              <span>Seguro de viaje básico</span>
-            </li>
-          `;
-        }
-
-        // Badge (usar variable normalizada availableSpots en lugar de currentTour.availableSpots)
-        const badge = document.getElementById('tourBadge');
-        console.log('🏷️ [loadTour] Actualizando badge:', { 
-          availableSpots, 
-          currentTourAvailableSpots: currentTour.availableSpots,
-          currentTourAvailableSpotsUpper: currentTour.AvailableSpots,
-          badgeExists: !!badge 
-        });
-        if (availableSpots > 0) {
-          if (badge) {
-            badge.textContent = 'Disponible';
-            badge.className = 'tour-badge-large available';
-            console.log('✅ [loadTour] Badge actualizado a: Disponible');
-          }
-        } else {
-          if (badge) {
-            badge.textContent = 'Agotado';
-            badge.className = 'tour-badge-large sold-out';
-            console.log('⚠️ [loadTour] Badge actualizado a: Agotado');
-          }
-        }
+        // Actualizar breadcrumb (siempre existe)
+        const breadcrumbEl = document.getElementById('breadcrumbTourName');
+        if (breadcrumbEl) breadcrumbEl.textContent = tourName;
 
         document.getElementById('loadingState').style.display = 'none';
         document.getElementById('tourContent').style.display = 'block';
 
-        // Cargar reviews y favoritos
-        await loadReviews(tourId);
+        // Renderizar bloques CMS
+        renderCmsBlocks(currentTour);
+        
+        // Actualizar sticky CTA
+        updateStickyCta(currentTour);
+
+        // Cargar reviews y favoritos (después de renderizar bloques)
+        const reviewsBlock = document.getElementById('reviewsBlock');
+        if (reviewsBlock) {
+          await loadReviewsForBlock(tourId);
+        }
         await checkFavoriteStatus(tourId);
+        
+        // Cargar mapa si hay ubicación (se renderiza en bloque CMS)
+        if (tourLocation && tourLocation.trim() !== '') {
+          // El mapa se inicializará en el bloque CMS
+        }
       } catch (error) {
         console.error('Error loading tour:', error);
+        const errorMsg = error.message && error.message.includes('401')
+          ? 'Tu sesión expiró. Por favor, inicia sesión nuevamente.'
+          : error.message && (error.message.includes('network') || error.message.includes('fetch'))
+          ? 'Algo salió mal. Inténtalo de nuevo en unos segundos.'
+          : 'Error al cargar el tour. Por favor, intenta de nuevo.';
         if (typeof notificationManager !== 'undefined' && notificationManager) {
-          notificationManager.error('Error al cargar el tour. Por favor, intenta de nuevo.');
+          notificationManager.error(errorMsg);
         } else if (typeof window !== 'undefined' && window.notificationManager) {
-          window.notificationManager.error('Error al cargar el tour. Por favor, intenta de nuevo.');
+          window.notificationManager.error(errorMsg);
         } else {
           // Fallback si no hay notificationManager disponible
           console.error('Error al cargar el tour:', error);
@@ -661,14 +621,28 @@
     }
 
     function bookTour() {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
       if (!token) {
         window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
         return;
       }
-      // Redirigir a checkout (priorizar PascalCase del backend)
+      
+      // Obtener fecha y personas seleccionadas
       const tourId = currentTour.Id || currentTour.id;
-      window.location.href = `/checkout.html?tourId=${tourId}`;
+      const dateSelect = document.getElementById('tourDateSelect');
+      const participantsSelect = document.getElementById('participantsSelect');
+      
+      let checkoutUrl = `/checkout.html?tourId=${tourId}`;
+      
+      if (dateSelect && dateSelect.value) {
+        checkoutUrl += `&date=${encodeURIComponent(dateSelect.value)}`;
+      }
+      
+      if (participantsSelect && participantsSelect.value) {
+        checkoutUrl += `&participants=${encodeURIComponent(participantsSelect.value)}`;
+      }
+      
+      window.location.href = checkoutUrl;
     }
 
     // Cargar información del usuario autenticado
@@ -883,12 +857,1009 @@
       if (modalImageIndex) modalImageIndex.textContent = currentCarouselIndex + 1;
     }
 
+    // Inicializar mapa de Google Maps
+    function initTourMap(location) {
+      const mapSection = document.getElementById('mapSection');
+      const mapDiv = document.getElementById('tourMap');
+      const mapLocation = document.getElementById('mapLocation');
+      
+      if (!mapSection || !mapDiv) return;
+      
+      // Mostrar sección de mapa
+      mapSection.style.display = 'block';
+      mapLocation.textContent = `📍 ${location}`;
+      
+      // Verificar si Google Maps está cargado
+      if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+        // Si no hay API key o no está cargado, mostrar mensaje
+        mapDiv.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: var(--bg-secondary); color: var(--text-muted);">
+            <div style="text-align: center;">
+              <p>📍 ${location}</p>
+              <p style="font-size: var(--text-sm); margin-top: var(--space-sm);">Mapa interactivo disponible con Google Maps API</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      // Geocodificar ubicación
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ address: location }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          const location_coords = results[0].geometry.location;
+          
+          // Crear mapa
+          tourMap = new google.maps.Map(mapDiv, {
+            center: location_coords,
+            zoom: 14,
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true
+          });
+          
+          // Agregar marcador
+          new google.maps.Marker({
+            position: location_coords,
+            map: tourMap,
+            title: currentTour.Name || currentTour.name || 'Tour'
+          });
+        } else {
+          // Si falla la geocodificación, usar coordenadas por defecto de Panamá
+          const defaultCoords = { lat: 8.9824, lng: -79.5199 }; // Ciudad de Panamá
+          
+          tourMap = new google.maps.Map(mapDiv, {
+            center: defaultCoords,
+            zoom: 12,
+            mapTypeControl: true
+          });
+          
+          mapDiv.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: var(--bg-secondary); color: var(--text-muted);">
+              <div style="text-align: center;">
+                <p>📍 ${location}</p>
+                <p style="font-size: var(--text-sm); margin-top: var(--space-sm);">No se pudo cargar el mapa. Ubicación: ${location}</p>
+              </div>
+            </div>
+          `;
+        }
+      });
+    }
+
     // Hacer funciones globales para onclick
     window.goToImage = goToImage;
     window.openImageModal = openImageModal;
     window.closeImageModal = closeImageModal;
     window.previousImageModal = previousImageModal;
     window.nextImageModal = nextImageModal;
+
+    // Renderizar bloques CMS dinámicamente
+    function renderCmsBlocks(tour) {
+      const container = document.getElementById('cmsBlocksContainer');
+      if (!container) return;
+      
+      // Obtener orden y estado de bloques desde CMS
+      let blockOrder = DEFAULT_BLOCK_ORDER;
+      let blockEnabled = {};
+      
+      try {
+        if (tour.BlockOrder || tour.blockOrder) {
+          const orderJson = tour.BlockOrder || tour.blockOrder;
+          blockOrder = JSON.parse(orderJson);
+        }
+        if (tour.BlockEnabled || tour.blockEnabled) {
+          const enabledJson = tour.BlockEnabled || tour.blockEnabled;
+          blockEnabled = JSON.parse(enabledJson);
+        }
+      } catch (e) {
+        console.warn('Error parsing block order/enabled:', e);
+      }
+      
+      // Renderizar cada bloque en el orden especificado
+      blockOrder.forEach(blockName => {
+        // Verificar si el bloque está habilitado (por defecto true si no está definido)
+        const isEnabled = blockEnabled[blockName] !== false;
+        if (!isEnabled) return;
+        
+        let blockHTML = '';
+        
+        switch(blockName) {
+          case 'hero':
+            blockHTML = renderHeroBlock(tour);
+            break;
+          case 'social':
+            blockHTML = renderSocialProofBlock(tour);
+            break;
+          case 'highlights':
+            blockHTML = renderHighlightsBlock(tour);
+            break;
+          case 'story':
+            blockHTML = renderStoryBlock(tour);
+            break;
+          case 'includes':
+            blockHTML = renderIncludesExcludesBlock(tour);
+            break;
+          case 'availability':
+            blockHTML = renderAvailabilityBlock(tour);
+            break;
+          case 'map':
+            blockHTML = renderMapBlock(tour);
+            break;
+          case 'reviews':
+            blockHTML = renderReviewsBlock(tour);
+            break;
+          case 'faq':
+            blockHTML = renderFaqBlock(tour);
+            break;
+          case 'final_cta':
+            blockHTML = renderFinalCtaBlock(tour);
+            break;
+        }
+        
+        if (blockHTML) {
+          container.innerHTML += blockHTML;
+        }
+      });
+      
+      // Inicializar funcionalidades después de renderizar
+      initializeBlocksAfterRender(tour);
+    }
+    
+    // BLOQUE 1: Hero
+    function renderHeroBlock(tour) {
+      const heroTitle = tour.HeroTitle || tour.heroTitle || tour.Name || tour.name || 'Tour';
+      const heroSubtitle = tour.HeroSubtitle || tour.heroSubtitle || '';
+      const heroCtaText = tour.HeroCtaText || tour.heroCtaText || 'Ver fechas disponibles';
+      const price = tour.Price ?? tour.price ?? 0;
+      const priceText = price > 0 ? `Desde $${price.toFixed(2)}` : 'Consultar precio';
+      const availableSpots = tour.AvailableSpots ?? tour.availableSpots ?? 0;
+      
+      // Imagen principal
+      const tourImages = tour.TourImages || tour.tourImages || [];
+      let primaryImage = null;
+      if (tourImages.length > 0) {
+        primaryImage = tourImages.find(img => img.IsPrimary || img.isPrimary) || tourImages[0];
+      }
+      const imageUrl = primaryImage?.ImageUrl || primaryImage?.imageUrl || 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200';
+      
+      // Badge de disponibilidad
+      const badgeText = availableSpots > 0 ? 'Disponible' : 'Agotado';
+      const badgeClass = availableSpots > 0 ? 'available' : 'sold-out';
+      
+      return `
+        <div class="cms-block cms-block-hero" data-block="hero">
+          <div class="tour-hero">
+            <div class="tour-hero-image-container">
+              <img class="tour-hero-image" src="${imageUrl}" alt="${heroTitle}" onerror="this.src='https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200'" />
+              <div class="tour-hero-overlay"></div>
+              <div class="tour-hero-content">
+                <div class="tour-badge-large ${badgeClass}" id="tourBadge">${badgeText}</div>
+                <h1 class="tour-hero-title">${heroTitle}</h1>
+                ${heroSubtitle ? `<p class="tour-hero-subtitle" style="font-size: 1.2rem; margin-top: var(--space-md); color: rgba(255,255,255,0.95);">${heroSubtitle}</p>` : ''}
+                <div class="tour-hero-meta">
+                  <div class="tour-meta-item">
+                    <span class="tour-meta-icon">💰</span>
+                    <span>${priceText}</span>
+                  </div>
+                  <div class="tour-meta-item" data-rating="true" style="display:none;">
+                    <span class="tour-meta-icon">⭐</span>
+                    <span id="heroRating">-</span>
+                  </div>
+                </div>
+                <button class="btn-booking" onclick="bookTour()" style="margin-top: var(--space-lg);">
+                  <span class="btn-booking-text">${heroCtaText}</span>
+                  <span class="btn-booking-icon">→</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // BLOQUE 2: Prueba Social
+    function renderSocialProofBlock(tour) {
+      const socialText = tour.SocialProofText || tour.socialProofText || '';
+      const hasCertifiedGuide = tour.HasCertifiedGuide ?? tour.hasCertifiedGuide ?? true;
+      const hasFlexibleCancellation = tour.HasFlexibleCancellation ?? tour.hasFlexibleCancellation ?? true;
+      const languages = tour.AvailableLanguages || tour.availableLanguages || '["Español", "Inglés"]';
+      
+      let languagesList = [];
+      try {
+        languagesList = JSON.parse(languages);
+      } catch (e) {
+        languagesList = ['Español', 'Inglés'];
+      }
+      
+      return `
+        <div class="cms-block cms-block-social-proof" data-block="social">
+          ${socialText ? `<p style="font-size: 1.1rem; margin-bottom: var(--space-lg);">${socialText}</p>` : ''}
+          <div style="display: flex; flex-wrap: wrap; gap: var(--space-md); justify-content: center;">
+            ${hasCertifiedGuide ? `<div class="social-badge">✓ Guía Certificado</div>` : ''}
+            ${hasFlexibleCancellation ? `<div class="social-badge">↩️ Cancelación Flexible</div>` : ''}
+            ${languagesList.length > 0 ? `<div class="social-badge">🌐 ${languagesList.join(', ')}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+    
+    // BLOQUE 3: Highlights Rápidos
+    function renderHighlightsBlock(tour) {
+      const duration = tour.HighlightsDuration || tour.highlightsDuration || `${tour.DurationHours || tour.durationHours || 0} horas`;
+      const groupType = tour.HighlightsGroupType || tour.highlightsGroupType || 'Grupo pequeño';
+      const physicalLevel = tour.HighlightsPhysicalLevel || tour.highlightsPhysicalLevel || 'Moderado';
+      const meetingPoint = tour.HighlightsMeetingPoint || tour.highlightsMeetingPoint || tour.Location || tour.location || '';
+      
+      return `
+        <div class="cms-block cms-block-highlights" data-block="highlights">
+          <div class="highlight-item">
+            <div class="highlight-icon">⏱</div>
+            <div>
+              <strong>Duración</strong>
+              <p>${duration}</p>
+            </div>
+          </div>
+          <div class="highlight-item">
+            <div class="highlight-icon">👥</div>
+            <div>
+              <strong>Tipo de Grupo</strong>
+              <p>${groupType}</p>
+            </div>
+          </div>
+          <div class="highlight-item">
+            <div class="highlight-icon">🏃</div>
+            <div>
+              <strong>Nivel Físico</strong>
+              <p>${physicalLevel}</p>
+            </div>
+          </div>
+          ${meetingPoint ? `
+          <div class="highlight-item">
+            <div class="highlight-icon">📍</div>
+            <div>
+              <strong>Punto de Encuentro</strong>
+              <p>${meetingPoint}</p>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+      `;
+    }
+    
+    // BLOQUE 4: Historia del Tour (WYSIWYG)
+    function renderStoryBlock(tour) {
+      const storyContent = tour.StoryContent || tour.storyContent || tour.Description || tour.description || '';
+      
+      return `
+        <div class="cms-block cms-block-story" data-block="story">
+          <h2>La Experiencia</h2>
+          <div class="story-content">
+            ${storyContent}
+          </div>
+        </div>
+      `;
+    }
+    
+    // BLOQUE 5: Qué Incluye / No Incluye
+    function renderIncludesExcludesBlock(tour) {
+      const includesList = tour.IncludesList || tour.includesList || tour.Includes || tour.includes || '';
+      const excludesList = tour.ExcludesList || tour.excludesList || '';
+      
+      // Procesar listas (pueden ser JSON o texto separado por líneas)
+      let includes = [];
+      let excludes = [];
+      
+      try {
+        if (includesList.trim().startsWith('[')) {
+          includes = JSON.parse(includesList);
+        } else {
+          includes = includesList.split('\n').filter(i => i.trim());
+        }
+      } catch (e) {
+        includes = includesList.split('\n').filter(i => i.trim());
+      }
+      
+      try {
+        if (excludesList && excludesList.trim().startsWith('[')) {
+          excludes = JSON.parse(excludesList);
+        } else if (excludesList) {
+          excludes = excludesList.split('\n').filter(i => i.trim());
+        }
+      } catch (e) {
+        if (excludesList) {
+          excludes = excludesList.split('\n').filter(i => i.trim());
+        }
+      }
+      
+      return `
+        <div class="cms-block cms-block-includes-excludes" data-block="includes">
+          <div>
+            <h3>✅ Incluye</h3>
+            <ul class="included-list">
+              ${includes.map(item => `<li class="included-item"><span class="included-icon">✓</span><span>${item}</span></li>`).join('')}
+            </ul>
+          </div>
+          ${excludes.length > 0 ? `
+          <div>
+            <h3>❌ No Incluye</h3>
+            <ul class="excluded-list">
+              ${excludes.map(item => `<li class="excluded-item"><span class="excluded-icon">✗</span><span>${item}</span></li>`).join('')}
+            </ul>
+          </div>
+          ` : ''}
+        </div>
+      `;
+    }
+    
+    // BLOQUE 6: Disponibilidad y Precio (Sistema)
+    function renderAvailabilityBlock(tour) {
+      const price = tour.Price ?? tour.price ?? 0;
+      const pricePerPerson = price > 0 ? price : 0;
+      const availableSpots = tour.AvailableSpots ?? tour.availableSpots ?? 0;
+      const maxCapacity = tour.MaxCapacity ?? tour.maxCapacity ?? 0;
+      const durationHours = tour.DurationHours ?? tour.durationHours ?? 0;
+      const tourId = tour.Id ?? tour.id;
+      
+      // Urgencia elegante: solo si quedan ≤5 cupos y >0 (se mostrará dinámicamente cuando haya fecha seleccionada)
+      
+      // Obtener fecha mínima (mañana)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const minDate = tomorrow.toISOString().split('T')[0];
+      
+      // Generar opciones de personas (1 a maxCapacity o 10, lo que sea menor)
+      const maxPersons = Math.min(maxCapacity || 10, 10);
+      const personOptions = Array.from({ length: maxPersons }, (_, i) => i + 1)
+        .map(num => `<option value="${num}">${num} persona${num === 1 ? '' : 's'}</option>`)
+        .join('');
+      
+      return `
+        <section class="tour-availability cms-block" data-block="availability" id="availabilityBlock">
+          <div class="availability-content">
+            <h2 class="info-block-title" style="margin-bottom: var(--space-xl);">Disponibilidad y Precio</h2>
+            
+            <div class="availability-row">
+              <label for="tourDateSelect" class="availability-label">Fecha</label>
+              <input 
+                type="date" 
+                id="tourDateSelect" 
+                class="availability-input"
+                min="${minDate}"
+                onchange="updateAvailabilityPrice()"
+              />
+            </div>
+            
+            <div class="availability-row">
+              <label for="participantsSelect" class="availability-label">Personas</label>
+              <select 
+                id="participantsSelect" 
+                class="availability-input"
+                onchange="updateAvailabilityPrice()"
+              >
+                ${personOptions}
+              </select>
+            </div>
+            
+            <div class="availability-price">
+              <span class="availability-price-label">Total</span>
+              <strong class="availability-price-amount" id="totalPriceDisplay">$${pricePerPerson.toFixed(2)}</strong>
+            </div>
+            
+            ${urgencyMessage ? `
+              <div class="availability-urgency" id="urgencyMsg" data-urgency-tracked="false">
+                ${urgencyMessage}
+              </div>
+            ` : ''}
+            
+            <button class="btn-booking btn-reserve" onclick="bookTour()" style="width: 100%; margin-top: var(--space-lg);">
+              <span class="btn-booking-text">Reservar Ahora</span>
+              <span class="btn-booking-icon">→</span>
+            </button>
+            
+            <p class="availability-microcopy">
+              ✔ Confirmación inmediata por email · Cancelación flexible
+            </p>
+          </div>
+        </section>
+      `;
+    }
+    
+    // BLOQUE 7: Mapa
+    function renderMapBlock(tour) {
+      const coordinates = tour.MapCoordinates || tour.mapCoordinates || '';
+      const referenceText = tour.MapReferenceText || tour.mapReferenceText || tour.Location || tour.location || '';
+      
+      return `
+        <div class="cms-block" data-block="map">
+          <h2 class="info-block-title">📍 Ubicación</h2>
+          <div id="tourMap" style="width: 100%; height: 400px; border-radius: var(--radius); overflow: hidden; margin-top: var(--space-md);"></div>
+          ${referenceText ? `<p style="margin-top: var(--space-sm); color: var(--text-secondary);">${referenceText}</p>` : ''}
+        </div>
+      `;
+    }
+    
+    // BLOQUE 8: Reviews (se renderiza después de cargar)
+    function renderReviewsBlock(tour) {
+      return `
+        <div class="cms-block" data-block="reviews" id="reviewsBlock">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 class="info-block-title">Reseñas y Calificaciones</h2>
+            <button class="btn-secondary" id="writeReviewBtn" onclick="showReviewForm()" style="display:none;">
+              Escribir Reseña
+            </button>
+          </div>
+          
+          <!-- Review Statistics -->
+          <div id="reviewStats" class="review-stats" style="display:none;">
+            <div class="review-stats-main">
+              <div class="review-average">
+                <span id="reviewAverage" class="review-average-number">0.0</span>
+                <div class="review-stars-large" id="reviewStarsLarge"></div>
+                <span class="review-count-text" id="reviewCountText">0 reseñas</span>
+              </div>
+              <div class="review-distribution" id="reviewDistribution"></div>
+            </div>
+          </div>
+
+          <!-- Review Form (hidden by default) -->
+          <div id="reviewForm" class="review-form" style="display:none;">
+            <h3>Escribe tu Reseña</h3>
+            <div class="form-group">
+              <label>Calificación</label>
+              <div class="star-rating-input" id="starRatingInput">
+                <span class="star" data-rating="1">☆</span>
+                <span class="star" data-rating="2">☆</span>
+                <span class="star" data-rating="3">☆</span>
+                <span class="star" data-rating="4">☆</span>
+                <span class="star" data-rating="5">☆</span>
+              </div>
+              <input type="hidden" id="selectedRating" value="0" />
+            </div>
+            <div class="form-group">
+              <label for="reviewTitle">Título (opcional)</label>
+              <input type="text" id="reviewTitle" class="form-input" placeholder="Resumen de tu experiencia" maxlength="200" />
+            </div>
+            <div class="form-group">
+              <label for="reviewComment">Comentario</label>
+              <textarea id="reviewComment" class="form-input" rows="4" placeholder="Comparte tu experiencia..." maxlength="2000"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn-primary" onclick="submitReview()">Enviar Reseña</button>
+              <button class="btn-secondary" onclick="hideReviewForm()">Cancelar</button>
+            </div>
+          </div>
+
+          <!-- Reviews List -->
+          <div id="reviewsList" class="reviews-list"></div>
+          <div id="reviewsPagination" class="reviews-pagination" style="display:none;"></div>
+        </div>
+      `;
+    }
+    
+    // BLOQUE 9: FAQ Contextual
+    function renderFaqBlock(tour) {
+      return `
+        <div class="cms-block" data-block="faq" id="faqBlock">
+          <h2 class="info-block-title">Preguntas Frecuentes</h2>
+          <div class="faq-list" style="margin-top: var(--space-lg);">
+            <details class="faq-item" style="margin-bottom: var(--space-md); padding: var(--space-md); background: var(--bg-secondary); border-radius: var(--radius-sm);">
+              <summary style="font-weight: var(--font-weight-semibold); cursor: pointer; color: var(--text);">
+                ¿Qué incluye el tour?
+              </summary>
+              <p style="margin-top: var(--space-md); color: var(--text-muted); line-height: 1.6;">
+                Incluye transporte, guía certificado y entradas según el tour. Los detalles específicos se confirman al momento de la reserva.
+              </p>
+            </details>
+            <details class="faq-item" style="margin-bottom: var(--space-md); padding: var(--space-md); background: var(--bg-secondary); border-radius: var(--radius-sm);">
+              <summary style="font-weight: var(--font-weight-semibold); cursor: pointer; color: var(--text);">
+                ¿Qué pasa si llueve?
+              </summary>
+              <p style="margin-top: var(--space-md); color: var(--text-muted); line-height: 1.6;">
+                El tour se realiza normalmente o se reprograma sin costo adicional, según las condiciones climáticas y el tipo de actividad.
+              </p>
+            </details>
+            <details class="faq-item" style="margin-bottom: var(--space-md); padding: var(--space-md); background: var(--bg-secondary); border-radius: var(--radius-sm);">
+              <summary style="font-weight: var(--font-weight-semibold); cursor: pointer; color: var(--text);">
+                ¿Puedo cambiar la fecha?
+              </summary>
+              <p style="margin-top: var(--space-md); color: var(--text-muted); line-height: 1.6;">
+                Sí, puedes cambiar la fecha sujeto a disponibilidad. Contacta con nuestro equipo de soporte para realizar el cambio.
+              </p>
+            </details>
+            <details class="faq-item" style="margin-bottom: var(--space-md); padding: var(--space-md); background: var(--bg-secondary); border-radius: var(--radius-sm);">
+              <summary style="font-weight: var(--font-weight-semibold); cursor: pointer; color: var(--text);">
+                ¿Cuál es la política de cancelación?
+              </summary>
+              <p style="margin-top: var(--space-md); color: var(--text-muted); line-height: 1.6;">
+                Ofrecemos cancelación flexible. Puedes cancelar hasta 24 horas antes del tour sin penalización. Consulta los términos específicos al reservar.
+              </p>
+            </details>
+          </div>
+        </div>
+      `;
+    }
+    
+    // BLOQUE 10: CTA Final
+    function renderFinalCtaBlock(tour) {
+      const ctaText = tour.FinalCtaText || tour.finalCtaText || '¿Listo para vivir esta experiencia?';
+      const ctaButtonText = tour.FinalCtaButtonText || tour.finalCtaButtonText || 'Ver fechas disponibles';
+      
+      return `
+        <div class="cms-block cms-block-final-cta" data-block="final_cta">
+          <h2 style="font-size: 2rem; margin-bottom: var(--space-md);">${ctaText}</h2>
+          <button class="btn-booking" onclick="bookTour()" style="font-size: 1.2rem; padding: var(--space-lg) var(--space-2xl);">
+            <span class="btn-booking-text">${ctaButtonText}</span>
+            <span class="btn-booking-icon">→</span>
+          </button>
+        </div>
+      `;
+    }
+    
+    // Inicializar funcionalidades después de renderizar bloques
+    function initializeBlocksAfterRender(tour) {
+      // Inicializar mapa si existe el bloque
+      const mapBlock = document.querySelector('[data-block="map"]');
+      if (mapBlock) {
+        const location = tour.Location || tour.location || '';
+        const coordinates = tour.MapCoordinates || tour.mapCoordinates || '';
+        if (location || coordinates) {
+          setTimeout(() => {
+            initTourMap(location, coordinates);
+          }, 500);
+        }
+      }
+      
+      // Inicializar carrusel de imágenes si hay múltiples imágenes
+      const tourImages = tour.TourImages || tour.tourImages || [];
+      if (tourImages.length > 1) {
+        initializeImageCarousel(tourImages, tour.Name || tour.name || 'Tour');
+      }
+      
+      // Inicializar rating stars en formulario de review
+      const starRatingInput = document.getElementById('starRatingInput');
+      if (starRatingInput) {
+        const stars = starRatingInput.querySelectorAll('.star');
+        stars.forEach((star, index) => {
+          star.onclick = () => {
+            const rating = index + 1;
+            document.getElementById('selectedRating').value = rating;
+            stars.forEach((s, i) => {
+              s.textContent = i < rating ? '⭐' : '☆';
+            });
+          };
+        });
+      }
+    }
+    
+    // Inicializar carrusel de imágenes
+    function initializeImageCarousel(tourImages, tourName) {
+      const gallerySection = document.getElementById('imageGallerySection');
+      const carouselTrack = document.getElementById('carouselTrack');
+      const carouselThumbnails = document.getElementById('carouselThumbnails');
+      
+      if (!gallerySection || !carouselTrack || !carouselThumbnails) return;
+      
+      // Limpiar carrusel anterior
+      carouselTrack.innerHTML = '';
+      carouselThumbnails.innerHTML = '';
+      
+      // Filtrar imágenes válidas
+      const validImages = tourImages.filter(image => {
+        const imgUrl = image.ImageUrl || image.imageUrl;
+        return imgUrl && imgUrl.trim() !== '';
+      });
+      
+      if (validImages.length > 1) {
+        validImages.forEach((image, index) => {
+          const imgUrl = image.ImageUrl || image.imageUrl;
+          const altText = image.AltText || image.altText || `${tourName} - Imagen ${index + 1}`;
+          
+          // Slide principal
+          const slide = document.createElement('div');
+          slide.className = 'carousel-slide';
+          slide.dataset.index = index;
+          slide.innerHTML = `<img src="${imgUrl}" alt="${altText}" loading="lazy" />`;
+          carouselTrack.appendChild(slide);
+          
+          // Thumbnail
+          const thumbnail = document.createElement('div');
+          thumbnail.className = 'carousel-thumbnail';
+          thumbnail.dataset.index = index;
+          if (index === 0) thumbnail.classList.add('active');
+          thumbnail.innerHTML = `<img src="${imgUrl}" alt="${altText}" loading="lazy" />`;
+          thumbnail.onclick = () => goToImage(index);
+          carouselThumbnails.appendChild(thumbnail);
+        });
+        
+        // Actualizar indicadores
+        const totalImagesEl = document.getElementById('totalImages');
+        const modalTotalImagesEl = document.getElementById('modalTotalImages');
+        if (totalImagesEl) totalImagesEl.textContent = validImages.length;
+        if (modalTotalImagesEl) modalTotalImagesEl.textContent = validImages.length;
+        
+        // Guardar imágenes para uso global
+        const imagesData = validImages.map(img => ({
+          url: img.ImageUrl || img.imageUrl,
+          alt: img.AltText || img.altText || tourName
+        }));
+        window.carouselImages = imagesData;
+        window.currentCarouselIndex = 0;
+        carouselImages = imagesData;
+        currentCarouselIndex = 0;
+        
+        // Inicializar navegación
+        initCarouselNavigation();
+        
+        // Mostrar sección de galería
+        gallerySection.style.display = 'block';
+      }
+    }
+    
+    // Actualizar precio dinámico según personas seleccionadas
+    function updateAvailabilityPrice() {
+      if (!currentTour) return;
+      
+      const pricePerPerson = currentTour.Price ?? currentTour.price ?? 0;
+      const participantsSelect = document.getElementById('participantsSelect');
+      const totalPriceDisplay = document.getElementById('totalPriceDisplay');
+      
+      if (!participantsSelect || !totalPriceDisplay) return;
+      
+      const participants = parseInt(participantsSelect.value) || 1;
+      const totalPrice = pricePerPerson * participants;
+      
+      totalPriceDisplay.textContent = `$${totalPrice.toFixed(2)}`;
+      
+      // Actualizar sticky CTA también
+      updateStickyCtaPrice(totalPrice, participants);
+      
+      // Actualizar urgencia
+      updateUrgencyMessage();
+    }
+    
+    // Actualizar mensaje de urgencia (solo si hay fecha seleccionada y cupos ≤ 5)
+    function updateUrgencyMessage() {
+      if (!currentTour) return;
+      
+      const dateSelect = document.getElementById('tourDateSelect');
+      const urgencyMsg = document.getElementById('urgencyMsg');
+      
+      if (!urgencyMsg || !dateSelect) return;
+      
+      const hasDate = dateSelect.value && dateSelect.value.trim() !== '';
+      const availableSpots = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
+      const showUrgency = hasDate && availableSpots > 0 && availableSpots <= 5;
+      
+      if (showUrgency) {
+        urgencyMsg.style.display = 'block';
+        urgencyMsg.innerHTML = `⚠️ Quedan solo <strong>${availableSpots}</strong> cupo${availableSpots === 1 ? '' : 's'} para esta fecha`;
+      } else {
+        urgencyMsg.style.display = 'none';
+      }
+    }
+    
+    // Actualizar precio en sticky CTA
+    function updateStickyCtaPrice(totalPrice, participants) {
+      const stickyPrice = document.getElementById('stickyPrice');
+      if (stickyPrice) {
+        stickyPrice.textContent = `$${totalPrice.toFixed(2)}`;
+      }
+      const stickyAvailability = document.getElementById('stickyAvailability');
+      if (stickyAvailability && currentTour) {
+        const availableSpots = currentTour.AvailableSpots ?? currentTour.availableSpots ?? 0;
+        stickyAvailability.textContent = `${participants} persona${participants === 1 ? '' : 's'} · ${availableSpots} cupos`;
+      }
+    }
+    
+    // Actualizar Sticky CTA
+    function updateStickyCta(tour) {
+      const stickyCta = document.getElementById('stickyAvailabilityCta');
+      if (!stickyCta) return;
+      
+      const price = tour.Price ?? tour.price ?? 0;
+      const priceText = price > 0 ? `$${price.toFixed(2)}` : 'Consultar precio';
+      const availableSpots = tour.AvailableSpots ?? tour.availableSpots ?? 0;
+      
+      document.getElementById('stickyPrice').textContent = priceText;
+      document.getElementById('stickyAvailability').textContent = `1 persona · ${availableSpots} cupos disponibles`;
+      
+      // Mostrar sticky CTA cuando el bloque availability sale de vista
+      const availabilityBlock = document.getElementById('availabilityBlock');
+      if (!availabilityBlock) {
+        // Fallback: mostrar después de 300px de scroll
+        window.addEventListener('scroll', () => {
+          if (window.scrollY > 300) {
+            stickyCta.style.display = 'flex';
+          } else {
+            stickyCta.style.display = 'none';
+          }
+        });
+        return;
+      }
+      
+      // Lógica premium: mostrar cuando availability sale de vista
+      let stickyCtaTracked = false;
+      let scrollHandler = null;
+      scrollHandler = () => {
+        const rect = availabilityBlock.getBoundingClientRect();
+        // Si el bloque está fuera de la vista (arriba), mostrar sticky
+        if (rect.bottom < 0) {
+          stickyCta.style.display = 'flex';
+          
+          // Track: sticky_cta_shown (solo primera vez)
+          if (!stickyCtaTracked && window.track) {
+            const tourId = tour.Id || tour.id;
+            window.track('sticky_cta_shown', {
+              entityType: 'tour',
+              entityId: tourId
+            });
+            stickyCtaTracked = true;
+          }
+        } else {
+          stickyCta.style.display = 'none';
+        }
+      };
+      
+      window.addEventListener('scroll', scrollHandler, { passive: true });
+      
+      // También verificar en resize
+      window.addEventListener('resize', scrollHandler, { passive: true });
+    }
+    
+    // Actualizar initTourMap para aceptar coordenadas
+    function initTourMap(location, coordinates) {
+      const mapDiv = document.getElementById('tourMap');
+      if (!mapDiv) return;
+      
+      if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+        mapDiv.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: var(--bg-secondary); color: var(--text-muted);">
+            <div style="text-align: center;">
+              <p>📍 ${location || 'Ubicación'}</p>
+              <p style="font-size: var(--text-sm); margin-top: var(--space-sm);">Mapa interactivo disponible con Google Maps API</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      // Si hay coordenadas, usarlas directamente
+      if (coordinates) {
+        const [lat, lng] = coordinates.split(',').map(c => parseFloat(c.trim()));
+        if (!isNaN(lat) && !isNaN(lng)) {
+          tourMap = new google.maps.Map(mapDiv, {
+            center: { lat, lng },
+            zoom: 14
+          });
+          new google.maps.Marker({
+            position: { lat, lng },
+            map: tourMap,
+            title: currentTour?.Name || currentTour?.name || 'Tour'
+          });
+          return;
+        }
+      }
+      
+      // Si no hay coordenadas, geocodificar ubicación
+      if (location) {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: location }, (results, status) => {
+          if (status === 'OK' && results[0]) {
+            const location_coords = results[0].geometry.location;
+            tourMap = new google.maps.Map(mapDiv, {
+              center: location_coords,
+              zoom: 14
+            });
+            new google.maps.Marker({
+              position: location_coords,
+              map: tourMap,
+              title: currentTour?.Name || currentTour?.name || 'Tour'
+            });
+          }
+        });
+      }
+    }
+
+    // Función para cargar reviews en el bloque CMS
+    async function loadReviewsForBlock(tourId) {
+      const reviewsBlock = document.getElementById('reviewsBlock');
+      if (!reviewsBlock) return;
+      
+      try {
+        const response = await api.getTourReviews(tourId, 1, 5); // Top 5 reviews
+        const reviews = response.Reviews || response.reviews || [];
+        const statistics = response.Statistics || response.statistics;
+        
+        // Calcular rating promedio
+        let averageRating = 0;
+        if (statistics && statistics.AverageRating !== undefined) {
+          averageRating = statistics.AverageRating || statistics.averageRating || 0;
+        } else if (reviews && reviews.length > 0) {
+          const sum = reviews.reduce((acc, r) => acc + (r.Rating || r.rating || 0), 0);
+          averageRating = sum / reviews.length;
+        }
+        
+        // Actualizar rating en hero si existe
+        const heroRatingEl = document.getElementById('heroRating');
+        const heroRatingMeta = document.querySelector('.tour-meta-item[data-rating]');
+        if (heroRatingEl && averageRating > 0) {
+          heroRatingEl.textContent = averageRating.toFixed(1);
+          if (heroRatingMeta) heroRatingMeta.style.display = 'flex';
+        }
+        
+        // Mostrar top 3-5 reviews
+        const topReviews = reviews.slice(0, 5);
+        const reviewsList = document.getElementById('reviewsList');
+        if (reviewsList) {
+          if (topReviews.length === 0) {
+            reviewsList.innerHTML = ''; // El empty state se maneja arriba
+          } else {
+            reviewsList.innerHTML = topReviews.map(review => {
+              const rating = review.Rating || review.rating || 0;
+              const comment = review.Comment || review.comment || '';
+              const title = review.Title || review.title || '';
+              const userName = review.UserName || review.userName || 'Usuario';
+              const createdAt = review.CreatedAt || review.createdAt;
+              const dateStr = createdAt ? new Date(createdAt).toLocaleDateString('es-PA') : '';
+              
+              return `
+                <div class="review-item" style="padding: var(--space-lg); background: var(--card); border-radius: var(--radius); margin-bottom: var(--space-md); border: 1px solid var(--border);">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm);">
+                    <div>
+                      <strong>${userName}</strong>
+                      ${review.IsVerified || review.isVerified ? '<span style="color: var(--accent); font-size: 0.85rem; margin-left: 8px;">✓ Verificado</span>' : ''}
+                      <div class="review-stars" style="margin-top: 4px;">
+                        ${'⭐'.repeat(Math.floor(rating))}${rating % 1 >= 0.5 ? '⭐' : ''}
+                      </div>
+                    </div>
+                    ${dateStr ? `<span style="color: var(--text-muted); font-size: 0.9rem;">${dateStr}</span>` : ''}
+                  </div>
+                  ${title ? `<h4 style="margin: var(--space-sm) 0; color: var(--text);">${title}</h4>` : ''}
+                  ${comment ? `<p style="color: var(--text); margin-top: var(--space-sm); line-height: 1.6;">${comment}</p>` : ''}
+                </div>
+              `;
+            }).join('');
+            
+            const totalCount = response.TotalCount || response.totalCount || reviews.length;
+            if (totalCount > 5) {
+              reviewsList.innerHTML += `
+                <div style="text-align: center; margin-top: var(--space-lg);">
+                  <button class="btn-secondary" onclick="showAllReviews('${tourId}')">Ver todas las reseñas (${totalCount})</button>
+                </div>
+              `;
+            }
+          }
+        }
+        
+        // Actualizar estadísticas (solo mostrar si hay reviews)
+        const reviewStats = document.getElementById('reviewStats');
+        const reviewAverage = document.getElementById('reviewAverage');
+        const reviewCountText = document.getElementById('reviewCountText');
+        const reviewStarsLarge = document.getElementById('reviewStarsLarge');
+        const emptyReviewsState = document.getElementById('emptyReviewsState');
+        
+        if (reviews.length === 0 || averageRating === 0) {
+          // No mostrar 0 estrellas - mostrar empty state
+          if (reviewStats) reviewStats.style.display = 'none';
+          if (emptyReviewsState) emptyReviewsState.style.display = 'block';
+        } else {
+          // Mostrar estadísticas solo si hay reviews
+          if (reviewStats) reviewStats.style.display = 'block';
+          if (emptyReviewsState) emptyReviewsState.style.display = 'none';
+          if (reviewAverage) reviewAverage.textContent = averageRating.toFixed(1);
+          if (reviewCountText) {
+            const totalCount = statistics?.TotalReviews || statistics?.totalReviews || reviews.length;
+            reviewCountText.textContent = `${totalCount} ${totalCount === 1 ? 'reseña' : 'reseñas'}`;
+          }
+          if (reviewStarsLarge) {
+            reviewStarsLarge.innerHTML = '⭐'.repeat(Math.floor(averageRating));
+          }
+        }
+        
+        // Mostrar botón de escribir reseña si está autenticado
+        const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+        const writeReviewBtn = document.getElementById('writeReviewBtn');
+        if (writeReviewBtn && token) {
+          writeReviewBtn.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error loading reviews:', error);
+        const reviewsList = document.getElementById('reviewsList');
+        if (reviewsList) {
+          reviewsList.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: var(--space-xl);">No se pudieron cargar las reseñas en este momento.</p>';
+        }
+      }
+    }
+    
+    function showAllReviews(tourId) {
+      // Redirigir a página de reviews completa o mostrar modal
+      window.location.href = `/tour-detail.html?id=${tourId}#reviews`;
+    }
+    
+    function showReviewForm() {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      if (!token) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+        return;
+      }
+      
+      const form = document.getElementById('reviewForm');
+      if (form) {
+        form.style.display = 'block';
+        // Inicializar estrellas
+        const stars = form.querySelectorAll('.star');
+        stars.forEach((star, index) => {
+          star.onclick = () => {
+            const rating = index + 1;
+            document.getElementById('selectedRating').value = rating;
+            stars.forEach((s, i) => {
+              s.textContent = i < rating ? '⭐' : '☆';
+            });
+          };
+        });
+      }
+    }
+    
+    function hideReviewForm() {
+      const form = document.getElementById('reviewForm');
+      if (form) {
+        form.style.display = 'none';
+        // Resetear formulario
+        document.getElementById('reviewTitle').value = '';
+        document.getElementById('reviewComment').value = '';
+        document.getElementById('selectedRating').value = '0';
+        document.querySelectorAll('#starRatingInput .star').forEach(star => {
+          star.textContent = '☆';
+        });
+      }
+    }
+    
+    async function submitReview() {
+      const tourId = currentTour?.Id || currentTour?.id;
+      if (!tourId) return;
+      
+      const rating = parseInt(document.getElementById('selectedRating')?.value || '0');
+      const title = document.getElementById('reviewTitle')?.value.trim() || '';
+      const comment = document.getElementById('reviewComment')?.value.trim() || '';
+      
+      if (rating === 0) {
+        alert('Por favor selecciona una calificación');
+        return;
+      }
+      
+      if (!comment) {
+        alert('Por favor escribe un comentario');
+        return;
+      }
+      
+      try {
+        await api.createReview(tourId, rating, title, comment);
+        hideReviewForm();
+        // Limpiar formulario
+        document.getElementById('reviewTitle').value = '';
+        document.getElementById('reviewComment').value = '';
+        document.getElementById('selectedRating').value = '0';
+        // Resetear estrellas
+        document.querySelectorAll('#starRatingInput .star').forEach(star => {
+          star.textContent = '☆';
+        });
+        
+        await loadReviewsForBlock(tourId);
+        if (typeof notificationManager !== 'undefined') {
+          notificationManager.success('Reseña enviada exitosamente. Estará visible después de la moderación.');
+        } else {
+          alert('Reseña enviada exitosamente. Estará visible después de la moderación.');
+        }
+      } catch (error) {
+        console.error('Error submitting review:', error);
+        const errorMsg = error.message || 'Error al enviar la reseña. Por favor intenta de nuevo.';
+        if (typeof notificationManager !== 'undefined') {
+          notificationManager.error(errorMsg);
+        } else {
+          alert(errorMsg);
+        }
+      }
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       loadTour();

@@ -142,8 +142,18 @@ class ApiClient {
           // Manejar errores específicos del backend
           let errorMessage = errorData.detail || errorData.message || errorData.title;
           
-          // Mensajes más descriptivos para errores comunes
-          if (errorMessage && errorMessage.includes('EMAIL_ALREADY_EXISTS')) {
+          // Mensajes más descriptivos y humanos para errores comunes
+          if (response.status === 401) {
+            errorMessage = 'Tu sesión expiró. Por favor, inicia sesión nuevamente.';
+          } else if (response.status === 403) {
+            errorMessage = 'No tienes permiso para realizar esta acción.';
+          } else if (response.status === 404) {
+            errorMessage = 'No se encontró el recurso solicitado.';
+          } else if (response.status === 500) {
+            errorMessage = 'Algo salió mal en el servidor. Inténtalo de nuevo en unos segundos.';
+          } else if (response.status >= 500) {
+            errorMessage = 'Algo salió mal. Inténtalo de nuevo en unos segundos.';
+          } else if (errorMessage && errorMessage.includes('EMAIL_ALREADY_EXISTS')) {
             errorMessage = 'Este correo electrónico ya está registrado. Por favor, inicia sesión o usa otro correo.';
           } else if (errorMessage && errorMessage.includes('email ya está registrado')) {
             errorMessage = 'Este correo electrónico ya está registrado. Por favor, inicia sesión o usa otro correo.';
@@ -158,13 +168,13 @@ class ApiClient {
                 errorMessage = 'Los datos proporcionados no son válidos. Por favor, revisa el formulario.';
                 break;
               case 401:
-                errorMessage = 'No autorizado. Por favor, verifica tus credenciales.';
+                errorMessage = 'Tu sesión expiró. Por favor, inicia sesión nuevamente.';
                 break;
               case 403:
                 errorMessage = 'No tienes permiso para realizar esta acción.';
                 break;
               case 404:
-                errorMessage = 'El recurso solicitado no fue encontrado.';
+                errorMessage = 'No se encontró el recurso solicitado.';
                 break;
               case 409:
                 errorMessage = 'Este correo electrónico ya está registrado. Por favor, inicia sesión.';
@@ -173,7 +183,7 @@ class ApiClient {
                 errorMessage = 'Los datos proporcionados no cumplen con los requisitos. Por favor, revisa el formulario.';
                 break;
               case 500:
-                errorMessage = 'Error interno del servidor. Por favor, intenta nuevamente más tarde.';
+                errorMessage = 'Algo salió mal en el servidor. Inténtalo de nuevo en unos segundos.';
                 break;
               case 503:
                 errorMessage = 'El servicio no está disponible temporalmente. Por favor, intenta más tarde.';
@@ -455,6 +465,27 @@ class ApiClient {
     return this.request('/api/auth/me');
   }
 
+  // Actualizar perfil del usuario
+  async updateProfile(profileData) {
+    return this.request('/api/users/me', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  }
+
+  // Cambiar contraseña
+  async changePassword(currentPassword, newPassword, confirmPassword) {
+    return this.request('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+    });
+  }
+
+  // Obtener historial de logins
+  async getLoginHistory(limit = 20) {
+    return this.request(`/api/auth/login-history?limit=${limit}`);
+  }
+
   // Verificar si un email está registrado
   async checkEmail(email) {
     logger.debug('Verificando disponibilidad de email', { email: email?.substring(0, 5) + '***' });
@@ -509,6 +540,65 @@ class ApiClient {
     const userId = localStorage.getItem('userId');
     const url = userId ? `/api/bookings/my?userId=${userId}` : '/api/bookings/my';
     return this.request(url);
+  }
+
+  // Invoices
+  async getMyInvoices() {
+    return this.request('/api/invoices/my');
+  }
+
+  async downloadInvoicePdf(invoiceId) {
+    const token = this.accessToken || localStorage.getItem('accessToken');
+    const url = `${this.baseUrl}/api/invoices/${invoiceId}/pdf`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          await this.refreshAccessToken();
+          return this.downloadInvoicePdf(invoiceId);
+        }
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      return blob;
+    } catch (error) {
+      logger.error('Error descargando PDF de factura', error);
+      throw error;
+    }
+  }
+
+  async getBooking(bookingId) {
+    return this.request(`/api/bookings/${bookingId}`);
+  }
+
+  async updateBookingParticipants(bookingId, participants) {
+    return this.request(`/api/bookings/${bookingId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        participants: participants
+      })
+    });
+  }
+
+  async updateBooking(bookingId, bookingData) {
+    return this.request(`/api/bookings/${bookingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(bookingData),
+    });
+  }
+
+  async cancelBooking(bookingId) {
+    return this.request(`/api/bookings/${bookingId}/cancel`, {
+      method: 'POST',
+    });
   }
 
   async createBooking(bookingData) {
@@ -614,6 +704,43 @@ class ApiClient {
 
   // Admin Users
   async getAdminUsers(search = '', isActive = null, role = '') {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (isActive !== null) params.append('isActive', isActive);
+    if (role) params.append('role', role);
+    return this.request(`/api/admin/users?${params}`);
+  }
+
+  // ========== CUPONES (Admin) ==========
+  async getCoupons(isActive = null, page = 1, pageSize = 50) {
+    const params = new URLSearchParams({ page, pageSize });
+    if (isActive !== null) params.append('isActive', isActive);
+    return this.request(`/api/coupons?${params}`);
+  }
+
+  // ========== WAITLIST (Admin) ==========
+  async getWaitlist(tourId = null, isActive = null) {
+    const params = new URLSearchParams();
+    if (tourId) params.append('tourId', tourId);
+    if (isActive !== null) params.append('isActive', isActive);
+    return this.request(`/api/waitlist?${params}`);
+  }
+
+  // ========== REVIEWS (Admin) ==========
+  async getAllReviews(page = 1, pageSize = 50, isApproved = null, tourId = null) {
+    const params = new URLSearchParams({ page, pageSize });
+    if (isApproved !== null) params.append('isApproved', isApproved);
+    if (tourId) params.append('tourId', tourId);
+    return this.request(`/api/tours/reviews/admin?${params}`);
+  }
+
+  async approveReview(reviewId, tourId) {
+    return this.request(`/api/tours/${tourId}/reviews/${reviewId}/approve`, { method: 'POST' });
+  }
+
+  async rejectReview(reviewId, tourId) {
+    return this.request(`/api/tours/${tourId}/reviews/${reviewId}/reject`, { method: 'POST' });
+  }
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (isActive !== null) params.append('isActive', isActive);
@@ -842,7 +969,197 @@ class ApiClient {
     return this.request(`/api/tours/featured?limit=${limit}`);
   }
 
-  // Reports (Admin)
+  // ========== BLOG ==========
+  
+  /**
+   * Obtiene posts de blog
+   */
+  async getBlogPosts(page = 1, pageSize = 10, search = null) {
+    const params = new URLSearchParams({ page, pageSize });
+    if (search) params.append('search', search);
+    return this.request(`/api/blog?${params}`);
+  }
+
+  /**
+   * Obtiene un post de blog por slug
+   */
+  async getBlogPost(slug) {
+    return this.request(`/api/blog/${slug}`);
+  }
+
+  /**
+   * Obtiene posts recientes
+   */
+  async getRecentBlogPosts(limit = 5) {
+    return this.request(`/api/blog/recent?limit=${limit}`);
+  }
+
+  // ========== COMENTARIOS DE BLOG ==========
+  
+  /**
+   * Obtiene comentarios de un post de blog
+   */
+  async getBlogComments(blogPostId, page = 1, pageSize = 20, parentCommentId = null) {
+    const params = new URLSearchParams({ page, pageSize });
+    if (parentCommentId) params.append('parentCommentId', parentCommentId);
+    return this.request(`/api/blog/comments/post/${blogPostId}?${params}`);
+  }
+
+  /**
+   * Crea un comentario en un post de blog
+   */
+  async createBlogComment(commentData) {
+    return this.request('/api/blog/comments', {
+      method: 'POST',
+      body: JSON.stringify(commentData)
+    });
+  }
+
+  /**
+   * Actualiza un comentario de blog
+   */
+  async updateBlogComment(commentId, commentData) {
+    return this.request(`/api/blog/comments/${commentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(commentData)
+    });
+  }
+
+  /**
+   * Elimina un comentario de blog
+   */
+  async deleteBlogComment(commentId) {
+    return this.request(`/api/blog/comments/${commentId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  /**
+   * Like/Dislike un comentario
+   */
+  async likeBlogComment(commentId, isLike = true) {
+    return this.request(`/api/blog/comments/${commentId}/like`, {
+      method: 'POST',
+      body: JSON.stringify({ isLike })
+    });
+  }
+
+  /**
+   * Obtiene todos los comentarios (Admin)
+   */
+  async getAllBlogComments(page = 1, pageSize = 50, status = null, blogPostId = null) {
+    const params = new URLSearchParams({ page, pageSize });
+    if (status !== null) params.append('status', status);
+    if (blogPostId) params.append('blogPostId', blogPostId);
+    return this.request(`/api/blog/comments/admin?${params}`);
+  }
+
+  /**
+   * Modera un comentario (Admin)
+   */
+  async moderateBlogComment(commentId, status, adminNotes = null) {
+    return this.request(`/api/blog/comments/${commentId}/moderate`, {
+      method: 'POST',
+      body: JSON.stringify({ status, adminNotes })
+    });
+  }
+
+  // ========== BLOG ==========
+  
+  /**
+   * Obtiene posts de blog
+   */
+  async getBlogPosts(page = 1, pageSize = 10, search = null) {
+    const params = new URLSearchParams({ page, pageSize });
+    if (search) params.append('search', search);
+    return this.request(`/api/blog?${params}`);
+  }
+
+  /**
+   * Obtiene un post de blog por slug
+   */
+  async getBlogPost(slug) {
+    return this.request(`/api/blog/${slug}`);
+  }
+
+  /**
+   * Obtiene posts recientes
+   */
+  async getRecentBlogPosts(limit = 5) {
+    return this.request(`/api/blog/recent?limit=${limit}`);
+  }
+
+  // ========== COMENTARIOS DE BLOG ==========
+  
+  /**
+   * Obtiene comentarios de un post de blog
+   */
+  async getBlogComments(blogPostId, page = 1, pageSize = 20, parentCommentId = null) {
+    const params = new URLSearchParams({ page, pageSize });
+    if (parentCommentId) params.append('parentCommentId', parentCommentId);
+    return this.request(`/api/blog/comments/post/${blogPostId}?${params}`);
+  }
+
+  /**
+   * Crea un comentario en un post de blog
+   */
+  async createBlogComment(commentData) {
+    return this.request('/api/blog/comments', {
+      method: 'POST',
+      body: JSON.stringify(commentData)
+    });
+  }
+
+  /**
+   * Actualiza un comentario de blog
+   */
+  async updateBlogComment(commentId, commentData) {
+    return this.request(`/api/blog/comments/${commentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(commentData)
+    });
+  }
+
+  /**
+   * Elimina un comentario de blog
+   */
+  async deleteBlogComment(commentId) {
+    return this.request(`/api/blog/comments/${commentId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  /**
+   * Like/Dislike un comentario
+   */
+  async likeBlogComment(commentId, isLike = true) {
+    return this.request(`/api/blog/comments/${commentId}/like`, {
+      method: 'POST',
+      body: JSON.stringify({ isLike })
+    });
+  }
+
+  /**
+   * Obtiene todos los comentarios (Admin)
+   */
+  async getAllBlogComments(page = 1, pageSize = 50, status = null, blogPostId = null) {
+    const params = new URLSearchParams({ page, pageSize });
+    if (status !== null) params.append('status', status);
+    if (blogPostId) params.append('blogPostId', blogPostId);
+    return this.request(`/api/blog/comments/admin?${params}`);
+  }
+
+  /**
+   * Modera un comentario (Admin)
+   */
+  async moderateBlogComment(commentId, status, adminNotes = null) {
+    return this.request(`/api/blog/comments/${commentId}/moderate`, {
+      method: 'POST',
+      body: JSON.stringify({ status, adminNotes })
+    });
+  }
+
+  // ========== REPORTES (Admin) ==========
   async getReportsSummary(startDate = null, endDate = null) {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
@@ -947,7 +1264,129 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Analytics
+  async trackEvent(event, data = {}) {
+    try {
+      // Obtener o crear sessionId
+      let sessionId = localStorage.getItem('analytics_session_id');
+      if (!sessionId) {
+        sessionId = this.generateUUID();
+        localStorage.setItem('analytics_session_id', sessionId);
+      }
+
+      const payload = {
+        event,
+        entityType: data.entityType,
+        entityId: data.entityId,
+        sessionId: sessionId,
+        metadata: data.metadata || {},
+        country: data.country,
+        city: data.city
+      };
+
+      // Enviar de forma asíncrona (no bloquear UI)
+      this.request('/api/analytics', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }).catch(err => {
+        // Silenciar errores de analytics para no afectar UX
+        logger.debug('Error en analytics (silenciado):', err);
+      });
+
+      return true;
+    } catch (error) {
+      // No fallar si analytics falla
+      logger.debug('Error tracking event:', error);
+      return false;
+    }
+  }
+
+  generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  // Analytics
+  async getAnalyticsMetrics(startDate = null, endDate = null, tourId = null) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (tourId) params.append('tourId', tourId);
+    
+    return this.request(`/api/analytics/metrics?${params.toString()}`);
+  }
+
+  async getAnalyticsFunnel(startDate = null, endDate = null) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    return this.request(`/api/analytics/funnel?${params.toString()}`);
+  }
+
+  async getTopTours(startDate = null, endDate = null, limit = 10) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    params.append('limit', limit.toString());
+    
+    return this.request(`/api/analytics/top-tours?${params.toString()}`);
+  }
+
+  async getUxImpact(startDate = null, endDate = null) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    return this.request(`/api/analytics/ux-impact?${params.toString()}`);
+  }
+
+  // Blog
+  async getBlogPosts({ page = 1, pageSize = 10, search = null } = {}) {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page.toString());
+    if (pageSize) params.append('pageSize', pageSize.toString());
+    if (search) params.append('search', search);
+    
+    return this.request(`/api/blog?${params.toString()}`);
+  }
+
+  async getBlogPostBySlug(slug) {
+    return this.request(`/api/blog/${slug}`);
+  }
+
+  async getBlogComments(postId, { page = 1, pageSize = 20, parentCommentId = null } = {}) {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page.toString());
+    if (pageSize) params.append('pageSize', pageSize.toString());
+    if (parentCommentId) params.append('parentCommentId', parentCommentId);
+    
+    return this.request(`/api/blog/comments/post/${postId}?${params.toString()}`);
+  }
+
+  async createBlogComment(payload) {
+    return this.request('/api/blog/comments', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async reactToComment(commentId, isLike) {
+    return this.request(`/api/blog/comments/${commentId}/like`, {
+      method: 'POST',
+      body: JSON.stringify({ isLike }),
+    });
+  }
 }
 
 // Export singleton instance
 const api = new ApiClient();
+
+// Función global de tracking (vendor-agnostic)
+window.track = function(event, data = {}) {
+  return api.trackEvent(event, data);
+};

@@ -60,6 +60,80 @@ public class TourConfiguration : IEntityTypeConfiguration<Tour>
             .HasDefaultValue(0)
             .IsRequired();
 
+        // CMS Blocks
+        builder.Property(t => t.HeroTitle)
+            .HasColumnName("hero_title")
+            .HasMaxLength(500);
+            
+        builder.Property(t => t.HeroSubtitle)
+            .HasColumnName("hero_subtitle");
+            
+        builder.Property(t => t.HeroCtaText)
+            .HasColumnName("hero_cta_text")
+            .HasMaxLength(200)
+            .HasDefaultValue("Ver fechas disponibles");
+            
+        builder.Property(t => t.SocialProofText)
+            .HasColumnName("social_proof_text");
+            
+        builder.Property(t => t.HasCertifiedGuide)
+            .HasColumnName("has_certified_guide")
+            .HasDefaultValue(true);
+            
+        builder.Property(t => t.HasFlexibleCancellation)
+            .HasColumnName("has_flexible_cancellation")
+            .HasDefaultValue(true);
+            
+        builder.Property(t => t.AvailableLanguages)
+            .HasColumnName("available_languages");
+            
+        builder.Property(t => t.HighlightsDuration)
+            .HasColumnName("highlights_duration")
+            .HasMaxLength(100);
+            
+        builder.Property(t => t.HighlightsGroupType)
+            .HasColumnName("highlights_group_type")
+            .HasMaxLength(100);
+            
+        builder.Property(t => t.HighlightsPhysicalLevel)
+            .HasColumnName("highlights_physical_level")
+            .HasMaxLength(100);
+            
+        builder.Property(t => t.HighlightsMeetingPoint)
+            .HasColumnName("highlights_meeting_point");
+            
+        builder.Property(t => t.StoryContent)
+            .HasColumnName("story_content");
+            
+        builder.Property(t => t.IncludesList)
+            .HasColumnName("includes_list");
+            
+        builder.Property(t => t.ExcludesList)
+            .HasColumnName("excludes_list");
+            
+        builder.Property(t => t.MapCoordinates)
+            .HasColumnName("map_coordinates")
+            .HasMaxLength(100);
+            
+        builder.Property(t => t.MapReferenceText)
+            .HasColumnName("map_reference_text");
+            
+        builder.Property(t => t.FinalCtaText)
+            .HasColumnName("final_cta_text")
+            .HasMaxLength(500)
+            .HasDefaultValue("¿Listo para vivir esta experiencia?");
+            
+        builder.Property(t => t.FinalCtaButtonText)
+            .HasColumnName("final_cta_button_text")
+            .HasMaxLength(200)
+            .HasDefaultValue("Ver fechas disponibles");
+            
+        builder.Property(t => t.BlockOrder)
+            .HasColumnName("block_order");
+            
+        builder.Property(t => t.BlockEnabled)
+            .HasColumnName("block_enabled");
+
         builder.Property(t => t.CreatedAt)
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP")

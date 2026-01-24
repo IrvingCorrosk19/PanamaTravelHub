@@ -77,6 +77,23 @@
   border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
+/* Estado especial: Datos pendientes */
+.status-datos-pendientes {
+  background: rgba(255, 193, 7, 0.15);
+  color: #f57c00;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
 .reservation-details {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

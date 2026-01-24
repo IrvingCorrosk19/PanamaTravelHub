@@ -71,7 +71,10 @@ public class AdminController : ControllerBase
                 IsActive = t.IsActive,
                 CreatedAt = t.CreatedAt,
                 ImageUrl = t.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
-                Images = t.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList()
+                Images = t.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList(),
+                // CMS Blocks
+                BlockOrder = t.BlockOrder,
+                BlockEnabled = t.BlockEnabled
             });
 
             return Ok(result);
@@ -110,6 +113,34 @@ public class AdminController : ControllerBase
             };
 
             await _tourRepository.AddAsync(tour);
+
+            // Agregar categorías
+            if (request.CategoryIds != null && request.CategoryIds.Any())
+            {
+                foreach (var categoryId in request.CategoryIds)
+                {
+                    var assignment = new TourCategoryAssignment
+                    {
+                        TourId = tour.Id,
+                        CategoryId = categoryId
+                    };
+                    _context.TourCategoryAssignments.Add(assignment);
+                }
+            }
+
+            // Agregar tags
+            if (request.TagIds != null && request.TagIds.Any())
+            {
+                foreach (var tagId in request.TagIds)
+                {
+                    var assignment = new TourTagAssignment
+                    {
+                        TourId = tour.Id,
+                        TagId = tagId
+                    };
+                    _context.TourTagAssignments.Add(assignment);
+                }
+            }
 
             // Agregar imágenes
             if (request.Images != null && request.Images.Any())
@@ -195,7 +226,10 @@ public class AdminController : ControllerBase
                 IsActive = tour.IsActive,
                 CreatedAt = tour.CreatedAt,
                 ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
-                Images = tour.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList()
+                Images = tour.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList(),
+                // CMS Blocks
+                BlockOrder = tour.BlockOrder,
+                BlockEnabled = tour.BlockEnabled
             };
 
             return Ok(result);
@@ -272,6 +306,13 @@ public class AdminController : ControllerBase
             
             if (request.IsActive.HasValue)
                 tour.IsActive = request.IsActive.Value;
+            
+            // Actualizar campos CMS si se proporcionan
+            if (request.BlockOrder != null)
+                tour.BlockOrder = request.BlockOrder;
+            
+            if (request.BlockEnabled != null)
+                tour.BlockEnabled = request.BlockEnabled;
 
             // Actualizar imágenes si se proporcionan
             if (request.Images != null)
@@ -325,6 +366,8 @@ public class AdminController : ControllerBase
             entry.Property(t => t.Location).IsModified = request.Location != null;
             entry.Property(t => t.TourDate).IsModified = request.TourDate.HasValue; // Solo actualizar si se proporciona un valor
             entry.Property(t => t.IsActive).IsModified = request.IsActive.HasValue;
+            entry.Property(t => t.BlockOrder).IsModified = request.BlockOrder != null;
+            entry.Property(t => t.BlockEnabled).IsModified = request.BlockEnabled != null;
             entry.Property(t => t.UpdatedAt).IsModified = true; // Siempre actualizar UpdatedAt
             
             // Asegurar que CreatedAt NO se modifique
@@ -353,7 +396,10 @@ public class AdminController : ControllerBase
                 IsActive = tour.IsActive,
                 CreatedAt = tour.CreatedAt,
                 ImageUrl = tour.TourImages.FirstOrDefault(i => i.IsPrimary)?.ImageUrl,
-                Images = tour.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList()
+                Images = tour.TourImages.OrderBy(i => i.DisplayOrder).Select(i => i.ImageUrl).ToList(),
+                // CMS Blocks
+                BlockOrder = tour.BlockOrder,
+                BlockEnabled = tour.BlockEnabled
             };
 
             return Ok(result);
@@ -1678,6 +1724,9 @@ public class AdminTourDto
     public DateTime CreatedAt { get; set; }
     public string? ImageUrl { get; set; }
     public List<string>? Images { get; set; }
+    // CMS Blocks
+    public string? BlockOrder { get; set; }
+    public string? BlockEnabled { get; set; }
 }
 
 public class AdminBookingDto

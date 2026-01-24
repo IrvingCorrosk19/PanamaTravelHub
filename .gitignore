@@ -220,3 +220,6 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+
+# Generated PDFs
+wwwroot/invoices/

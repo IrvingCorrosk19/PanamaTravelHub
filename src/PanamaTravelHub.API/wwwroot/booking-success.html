@@ -7,8 +7,80 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/design-system.css" />
   <link rel="stylesheet" href="/css/success.css" />
   <style>
+    .participants-section {
+      margin-top: var(--space-2xl);
+      padding: var(--space-xl);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+    
+    .participants-section h2 {
+      font-size: 1.5rem;
+      margin-bottom: var(--space-md);
+    }
+    
+    .participants-hint {
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      margin-bottom: var(--space-lg);
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+    
+    .participant-card {
+      padding: var(--space-lg);
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      margin-bottom: var(--space-md);
+      border: 2px solid var(--border);
+    }
+    
+    .participant-header {
+      font-weight: var(--font-weight-bold);
+      margin-bottom: var(--space-md);
+      color: var(--text);
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+    }
+    
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .btn-complete-later {
+      background: transparent;
+      border: 2px solid var(--border);
+      color: var(--text);
+      padding: var(--space-md) var(--space-lg);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all var(--transition-base);
+    }
+    
+    .btn-complete-later:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    .participants-completed {
+      padding: var(--space-md);
+      background: #e8f5e9;
+      border-radius: var(--radius);
+      color: #2e7d32;
+      margin-top: var(--space-md);
+    }
   </style>
 </head>
 <body>
@@ -48,26 +120,41 @@
         </div>
       </div>
 
-      <div class="success-actions">
-        <a href="/reservas.html" class="btn-primary">Ver Mis Reservas</a>
+      <!-- Sección de Participantes (Premium) -->
+      <div class="participants-section" id="participantsSection">
+        <h2>${completeMode ? 'Completa los Datos de los Participantes' : 'Completa los Datos de los Participantes'}</h2>
+        <div class="participants-hint">
+          💡 ${completeMode ? 'Completa la información de cada participante para finalizar tu reserva.' : 'Completa la información de cada participante para finalizar tu reserva. Puedes hacerlo ahora o más tarde desde "Mis Reservas".'}
+          ${!completeMode ? '<br><br>📧 Recibirás un recordatorio por email si no completas los datos ahora.' : ''}
+        </div>
+        <div id="participantsList"></div>
+        <div style="display: flex; gap: var(--space-md); margin-top: var(--space-lg);">
+          <button class="btn-primary" onclick="saveParticipants()" id="saveParticipantsBtn">Guardar Datos</button>
+          <button class="btn-complete-later" onclick="skipParticipants()">Completar Más Tarde</button>
+        </div>
+        <div id="participantsSaved" class="participants-completed" style="display: none;">
+          ✓ Datos de participantes guardados exitosamente
+        </div>
+      </div>
+
+      <div class="success-actions" style="margin-top: var(--space-xl);">
+        <a href="/reservas.html" class="btn-primary">Volver a Mis Reservas</a>
         <a href="/" class="btn-secondary">Explorar Más Tours</a>
       </div>
     </div>
   </div>
 
+  <script src="/js/api.js"></script>
   <script>
     // ✅ Función helper para formatear precios de forma segura
     function formatPrice(value, fallbackText = '$0.00') {
       const rawPrice = value ?? null;
       let price = Number(rawPrice ?? 0);
       
-      // Validación: asegurar que price es un número válido y finito
       if (typeof price !== 'number' || isNaN(price) || !isFinite(price)) {
-        console.warn('⚠️ [formatPrice] Precio inválido, usando 0:', { value, rawPrice, price });
         price = 0;
       }
       
-      // Formatear precio
       const formattedPrice = price.toFixed(2);
       return price > 0 ? `$${formattedPrice}` : fallbackText;
     }
@@ -76,13 +163,191 @@
     const urlParams = new URLSearchParams(window.location.search);
     const bookingId = urlParams.get('bookingId');
     const amount = urlParams.get('amount');
+    const numberOfParticipants = parseInt(urlParams.get('participants')) || 1;
+    const completeMode = urlParams.get('complete') === 'true'; // Si viene desde reservas.html
+
+    let currentBookingId = bookingId;
 
     if (bookingId) {
       document.getElementById('bookingId').textContent = bookingId;
     }
     if (amount) {
-      // ✅ Usar función segura para formatear precio
       document.getElementById('bookingAmount').textContent = formatPrice(parseFloat(amount));
+    }
+
+    // Cargar datos del booking y participantes
+    async function loadBookingData() {
+      if (!currentBookingId) return;
+      
+      try {
+        const booking = await api.getBooking(currentBookingId);
+        
+        // Si ya tiene participantes, ocultar sección o mostrar datos
+        if (booking.participants && booking.participants.length > 0) {
+          document.getElementById('participantsSection').style.display = 'none';
+          return;
+        }
+        
+        // Renderizar formularios de participantes
+        renderParticipantsForm(numberOfParticipants);
+      } catch (error) {
+        console.error('Error loading booking:', error);
+        // Si no se puede cargar, renderizar formulario con número de participantes de URL
+        renderParticipantsForm(numberOfParticipants);
+      }
+    }
+
+    function renderParticipantsForm(count) {
+      const participantsList = document.getElementById('participantsList');
+      participantsList.innerHTML = '';
+      
+      for (let i = 1; i <= count; i++) {
+        const participantCard = document.createElement('div');
+        participantCard.className = 'participant-card';
+        participantCard.innerHTML = `
+          <div class="participant-header">Participante ${i}${i === 1 ? ' (Titular)' : ''}</div>
+          <div class="form-group">
+            <label class="form-label">Nombre <span class="required">*</span></label>
+            <input type="text" class="form-input participant-firstname" placeholder="Nombre completo" required maxlength="100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Apellido <span class="required">*</span></label>
+            <input type="text" class="form-input participant-lastname" placeholder="Apellido completo" required maxlength="100" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Email ${i === 1 ? '<span class="required">*</span>' : ''}</label>
+              <input type="email" class="form-input participant-email" placeholder="email@ejemplo.com" ${i === 1 ? 'required' : ''} maxlength="255" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Teléfono</label>
+              <input type="tel" class="form-input participant-phone" placeholder="+507 6000-0000" maxlength="20" />
+            </div>
+          </div>
+          ${i > 1 ? `
+          <div class="form-group">
+            <label class="form-label">Fecha de Nacimiento (opcional)</label>
+            <input type="date" class="form-input participant-dob" max="${new Date().toISOString().split('T')[0]}" />
+          </div>
+          ` : ''}
+        `;
+        participantsList.appendChild(participantCard);
+      }
+    }
+
+    async function saveParticipants() {
+      if (!currentBookingId) {
+        alert('Error: No se encontró el ID de la reserva');
+        return;
+      }
+
+      const participantCards = document.querySelectorAll('.participant-card');
+      const participants = [];
+      
+      let hasErrors = false;
+      
+      participantCards.forEach((card, index) => {
+        const firstName = card.querySelector('.participant-firstname')?.value.trim() || '';
+        const lastName = card.querySelector('.participant-lastname')?.value.trim() || '';
+        const email = card.querySelector('.participant-email')?.value.trim() || '';
+        const phone = card.querySelector('.participant-phone')?.value.trim() || '';
+        const dateOfBirth = card.querySelector('.participant-dob')?.value || null;
+
+        if (!firstName || !lastName) {
+          alert(`Participante ${index + 1}: El nombre y apellido son requeridos.`);
+          hasErrors = true;
+          return;
+        }
+
+        const participant = {
+          firstName: firstName,
+          lastName: lastName
+        };
+        
+        if (email) participant.email = email;
+        if (phone) participant.phone = phone;
+        if (dateOfBirth) {
+          const dobDate = new Date(dateOfBirth);
+          if (!isNaN(dobDate.getTime())) {
+            participant.dateOfBirth = dobDate.toISOString();
+          }
+        }
+        
+        participants.push(participant);
+      });
+      
+      if (hasErrors) return;
+      
+      if (participants.length !== numberOfParticipants) {
+        alert(`Error: Se esperaban ${numberOfParticipants} participante(s) pero solo se encontraron ${participants.length} válidos.`);
+        return;
+      }
+
+      // Deshabilitar botón
+      const btn = document.getElementById('saveParticipantsBtn');
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+
+      try {
+        // Actualizar booking con participantes
+        await api.updateBookingParticipants(currentBookingId, participants);
+        
+        // Track: participants_completed
+        if (window.track && currentBookingId) {
+          window.track('participants_completed', {
+            entityType: 'booking',
+            entityId: currentBookingId,
+            metadata: {
+              participantsCount: participants.length
+            }
+          });
+        }
+        
+        // Mostrar éxito
+        document.getElementById('participantsSaved').style.display = 'block';
+        btn.textContent = '✓ Guardado';
+        btn.style.background = '#4caf50';
+        btn.style.color = 'white';
+        
+        // Si viene desde reservas.html, redirigir de vuelta
+        if (completeMode) {
+          setTimeout(() => {
+            window.location.href = '/reservas.html';
+          }, 2000);
+        } else {
+          // Ocultar botones después de 2 segundos
+          setTimeout(() => {
+            document.getElementById('participantsSection').style.opacity = '0.7';
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Error saving participants:', error);
+        const errorMsg = error.message && error.message.includes('401') 
+          ? 'Tu sesión expiró. Por favor, inicia sesión nuevamente.'
+          : error.message && error.message.includes('network') || error.message && error.message.includes('fetch')
+          ? 'Algo salió mal. Inténtalo de nuevo en unos segundos.'
+          : 'Error al guardar los datos. Por favor intenta de nuevo.';
+        alert(errorMsg);
+        btn.disabled = false;
+        btn.textContent = 'Guardar Datos';
+      }
+    }
+
+    function skipParticipants() {
+      document.getElementById('participantsSection').style.display = 'none';
+    }
+
+    // Cargar datos al iniciar
+    if (currentBookingId) {
+      loadBookingData();
+    } else {
+      // Si no hay bookingId, ocultar sección de participantes
+      document.getElementById('participantsSection').style.display = 'none';
+    }
+    
+    // Si viene en modo "complete", mostrar sección de participantes automáticamente
+    if (completeMode && numberOfParticipants > 0) {
+      renderParticipantsForm(numberOfParticipants);
     }
   </script>
 </body>

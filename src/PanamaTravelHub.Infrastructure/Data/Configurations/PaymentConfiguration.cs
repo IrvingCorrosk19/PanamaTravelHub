@@ -66,6 +66,26 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .HasColumnName("metadata")
             .HasColumnType("jsonb");
 
+        builder.Property(p => p.IsPartial)
+            .HasColumnName("is_partial")
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(p => p.InstallmentNumber)
+            .HasColumnName("installment_number");
+
+        builder.Property(p => p.TotalInstallments)
+            .HasColumnName("total_installments");
+
+        builder.Property(p => p.ParentPaymentId)
+            .HasColumnName("parent_payment_id");
+
+        // Relaciones
+        builder.HasOne(p => p.ParentPayment)
+            .WithMany(p => p.ChildPayments)
+            .HasForeignKey(p => p.ParentPaymentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.Property(p => p.CreatedAt)
             .HasColumnName("created_at")
             .HasDefaultValueSql("CURRENT_TIMESTAMP")

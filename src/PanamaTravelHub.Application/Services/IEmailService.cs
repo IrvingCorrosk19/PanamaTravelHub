@@ -24,5 +24,23 @@ public interface IEmailService
     /// <param name="templateData">Datos para rellenar la plantilla</param>
     /// <returns>True si el envío fue exitoso</returns>
     Task<bool> SendTemplatedEmailAsync(string toEmail, string subject, string templateName, object templateData);
+
+    /// <summary>
+    /// Envía un email con adjunto
+    /// </summary>
+    /// <param name="toEmail">Email del destinatario</param>
+    /// <param name="subject">Asunto del email</param>
+    /// <param name="body">Cuerpo del email (HTML)</param>
+    /// <param name="attachmentBytes">Bytes del archivo adjunto</param>
+    /// <param name="attachmentFileName">Nombre del archivo adjunto</param>
+    /// <param name="attachmentContentType">Tipo MIME del adjunto (ej: application/pdf)</param>
+    /// <returns>True si el envío fue exitoso</returns>
+    Task<bool> SendEmailWithAttachmentAsync(
+        string toEmail, 
+        string subject, 
+        string body, 
+        byte[] attachmentBytes, 
+        string attachmentFileName, 
+        string attachmentContentType = "application/pdf");
 }
 

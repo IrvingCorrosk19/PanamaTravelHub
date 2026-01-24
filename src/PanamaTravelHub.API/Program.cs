@@ -184,6 +184,34 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+});
+// TODO: Descomentar cuando se instalen los paquetes de OAuth
+/*
+.AddGoogle(options =>
+{
+    var googleClientId = builder.Configuration["OAuth:Google:ClientId"];
+    var googleClientSecret = builder.Configuration["OAuth:Google:ClientSecret"];
+    if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+    }
+})
+.AddFacebook(options =>
+{
+    var facebookAppId = builder.Configuration["OAuth:Facebook:AppId"];
+    var facebookAppSecret = builder.Configuration["OAuth:Facebook:AppSecret"];
+    if (!string.IsNullOrEmpty(facebookAppId) && !string.IsNullOrEmpty(facebookAppSecret))
+    {
+        options.AppId = facebookAppId;
+        options.AppSecret = facebookAppSecret;
+    }
+})
+*/
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {

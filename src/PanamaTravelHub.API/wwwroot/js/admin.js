@@ -1,0 +1,1432 @@
+// Admin Panel JavaScript
+let revenueChart, bookingsStatusChart, topToursChart, timeseriesChart, toursReportChart;
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', async () => {
+  // Verificar autenticación
+  const token = localStorage.getItem('accessToken');
+  if (!token) {
+    window.location.href = '/login.html';
+    return;
+  }
+
+  // Verificar rol admin
+  try {
+    const user = await api.getCurrentUser();
+    if (!user.roles || !user.roles.includes('Admin')) {
+      alert('No tienes permisos para acceder al panel administrativo');
+      window.location.href = '/';
+      return;
+    }
+  } catch (error) {
+    console.error('Error verificando usuario:', error);
+    window.location.href = '/login.html';
+    return;
+  }
+
+  // Configurar navegación
+  setupNavigation();
+  
+  // Cargar dashboard por defecto
+  await loadDashboard();
+  
+  // Configurar logout
+  document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await api.logout();
+    window.location.href = '/';
+  });
+});
+
+// Navegación
+function setupNavigation() {
+  const navLinks = document.querySelectorAll('.admin-nav .nav-link');
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const section = link.getAttribute('data-section');
+      if (section) {
+        showSection(section);
+      }
+    });
+  });
+}
+
+function showSection(sectionName) {
+  // Ocultar todas las secciones
+  document.querySelectorAll('.admin-content').forEach(section => {
+    section.classList.remove('active');
+  });
+  
+  // Mostrar sección seleccionada
+  const section = document.getElementById(`${sectionName}-section`);
+  if (section) {
+    section.classList.add('active');
+    
+    // Actualizar título
+    const titles = {
+      'dashboard': 'Dashboard',
+      'tours': 'Gestión de Tours',
+      'bookings': 'Gestión de Reservas',
+      'users': 'Gestión de Usuarios',
+      'coupons': 'Gestión de Cupones',
+      'reviews': 'Moderación de Reviews',
+      'waitlist': 'Lista de Espera',
+      'blog-comments': 'Comentarios de Blog',
+      'reports': 'Reportes y Analytics',
+      'analytics': 'Analytics y Conversión',
+      'cms-blocks': 'Bloques CMS'
+    };
+    document.getElementById('pageTitle').textContent = titles[sectionName] || 'Admin Panel';
+    
+    // Actualizar nav activo
+    document.querySelectorAll('.admin-nav .nav-link').forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('data-section') === sectionName) {
+        link.classList.add('active');
+      }
+    });
+    
+    // Cargar datos según sección
+    loadSectionData(sectionName);
+  }
+}
+
+async function loadSectionData(sectionName) {
+  switch(sectionName) {
+    case 'dashboard':
+      await loadDashboard();
+      break;
+    case 'tours':
+      await loadTours();
+      break;
+    case 'analytics':
+      // Inicializar periodo por defecto
+      if (!document.getElementById('analyticsStartDate')?.value) {
+        setAnalyticsPeriod('30d');
+      }
+      await loadAnalytics();
+      break;
+    case 'bookings':
+      await loadBookings();
+      break;
+    case 'users':
+      await loadUsers();
+      break;
+    case 'coupons':
+      await loadCoupons();
+      break;
+    case 'reviews':
+      await loadReviews();
+      break;
+    case 'waitlist':
+      await loadWaitlist();
+      break;
+    case 'blog-comments':
+      await loadBlogComments();
+      break;
+    case 'reports':
+      await loadReports();
+      break;
+  }
+}
+
+// Dashboard
+async function loadDashboard() {
+  try {
+    const summary = await api.getReportsSummary();
+    
+    // Actualizar estadísticas
+    document.getElementById('statTotalBookings').textContent = summary.bookings?.total || 0;
+    document.getElementById('statTotalRevenue').textContent = `$${formatNumber(summary.revenue?.total || 0)}`;
+    document.getElementById('statActiveTours').textContent = summary.tours?.active || 0;
+    document.getElementById('statActiveUsers').textContent = summary.users?.total || 0;
+    
+    // Cargar gráficos
+    await loadRevenueChart();
+    await loadBookingsStatusChart();
+    await loadTopToursChart();
+  } catch (error) {
+    console.error('Error cargando dashboard:', error);
+    showError('Error al cargar el dashboard');
+  }
+}
+
+async function loadRevenueChart() {
+  try {
+    const timeseries = await api.getTimeseriesReport();
+    const ctx = document.getElementById('revenueChart');
+    if (!ctx) return;
+    
+    if (revenueChart) revenueChart.destroy();
+    
+    revenueChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: timeseries.data?.map(d => formatDate(d.date)) || [],
+        datasets: [{
+          label: 'Ingresos',
+          data: timeseries.data?.map(d => d.revenue) || [],
+          borderColor: '#0ea5e9',
+          backgroundColor: 'rgba(14, 165, 233, 0.1)',
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '$' + formatNumber(value);
+              }
+            }
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error cargando gráfico de ingresos:', error);
+  }
+}
+
+async function loadBookingsStatusChart() {
+  try {
+    const summary = await api.getReportsSummary();
+    const ctx = document.getElementById('bookingsStatusChart');
+    if (!ctx) return;
+    
+    if (bookingsStatusChart) bookingsStatusChart.destroy();
+    
+    bookingsStatusChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Confirmadas', 'Pendientes', 'Canceladas'],
+        datasets: [{
+          data: [
+            summary.bookings?.confirmed || 0,
+            summary.bookings?.pending || 0,
+            summary.bookings?.cancelled || 0
+          ],
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+        }]
+      },
+      options: {
+        responsive: true
+      }
+    });
+  } catch (error) {
+    console.error('Error cargando gráfico de estados:', error);
+  }
+}
+
+async function loadTopToursChart() {
+  try {
+    const toursReport = await api.getToursReport();
+    const ctx = document.getElementById('topToursChart');
+    if (!ctx) return;
+    
+    if (topToursChart) topToursChart.destroy();
+    
+    const top10 = (toursReport.tours || []).slice(0, 10);
+    
+    topToursChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: top10.map(t => t.tourName),
+        datasets: [{
+          label: 'Ventas',
+          data: top10.map(t => t.totalBookings),
+          backgroundColor: '#0ea5e9'
+        }]
+      },
+      options: {
+        responsive: true,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error cargando gráfico de tours:', error);
+  }
+}
+
+// Tours
+async function loadTours() {
+  try {
+    const tours = await api.getAdminTours();
+    const tbody = document.getElementById('toursTableBody');
+    if (!tbody) return;
+    
+    if (tours.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="loading">No hay tours</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = tours.map(tour => `
+      <tr>
+        <td>${escapeHtml(tour.name)}</td>
+        <td>$${formatNumber(tour.price)}</td>
+        <td>${tour.durationHours || '-'}h</td>
+        <td>${tour.isActive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td>
+          <button class="btn btn-secondary" onclick="editTour('${tour.id}')">Editar</button>
+          <button class="btn btn-primary" onclick="editTourBlocks('${tour.id}')" style="background: #8b5cf6;">📐 Bloques CMS</button>
+          <button class="btn btn-danger" onclick="deleteTour('${tour.id}')">Eliminar</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando tours:', error);
+    showError('Error al cargar tours');
+  }
+}
+
+// Bookings
+async function loadBookings() {
+  try {
+    const bookings = await api.getAdminBookings();
+    const tbody = document.getElementById('bookingsTableBody');
+    if (!tbody) return;
+    
+    if (bookings.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay reservas</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = bookings.map(booking => `
+      <tr>
+        <td>${booking.id.substring(0, 8)}...</td>
+        <td>${escapeHtml(booking.tourName || '-')}</td>
+        <td>${escapeHtml(booking.userEmail || '-')}</td>
+        <td>${formatDate(booking.tourDate)}</td>
+        <td>$${formatNumber(booking.totalAmount)}</td>
+        <td>${getBookingStatusBadge(booking.status)}</td>
+        <td>
+          <button class="btn btn-secondary" onclick="viewBooking('${booking.id}')">Ver</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando reservas:', error);
+    showError('Error al cargar reservas');
+  }
+}
+
+// Users
+async function loadUsers() {
+  try {
+    const users = await api.getAdminUsers();
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+    
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="loading">No hay usuarios</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = users.map(user => `
+      <tr>
+        <td>${escapeHtml(user.email)}</td>
+        <td>${escapeHtml(`${user.firstName || ''} ${user.lastName || ''}`.trim() || '-')}</td>
+        <td>${user.isActive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td>${user.roles?.includes('Admin') ? '<span class="badge badge-info">Admin</span>' : '<span class="badge badge-secondary">Usuario</span>'}</td>
+        <td>
+          <button class="btn btn-secondary" onclick="editUser('${user.id}')">Editar</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando usuarios:', error);
+    showError('Error al cargar usuarios');
+  }
+}
+
+// Coupons
+async function loadCoupons() {
+  try {
+    const coupons = await api.getCoupons();
+    const tbody = document.getElementById('couponsTableBody');
+    if (!tbody) return;
+    
+    if (coupons.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay cupones</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = coupons.map(coupon => `
+      <tr>
+        <td><strong>${escapeHtml(coupon.code)}</strong></td>
+        <td>${coupon.discountType === 1 ? 'Porcentaje' : 'Monto Fijo'}</td>
+        <td>${coupon.discountType === 1 ? `${coupon.discountValue}%` : `$${formatNumber(coupon.discountValue)}`}</td>
+        <td>${coupon.currentUses} / ${coupon.maxUses || '∞'}</td>
+        <td>${coupon.isActive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td>
+          <button class="btn btn-secondary" onclick="editCoupon('${coupon.id}')">Editar</button>
+          <button class="btn btn-danger" onclick="deleteCoupon('${coupon.id}')">Eliminar</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando cupones:', error);
+    showError('Error al cargar cupones');
+  }
+}
+
+// Reviews
+async function loadReviews() {
+  try {
+    const reviews = await api.getAllReviews();
+    const tbody = document.getElementById('reviewsTableBody');
+    if (!tbody) return;
+    
+    if (!reviews.reviews || reviews.reviews.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay reviews</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = reviews.reviews.map(review => `
+      <tr>
+        <td>${escapeHtml(review.tourName || '-')}</td>
+        <td>${escapeHtml(review.userName || review.userEmail || '-')}</td>
+        <td>${'⭐'.repeat(review.rating)} (${review.rating}/5)</td>
+        <td>${escapeHtml(review.comment?.substring(0, 50) || review.title || '-')}...</td>
+        <td>${review.isApproved ? '<span class="badge badge-success">Aprobada</span>' : '<span class="badge badge-warning">Pendiente</span>'}</td>
+        <td>
+          ${!review.isApproved ? `<button class="btn btn-success" onclick="approveReview('${review.id}', '${review.tourId}')">Aprobar</button>` : ''}
+          ${review.isApproved ? `<button class="btn btn-danger" onclick="rejectReview('${review.id}', '${review.tourId}')">Rechazar</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando reviews:', error);
+    showError('Error al cargar reviews');
+  }
+}
+
+async function approveReview(reviewId, tourId) {
+  try {
+    await api.approveReview(reviewId, tourId);
+    showSuccess('Review aprobada exitosamente');
+    await loadReviews();
+  } catch (error) {
+    console.error('Error aprobando review:', error);
+    showError('Error al aprobar review');
+  }
+}
+
+async function rejectReview(reviewId, tourId) {
+  try {
+    await api.rejectReview(reviewId, tourId);
+    showSuccess('Review rechazada exitosamente');
+    await loadReviews();
+  } catch (error) {
+    console.error('Error rechazando review:', error);
+    showError('Error al rechazar review');
+  }
+}
+
+// Waitlist
+async function loadWaitlist() {
+  try {
+    const waitlist = await api.getWaitlist();
+    const tbody = document.getElementById('waitlistTableBody');
+    if (!tbody) return;
+    
+    if (waitlist.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay entradas en waitlist</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = waitlist.map(entry => `
+      <tr>
+        <td>${escapeHtml(entry.tourName || '-')}</td>
+        <td>${escapeHtml(entry.userEmail || '-')}</td>
+        <td>${formatDate(entry.requestedDate)}</td>
+        <td>${entry.priority || 0}</td>
+        <td>${entry.isActive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td>
+          <button class="btn btn-danger" onclick="removeFromWaitlist('${entry.id}')">Remover</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando waitlist:', error);
+    showError('Error al cargar waitlist');
+  }
+}
+
+// Blog Comments
+async function loadBlogComments() {
+  try {
+    const statusFilter = document.getElementById('commentStatusFilter')?.value;
+    const comments = await api.getAllBlogComments(1, 50, statusFilter ? parseInt(statusFilter) : null);
+    const tbody = document.getElementById('blogCommentsTableBody');
+    if (!tbody) return;
+    
+    if (!comments.comments || comments.comments.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay comentarios</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = comments.comments.map(comment => {
+      const statusBadges = {
+        0: '<span class="badge badge-warning">Pendiente</span>',
+        1: '<span class="badge badge-success">Aprobado</span>',
+        2: '<span class="badge badge-danger">Rechazado</span>',
+        3: '<span class="badge badge-danger">Spam</span>'
+      };
+      
+      return `
+        <tr>
+          <td>${escapeHtml(comment.blogPostTitle || '-')}</td>
+          <td>${escapeHtml(comment.authorName)}</td>
+          <td>${escapeHtml(comment.content.substring(0, 50))}...</td>
+          <td>${statusBadges[comment.status] || '-'}</td>
+          <td>${formatDate(comment.createdAt)}</td>
+          <td>
+            ${comment.status === 0 ? `<button class="btn btn-success" onclick="moderateComment('${comment.id}', 1)">Aprobar</button>` : ''}
+            ${comment.status !== 2 ? `<button class="btn btn-danger" onclick="moderateComment('${comment.id}', 2)">Rechazar</button>` : ''}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (error) {
+    console.error('Error cargando comentarios:', error);
+    showError('Error al cargar comentarios');
+  }
+}
+
+async function moderateComment(commentId, status) {
+  try {
+    await api.moderateBlogComment(commentId, status);
+    showSuccess('Comentario moderado exitosamente');
+    await loadBlogComments();
+  } catch (error) {
+    console.error('Error moderando comentario:', error);
+    showError('Error al moderar comentario');
+  }
+}
+
+// Reports
+async function loadReports() {
+  try {
+    const startDate = document.getElementById('reportStartDate')?.value;
+    const endDate = document.getElementById('reportEndDate')?.value;
+    
+    const summary = await api.getReportsSummary(startDate, endDate);
+    const timeseries = await api.getTimeseriesReport(startDate, endDate);
+    const toursReport = await api.getToursReport(startDate, endDate);
+    
+    // Mostrar resumen
+    const summaryDiv = document.getElementById('reportsSummary');
+    if (summaryDiv) {
+      summaryDiv.innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>Total Reservas</h3>
+            <div class="value">${summary.bookings?.total || 0}</div>
+          </div>
+          <div class="stat-card">
+            <h3>Ingresos Totales</h3>
+            <div class="value">$${formatNumber(summary.revenue?.total || 0)}</div>
+          </div>
+          <div class="stat-card">
+            <h3>Ticket Promedio</h3>
+            <div class="value">$${formatNumber(summary.revenue?.averageTicket || 0)}</div>
+          </div>
+          <div class="stat-card">
+            <h3>Tasa de Conversión</h3>
+            <div class="value">${summary.conversionRate?.toFixed(2) || 0}%</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Gráfico de series temporales
+    const ctx1 = document.getElementById('timeseriesChart');
+    if (ctx1) {
+      if (timeseriesChart) timeseriesChart.destroy();
+      timeseriesChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels: timeseries.data?.map(d => formatDate(d.date)) || [],
+          datasets: [{
+            label: 'Ingresos',
+            data: timeseries.data?.map(d => d.revenue) || [],
+            borderColor: '#0ea5e9',
+            backgroundColor: 'rgba(14, 165, 233, 0.1)',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return '$' + formatNumber(value);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // Gráfico de tours
+    const ctx2 = document.getElementById('toursReportChart');
+    if (ctx2) {
+      if (toursReportChart) toursReportChart.destroy();
+      const top10 = (toursReport.tours || []).slice(0, 10);
+      toursReportChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+          labels: top10.map(t => t.tourName),
+          datasets: [{
+            label: 'Ventas',
+            data: top10.map(t => t.totalBookings),
+            backgroundColor: '#0ea5e9'
+          }]
+        },
+        options: {
+          responsive: true,
+          indexAxis: 'y'
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error cargando reportes:', error);
+    showError('Error al cargar reportes');
+  }
+}
+
+// Utilidades
+function formatNumber(num) {
+  return new Intl.NumberFormat('es-PA').format(num);
+}
+
+function formatDate(date) {
+  if (!date) return '-';
+  return new Date(date).toLocaleDateString('es-PA');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function getBookingStatusBadge(status) {
+  const badges = {
+    'Pending': '<span class="badge badge-warning">Pendiente</span>',
+    'Confirmed': '<span class="badge badge-success">Confirmada</span>',
+    'Cancelled': '<span class="badge badge-danger">Cancelada</span>',
+    'Completed': '<span class="badge badge-info">Completada</span>'
+  };
+  return badges[status] || status;
+}
+
+function showError(message) {
+  // Mostrar mensaje de error
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'error';
+  errorDiv.textContent = message;
+  document.querySelector('.admin-main').insertBefore(errorDiv, document.querySelector('.admin-main').firstChild);
+  setTimeout(() => errorDiv.remove(), 5000);
+}
+
+function showSuccess(message) {
+  // Mostrar mensaje de éxito
+  const successDiv = document.createElement('div');
+  successDiv.className = 'success';
+  successDiv.textContent = message;
+  document.querySelector('.admin-main').insertBefore(successDiv, document.querySelector('.admin-main').firstChild);
+  setTimeout(() => successDiv.remove(), 5000);
+}
+
+// Tour Modal Functions
+function openTourModal(tourId = null) {
+  const modal = document.getElementById('tourModal');
+  const modalTitle = document.getElementById('tourModalTitle');
+  const modalBody = document.getElementById('tourModalBody');
+  
+  if (tourId) {
+    modalTitle.textContent = 'Editar Tour';
+    loadTourForEdit(tourId);
+  } else {
+    modalTitle.textContent = 'Nuevo Tour';
+    modalBody.innerHTML = getTourFormHTML();
+    initTinyMCE();
+  }
+  
+  modal.classList.add('active');
+}
+
+function closeTourModal() {
+  const modal = document.getElementById('tourModal');
+  modal.classList.remove('active');
+  if (typeof tinymce !== 'undefined') {
+    tinymce.remove();
+  }
+}
+
+function getTourFormHTML() {
+  return `
+    <form id="tourForm" onsubmit="saveTour(event)">
+      <div class="form-group">
+        <label>Nombre *</label>
+        <input type="text" id="tourName" class="form-input" required />
+      </div>
+      <div class="form-group">
+        <label>Descripción *</label>
+        <textarea id="tourDescription" class="form-input" rows="6" required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Itinerario</label>
+        <textarea id="tourItinerary" class="form-input" rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Qué Incluye</label>
+        <textarea id="tourIncludes" class="form-input" rows="4"></textarea>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+          <label>Precio *</label>
+          <input type="number" id="tourPrice" class="form-input" step="0.01" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Duración (horas) *</label>
+          <input type="number" id="tourDuration" class="form-input" min="1" required />
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+          <label>Capacidad Máxima *</label>
+          <input type="number" id="tourCapacity" class="form-input" min="1" required />
+        </div>
+        <div class="form-group">
+          <label>Ubicación</label>
+          <input type="text" id="tourLocation" class="form-input" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="tourIsActive" checked /> Activo
+        </label>
+      </div>
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="button" class="btn btn-secondary" onclick="closeTourModal()">Cancelar</button>
+      </div>
+    </form>
+  `;
+}
+
+function initTinyMCE() {
+  if (typeof tinymce !== 'undefined') {
+    tinymce.init({
+      selector: '#tourDescription',
+      height: 300,
+      menubar: false,
+      plugins: 'lists link image code',
+      toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code',
+      content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; }'
+    });
+  }
+}
+
+async function loadTourForEdit(tourId) {
+  try {
+    const tour = await api.getAdminTour(tourId);
+    const modalBody = document.getElementById('tourModalBody');
+    
+    modalBody.innerHTML = getTourFormHTML();
+    
+    // Llenar formulario
+    document.getElementById('tourName').value = tour.name || '';
+    document.getElementById('tourDescription').value = tour.description || '';
+    document.getElementById('tourItinerary').value = tour.itinerary || '';
+    document.getElementById('tourIncludes').value = tour.includes || '';
+    document.getElementById('tourPrice').value = tour.price || 0;
+    document.getElementById('tourDuration').value = tour.durationHours || 0;
+    document.getElementById('tourCapacity').value = tour.maxCapacity || 0;
+    document.getElementById('tourLocation').value = tour.location || '';
+    document.getElementById('tourIsActive').checked = tour.isActive !== false;
+    
+    // Inicializar TinyMCE después de llenar el formulario
+    setTimeout(() => {
+      initTinyMCE();
+      if (typeof tinymce !== 'undefined' && tinymce.get('tourDescription')) {
+        tinymce.get('tourDescription').setContent(tour.description || '');
+      }
+    }, 100);
+    
+    // Guardar ID para actualización
+    document.getElementById('tourForm').dataset.tourId = tourId;
+  } catch (error) {
+    console.error('Error cargando tour:', error);
+    showError('Error al cargar tour');
+  }
+}
+
+async function saveTour(e) {
+  e.preventDefault();
+  
+  const form = e.target;
+  const tourId = form.dataset.tourId;
+  
+  // Obtener contenido de TinyMCE si existe
+  let description = '';
+  if (typeof tinymce !== 'undefined' && tinymce.get('tourDescription')) {
+    description = tinymce.get('tourDescription').getContent();
+  } else {
+    description = document.getElementById('tourDescription').value;
+  }
+  
+  const tourData = {
+    name: document.getElementById('tourName').value,
+    description: description,
+    itinerary: document.getElementById('tourItinerary').value,
+    includes: document.getElementById('tourIncludes').value,
+    price: parseFloat(document.getElementById('tourPrice').value),
+    durationHours: parseInt(document.getElementById('tourDuration').value),
+    maxCapacity: parseInt(document.getElementById('tourCapacity').value),
+    location: document.getElementById('tourLocation').value,
+    isActive: document.getElementById('tourIsActive').checked
+  };
+  
+  try {
+    if (tourId) {
+      await api.updateTour(tourId, tourData);
+      showSuccess('Tour actualizado exitosamente');
+    } else {
+      await api.createTour(tourData);
+      showSuccess('Tour creado exitosamente');
+    }
+    
+    closeTourModal();
+    await loadTours();
+  } catch (error) {
+    console.error('Error guardando tour:', error);
+    showError('Error al guardar tour');
+  }
+}
+
+async function editTour(tourId) {
+  openTourModal(tourId);
+}
+
+async function deleteTour(tourId) {
+  if (!confirm('¿Estás seguro de eliminar este tour?')) return;
+  
+  try {
+    await api.deleteTour(tourId);
+    showSuccess('Tour eliminado exitosamente');
+    await loadTours();
+  } catch (error) {
+    console.error('Error eliminando tour:', error);
+    showError('Error al eliminar tour');
+  }
+}
+
+// CMS Blocks Editor
+const CMS_BLOCKS_DEFINITIONS = [
+  { key: 'hero', name: 'Hero', description: 'Título principal, subtítulo, precio y CTA' },
+  { key: 'social', name: 'Prueba Social', description: 'Sellos de confianza (guía certificado, cancelación flexible, idiomas)' },
+  { key: 'highlights', name: 'Highlights Rápidos', description: 'Duración, tipo de grupo, nivel físico, punto de encuentro' },
+  { key: 'story', name: 'Historia del Tour', description: 'Contenido WYSIWYG emocional del tour' },
+  { key: 'includes', name: 'Incluye / No Incluye', description: 'Listas de lo que incluye y no incluye el tour' },
+  { key: 'availability', name: 'Disponibilidad y Precio', description: 'Calendario, personas, precio dinámico, mensaje de urgencia' },
+  { key: 'map', name: 'Mapa', description: 'Ubicación con Google Maps y coordenadas' },
+  { key: 'reviews', name: 'Reviews', description: 'Reseñas y calificaciones (top 3-5)' },
+  { key: 'final_cta', name: 'CTA Final', description: 'Llamado a la acción final editable' }
+];
+
+const DEFAULT_BLOCK_ORDER = ['hero', 'social', 'highlights', 'story', 'includes', 'availability', 'map', 'reviews', 'final_cta'];
+
+let currentTourIdForBlocks = null;
+let currentBlocksState = [];
+
+async function editTourBlocks(tourId) {
+  currentTourIdForBlocks = tourId;
+  
+  try {
+    const tour = await api.getAdminTour(tourId);
+    const modal = document.getElementById('cmsBlocksModal');
+    const modalTitle = document.getElementById('cmsBlocksModalTitle');
+    const modalBody = document.getElementById('cmsBlocksModalBody');
+    
+    modalTitle.textContent = `Bloques CMS: ${tour.name || tour.Name || 'Tour'}`;
+    
+    // Obtener orden y estado actual (manejar tanto camelCase como PascalCase)
+    let blockOrder = DEFAULT_BLOCK_ORDER;
+    let blockEnabled = {};
+    
+    try {
+      const blockOrderRaw = tour.blockOrder || tour.BlockOrder;
+      if (blockOrderRaw) {
+        blockOrder = typeof blockOrderRaw === 'string' ? JSON.parse(blockOrderRaw) : blockOrderRaw;
+      }
+      const blockEnabledRaw = tour.blockEnabled || tour.BlockEnabled;
+      if (blockEnabledRaw) {
+        blockEnabled = typeof blockEnabledRaw === 'string' ? JSON.parse(blockEnabledRaw) : blockEnabledRaw;
+      }
+    } catch (e) {
+      console.warn('Error parsing block order/enabled:', e);
+    }
+    
+    // Inicializar estado de bloques
+    currentBlocksState = blockOrder.map((blockKey, index) => {
+      const definition = CMS_BLOCKS_DEFINITIONS.find(b => b.key === blockKey);
+      return {
+        key: blockKey,
+        name: definition?.name || blockKey,
+        description: definition?.description || '',
+        enabled: blockEnabled[blockKey] !== false, // Por defecto true si no está definido
+        order: index
+      };
+    });
+    
+    // Agregar bloques que no están en el orden pero existen en las definiciones
+    CMS_BLOCKS_DEFINITIONS.forEach(def => {
+      if (!currentBlocksState.find(b => b.key === def.key)) {
+        currentBlocksState.push({
+          key: def.key,
+          name: def.name,
+          description: def.description,
+          enabled: blockEnabled[def.key] !== false,
+          order: currentBlocksState.length
+        });
+      }
+    });
+    
+    renderCmsBlocksList();
+    initDragAndDrop();
+    
+    modal.classList.add('active');
+  } catch (error) {
+    console.error('Error cargando bloques CMS:', error);
+    showError('Error al cargar bloques CMS del tour');
+  }
+}
+
+function renderCmsBlocksList() {
+  const list = document.getElementById('cmsBlocksList');
+  if (!list) return;
+  
+  // Ordenar por order
+  const sortedBlocks = [...currentBlocksState].sort((a, b) => a.order - b.order);
+  
+  // Actualizar order de todos los bloques según su posición en sortedBlocks
+  sortedBlocks.forEach((block, index) => {
+    block.order = index;
+  });
+  
+  list.innerHTML = sortedBlocks.map((block, index) => `
+    <div class="cms-block-item ${block.enabled ? '' : 'disabled'}" 
+         data-block-key="${block.key}" 
+         draggable="true"
+         data-order="${index}">
+      <div class="cms-block-drag-handle">☰</div>
+      <div class="cms-block-order">${index + 1}</div>
+      <div class="cms-block-info">
+        <div class="cms-block-name">${block.name}</div>
+        <div class="cms-block-description">${block.description}</div>
+      </div>
+      <div class="cms-block-toggle ${block.enabled ? 'active' : ''}" 
+           onclick="toggleBlock('${block.key}')">
+        <div class="cms-block-toggle-slider"></div>
+      </div>
+    </div>
+  `).join('');
+  
+  // Inicializar drag & drop después de renderizar
+  initDragAndDrop();
+}
+
+function initDragAndDrop() {
+  const list = document.getElementById('cmsBlocksList');
+  if (!list) return;
+  
+  const items = list.querySelectorAll('.cms-block-item');
+  
+  items.forEach(item => {
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragover', handleDragOver);
+    item.addEventListener('drop', handleDrop);
+    item.addEventListener('dragend', handleDragEnd);
+    item.addEventListener('dragenter', handleDragEnter);
+    item.addEventListener('dragleave', handleDragLeave);
+  });
+}
+
+let draggedElement = null;
+let draggedIndex = null;
+
+function handleDragStart(e) {
+  draggedElement = this;
+  draggedIndex = parseInt(this.dataset.order);
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragOver(e) {
+  if (e.preventDefault) {
+    e.preventDefault();
+  }
+  e.dataTransfer.dropEffect = 'move';
+  return false;
+}
+
+function handleDragEnter(e) {
+  if (this !== draggedElement) {
+    this.classList.add('drag-over');
+  }
+}
+
+function handleDragLeave(e) {
+  this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  if (e.stopPropagation) {
+    e.stopPropagation();
+  }
+  
+  if (draggedElement !== this) {
+    const dropIndex = parseInt(this.dataset.order);
+    const draggedIndex = parseInt(draggedElement.dataset.order);
+    const draggedBlockKey = draggedElement.dataset.blockKey;
+    const dropBlockKey = this.dataset.blockKey;
+    
+    // Reordenar en el estado: mover el bloque arrastrado a la posición del bloque destino
+    const draggedBlock = currentBlocksState.find(b => b.key === draggedBlockKey);
+    const dropBlock = currentBlocksState.find(b => b.key === dropBlockKey);
+    
+    if (draggedBlock && dropBlock) {
+      // Intercambiar órdenes
+      const tempOrder = draggedBlock.order;
+      draggedBlock.order = dropBlock.order;
+      dropBlock.order = tempOrder;
+    }
+    
+    // Re-renderizar (esto actualizará los orders y números)
+    renderCmsBlocksList();
+  }
+  
+  this.classList.remove('drag-over');
+  return false;
+}
+
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+  const items = document.querySelectorAll('.cms-block-item');
+  items.forEach(item => item.classList.remove('drag-over'));
+}
+
+function toggleBlock(blockKey) {
+  const block = currentBlocksState.find(b => b.key === blockKey);
+  if (block) {
+    block.enabled = !block.enabled;
+    renderCmsBlocksList();
+  }
+}
+
+async function saveCmsBlocks() {
+  if (!currentTourIdForBlocks) return;
+  
+  const btn = document.getElementById('saveCmsBlocksBtn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  
+  try {
+    // Ordenar por order
+    const sortedBlocks = [...currentBlocksState].sort((a, b) => a.order - b.order);
+    
+    // Construir block_order (array de keys en orden)
+    const blockOrder = sortedBlocks.map(b => b.key);
+    
+    // Construir block_enabled (objeto con enabled state)
+    const blockEnabled = {};
+    sortedBlocks.forEach(block => {
+      blockEnabled[block.key] = block.enabled;
+    });
+    
+    // Actualizar tour con los nuevos valores
+    await api.updateTour(currentTourIdForBlocks, {
+      blockOrder: JSON.stringify(blockOrder),
+      blockEnabled: JSON.stringify(blockEnabled)
+    });
+    
+    showSuccess('Bloques CMS guardados exitosamente');
+    closeCmsBlocksModal();
+  } catch (error) {
+    console.error('Error guardando bloques CMS:', error);
+    showError('Error al guardar bloques CMS');
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+function closeCmsBlocksModal() {
+  const modal = document.getElementById('cmsBlocksModal');
+  modal.classList.remove('active');
+  currentTourIdForBlocks = null;
+  currentBlocksState = [];
+}
+
+// Analytics
+let deviceChart = null;
+let currentAnalyticsPeriod = '30d';
+
+function setAnalyticsPeriod(period) {
+  currentAnalyticsPeriod = period;
+  
+  // Actualizar botones activos
+  document.querySelectorAll('[id^="period"]').forEach(btn => {
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-secondary');
+  });
+  
+  const activeBtn = document.getElementById(`period${period}`);
+  if (activeBtn) {
+    activeBtn.classList.remove('btn-secondary');
+    activeBtn.classList.add('btn-primary');
+  }
+  
+  // Calcular fechas
+  const endDate = new Date();
+  const startDate = new Date();
+  
+  switch(period) {
+    case 'today':
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case '7d':
+      startDate.setDate(startDate.getDate() - 7);
+      break;
+    case '30d':
+      startDate.setDate(startDate.getDate() - 30);
+      break;
+  }
+  
+  document.getElementById('analyticsStartDate').value = startDate.toISOString().split('T')[0];
+  document.getElementById('analyticsEndDate').value = endDate.toISOString().split('T')[0];
+  
+  loadAnalytics();
+}
+
+async function loadAnalytics() {
+  try {
+    const startDate = document.getElementById('analyticsStartDate')?.value;
+    const endDate = document.getElementById('analyticsEndDate')?.value;
+    
+    // Cargar métricas
+    const metrics = await api.getAnalyticsMetrics(startDate, endDate);
+    renderAnalyticsKPIs(metrics);
+    
+    // Cargar funnel
+    const funnel = await api.getAnalyticsFunnel(startDate, endDate);
+    renderAnalyticsFunnel(funnel);
+    
+    // Cargar top tours
+    const topTours = await api.getTopTours(startDate, endDate, 10);
+    renderTopTours(topTours);
+    
+    // Cargar impacto UX
+    const uxImpact = await api.getUxImpact(startDate, endDate);
+    renderUxImpact(uxImpact);
+    
+    // Cargar gráfico de dispositivos
+    if (metrics.byDevice && metrics.byDevice.length > 0) {
+      renderDeviceChart(metrics.byDevice);
+    }
+  } catch (error) {
+    console.error('Error cargando analytics:', error);
+    showError('Error al cargar analytics');
+  }
+}
+
+function renderAnalyticsKPIs(metrics) {
+  const container = document.getElementById('analyticsKPIs');
+  if (!container) return;
+  
+  const conversionRate = metrics.conversionRate || 0;
+  const revenue = metrics.revenue || 0;
+  const averageTicket = metrics.averageTicket || 0;
+  
+  container.innerHTML = `
+    <div class="stat-card">
+      <h3>Tours Vistos</h3>
+      <div class="value">${formatNumber(metrics.tourViews || 0)}</div>
+    </div>
+    <div class="stat-card">
+      <h3>Reservas Iniciadas</h3>
+      <div class="value">${formatNumber(metrics.reserveClicks || 0)}</div>
+    </div>
+    <div class="stat-card">
+      <h3>Pagos Exitosos</h3>
+      <div class="value">${formatNumber(metrics.paymentSuccess || 0)}</div>
+    </div>
+    <div class="stat-card">
+      <h3>Conversión</h3>
+      <div class="value" style="color: ${conversionRate > 5 ? '#16a34a' : conversionRate > 2 ? '#f59e0b' : '#dc2626'}; font-size: 2rem;">
+        ${conversionRate.toFixed(2)}%
+      </div>
+    </div>
+    <div class="stat-card">
+      <h3>Ingresos</h3>
+      <div class="value" style="color: #16a34a;">$${formatNumber(revenue)}</div>
+    </div>
+    <div class="stat-card">
+      <h3>Ticket Promedio</h3>
+      <div class="value">$${formatNumber(averageTicket)}</div>
+    </div>
+  `;
+}
+
+function renderAnalyticsFunnel(funnel) {
+  const container = document.getElementById('analyticsFunnel');
+  if (!container) return;
+  
+  const steps = [
+    { label: 'Vista de Tour', value: funnel.tourViewed || 0, color: '#0ea5e9' },
+    { label: 'Vista Disponibilidad', value: funnel.availabilityViewed || 0, color: '#3b82f6' },
+    { label: 'Clic en Reservar', value: funnel.reserveClicked || 0, color: '#6366f1' },
+    { label: 'Vista de Checkout', value: funnel.checkoutViewed || 0, color: '#8b5cf6' },
+    { label: 'Inicio de Pago', value: funnel.paymentStarted || 0, color: '#a855f7' },
+    { label: 'Pago Exitoso', value: funnel.paymentSuccess || 0, color: '#10b981' }
+  ];
+  
+  const maxValue = Math.max(...steps.map(s => s.value), 1);
+  
+  container.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 20px; max-width: 800px;">
+      ${steps.map((step, index) => {
+        const percentage = maxValue > 0 ? (step.value / maxValue * 100) : 0;
+        const dropoff = index > 0 && steps[index - 1].value > 0 
+          ? ((steps[index - 1].value - step.value) / steps[index - 1].value * 100).toFixed(1)
+          : 0;
+        const stepConversion = index > 0 && steps[index - 1].value > 0
+          ? (step.value / steps[index - 1].value * 100).toFixed(1)
+          : 100;
+        
+        return `
+          <div style="background: white; padding: 16px; border-radius: 8px; border-left: 4px solid ${step.color};">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div>
+                <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${step.label}</div>
+                ${index > 0 ? `
+                  <small style="color: #6b7280;">
+                    ${stepConversion}% del paso anterior
+                    ${dropoff > 0 ? ` · Abandono: ${dropoff}%` : ''}
+                  </small>
+                ` : ''}
+              </div>
+              <div style="font-size: 1.5rem; font-weight: 700; color: ${step.color};">
+                ${formatNumber(step.value)}
+              </div>
+            </div>
+            <div style="background: #f3f4f6; border-radius: 4px; height: 32px; overflow: hidden; position: relative;">
+              <div style="background: ${step.color}; height: 100%; width: ${percentage}%; transition: width 0.3s; display: flex; align-items: center; padding-left: 12px;">
+                ${percentage > 10 ? `<span style="color: white; font-size: 12px; font-weight: 600;">${percentage.toFixed(0)}%</span>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderTopTours(tours) {
+  const container = document.getElementById('topToursTable');
+  if (!container) return;
+  
+  if (!tours || tours.length === 0) {
+    container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 20px;">No hay datos disponibles</p>';
+    return;
+  }
+  
+  container.innerHTML = `
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+            <th style="padding: 12px; text-align: left; font-size: 0.85rem; color: #6b7280; font-weight: 600;">Tour</th>
+            <th style="padding: 12px; text-align: right; font-size: 0.85rem; color: #6b7280; font-weight: 600;">Vistas</th>
+            <th style="padding: 12px; text-align: right; font-size: 0.85rem; color: #6b7280; font-weight: 600;">Reservas</th>
+            <th style="padding: 12px; text-align: right; font-size: 0.85rem; color: #6b7280; font-weight: 600;">Conv.</th>
+            <th style="padding: 12px; text-align: right; font-size: 0.85rem; color: #6b7280; font-weight: 600;">Ingresos</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tours.map((tour, index) => {
+            const conversionColor = tour.conversionRate > 5 ? '#16a34a' : tour.conversionRate > 2 ? '#f59e0b' : '#dc2626';
+            return `
+              <tr style="border-bottom: 1px solid #e5e7eb; ${index % 2 === 0 ? 'background: #fafafa;' : ''}">
+                <td style="padding: 12px; font-weight: 500;">${escapeHtml(tour.tourName)}</td>
+                <td style="padding: 12px; text-align: right; color: #6b7280;">${formatNumber(tour.views || 0)}</td>
+                <td style="padding: 12px; text-align: right; color: #6b7280;">${formatNumber(tour.paymentSuccess || 0)}</td>
+                <td style="padding: 12px; text-align: right; color: ${conversionColor}; font-weight: 600;">${(tour.conversionRate || 0).toFixed(2)}%</td>
+                <td style="padding: 12px; text-align: right; color: #16a34a; font-weight: 600;">$${formatNumber(tour.revenue || 0)}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderUxImpact(impact) {
+  const container = document.getElementById('uxImpact');
+  if (!container) return;
+  
+  const stickyCta = impact.stickyCta || {};
+  const urgency = impact.urgency || {};
+  const byDevice = impact.byDevice || {};
+  
+  container.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+      <!-- Sticky CTA Impact -->
+      <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <div style="font-weight: 600; margin-bottom: 12px; color: #1f2937;">Sticky CTA</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="color: #6b7280; font-size: 0.9rem;">Mostrado</span>
+          <span style="font-weight: 600;">${formatNumber(stickyCta.shown || 0)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="color: #6b7280; font-size: 0.9rem;">Convirtió</span>
+          <span style="font-weight: 600; color: #16a34a;">${formatNumber(stickyCta.converted || 0)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: #6b7280; font-size: 0.9rem;">Tasa de Conversión</span>
+          <span style="font-weight: 700; font-size: 1.2rem; color: ${(stickyCta.conversionRate || 0) > 10 ? '#16a34a' : '#f59e0b'};">
+            ${(stickyCta.conversionRate || 0).toFixed(2)}%
+          </span>
+        </div>
+      </div>
+      
+      <!-- Urgency Impact -->
+      <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <div style="font-weight: 600; margin-bottom: 12px; color: #1f2937;">Urgencia</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="color: #6b7280; font-size: 0.9rem;">Mostrado</span>
+          <span style="font-weight: 600;">${formatNumber(urgency.shown || 0)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="color: #6b7280; font-size: 0.9rem;">Convirtió</span>
+          <span style="font-weight: 600; color: #16a34a;">${formatNumber(urgency.converted || 0)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: #6b7280; font-size: 0.9rem;">Tasa de Conversión</span>
+          <span style="font-weight: 700; font-size: 1.2rem; color: ${(urgency.conversionRate || 0) > 10 ? '#16a34a' : '#f59e0b'};">
+            ${(urgency.conversionRate || 0).toFixed(2)}%
+          </span>
+        </div>
+      </div>
+      
+      <!-- Device Impact -->
+      <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <div style="font-weight: 600; margin-bottom: 12px; color: #1f2937;">Por Dispositivo</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #6b7280;">📱 Mobile</span>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">${formatNumber(byDevice.mobile?.sessions || 0)} sesiones</div>
+              <div style="font-size: 0.85rem; color: ${(byDevice.mobile?.conversionRate || 0) > 5 ? '#16a34a' : '#f59e0b'};">
+                ${(byDevice.mobile?.conversionRate || 0).toFixed(2)}% conv.
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #6b7280;">💻 Desktop</span>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">${formatNumber(byDevice.desktop?.sessions || 0)} sesiones</div>
+              <div style="font-size: 0.85rem; color: ${(byDevice.desktop?.conversionRate || 0) > 5 ? '#16a34a' : '#f59e0b'};">
+                ${(byDevice.desktop?.conversionRate || 0).toFixed(2)}% conv.
+              </div>
+            </div>
+          </div>
+          ${byDevice.tablet?.sessions > 0 ? `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #6b7280;">📱 Tablet</span>
+            <div style="text-align: right;">
+              <div style="font-weight: 600;">${formatNumber(byDevice.tablet?.sessions || 0)} sesiones</div>
+              <div style="font-size: 0.85rem; color: ${(byDevice.tablet?.conversionRate || 0) > 5 ? '#16a34a' : '#f59e0b'};">
+                ${(byDevice.tablet?.conversionRate || 0).toFixed(2)}% conv.
+              </div>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderDeviceChart(deviceData) {
+  const ctx = document.getElementById('deviceChart');
+  if (!ctx) return;
+  
+  if (deviceChart) deviceChart.destroy();
+  
+  deviceChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: deviceData.map(d => d.device || 'Desconocido'),
+      datasets: [{
+        data: deviceData.map(d => d.count),
+        backgroundColor: ['#0ea5e9', '#6366f1', '#10b981']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+}
+
+// Export Reports
+async function exportReport(type, format) {
+  try {
+    const startDate = document.getElementById('reportStartDate')?.value;
+    const endDate = document.getElementById('reportEndDate')?.value;
+    
+    const params = new URLSearchParams();
+    params.append('type', type);
+    params.append('format', format);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    const url = `/api/admin/reports/export?${params.toString()}`;
+    
+    // Crear link temporal para descarga
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `reporte_${type}_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showSuccess(`Exportación iniciada. El archivo se descargará pronto.`);
+  } catch (error) {
+    console.error('Error exportando reporte:', error);
+    showError('Error al exportar reporte. La funcionalidad está en desarrollo.');
+  }
+}

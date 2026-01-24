@@ -13,6 +13,8 @@ public class Booking : BaseEntity
     public DateTime? ExpiresAt { get; set; }
     public string? Notes { get; set; }
     public Guid? CountryId { get; set; } // País desde el cual se realiza la reserva
+    public bool AllowPartialPayments { get; set; } = false;
+    public int PaymentPlanType { get; set; } = 0; // 0=Full, 1=Installments, 2=Partial
 
     // Navigation properties
     public User User { get; set; } = null!;

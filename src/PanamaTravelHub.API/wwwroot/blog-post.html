@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog Post | ToursPanama</title>
+  <meta name="description" content="Artículo del blog de ToursPanama" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="/css/design-system.css" />
+  <link rel="stylesheet" href="/css/loading.css" />
+  <link rel="stylesheet" href="/css/enhancements.css" />
+  <style>
+    .blog-post-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: var(--space-xl) var(--space-lg);
+    }
+
+    .breadcrumbs {
+      margin-bottom: var(--space-lg);
+      font-size: var(--text-sm);
+    }
+
+    .breadcrumbs a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .breadcrumbs a:hover {
+      text-decoration: underline;
+    }
+
+    .breadcrumbs span {
+      color: var(--text-muted);
+      margin: 0 var(--space-xs);
+    }
+
+    .blog-post-header {
+      margin-bottom: var(--space-xl);
+    }
+
+    .blog-post-title {
+      font-size: 2.5rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin: 0 0 var(--space-md) 0;
+      line-height: 1.2;
+    }
+
+    .blog-post-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-lg);
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    .blog-post-hero-image {
+      width: 100%;
+      max-height: 500px;
+      object-fit: cover;
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-xl);
+      background: var(--bg-secondary);
+    }
+
+    .blog-post-content {
+      font-size: var(--text-lg);
+      line-height: 1.8;
+      color: var(--text);
+      margin-bottom: var(--space-xxl);
+    }
+
+    .blog-post-content h1,
+    .blog-post-content h2,
+    .blog-post-content h3,
+    .blog-post-content h4 {
+      margin-top: var(--space-xl);
+      margin-bottom: var(--space-md);
+      color: var(--text);
+    }
+
+    .blog-post-content p {
+      margin-bottom: var(--space-md);
+    }
+
+    .blog-post-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-sm);
+      margin: var(--space-lg) 0;
+    }
+
+    .blog-post-content a {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+
+    .newsletter-cta {
+      background: var(--primary-50);
+      border: 2px solid var(--primary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin: var(--space-xxl) 0;
+      text-align: center;
+    }
+
+    .newsletter-cta h3 {
+      margin: 0 0 var(--space-md) 0;
+      color: var(--text);
+    }
+
+    .newsletter-form {
+      display: flex;
+      gap: var(--space-md);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .newsletter-input {
+      flex: 1;
+      padding: var(--space-md);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-base);
+    }
+
+    .newsletter-button {
+      padding: var(--space-md) var(--space-xl);
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+
+    .newsletter-button:hover {
+      background: var(--primary-dark);
+    }
+
+    /* Comentarios */
+    .comments-section {
+      margin-top: var(--space-xxl);
+      padding-top: var(--space-xxl);
+      border-top: 2px solid var(--border);
+    }
+
+    .comments-header {
+      margin-bottom: var(--space-xl);
+    }
+
+    .comments-header h2 {
+      font-size: 2rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--text);
+      margin: 0 0 var(--space-md) 0;
+    }
+
+    .comment-form {
+      background: var(--card);
+      padding: var(--space-xl);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      margin-bottom: var(--space-xl);
+    }
+
+    .comment-form-group {
+      margin-bottom: var(--space-lg);
+    }
+
+    .comment-form-label {
+      display: block;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+      margin-bottom: var(--space-xs);
+    }
+
+    .comment-form-input,
+    .comment-form-textarea {
+      width: 100%;
+      padding: var(--space-md);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-base);
+      font-family: inherit;
+      transition: all var(--transition-base);
+    }
+
+    .comment-form-input:focus,
+    .comment-form-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-50);
+    }
+
+    .comment-form-textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .comment-form-actions {
+      display: flex;
+      gap: var(--space-md);
+      justify-content: flex-end;
+    }
+
+    .comments-list {
+      display: grid;
+      gap: var(--space-lg);
+    }
+
+    .comment-item {
+      background: var(--card);
+      padding: var(--space-lg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .comment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: var(--space-md);
+      flex-wrap: wrap;
+      gap: var(--space-md);
+    }
+
+    .comment-author {
+      font-weight: var(--font-weight-semibold);
+      color: var(--text);
+    }
+
+    .comment-date {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+    }
+
+    .comment-content {
+      color: var(--text);
+      line-height: 1.6;
+      margin-bottom: var(--space-md);
+    }
+
+    .comment-actions {
+      display: flex;
+      gap: var(--space-md);
+      align-items: center;
+    }
+
+    .comment-reaction-button {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: var(--space-xs) var(--space-md);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      transition: all var(--transition-base);
+      font-size: var(--text-sm);
+    }
+
+    .comment-reaction-button:hover {
+      background: var(--bg-secondary);
+      border-color: var(--primary);
+    }
+
+    .comment-reply-button {
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: var(--text-sm);
+      text-decoration: underline;
+    }
+
+    .comment-reply-button:hover {
+      color: var(--primary-dark);
+    }
+
+    .comment-replies {
+      margin-top: var(--space-lg);
+      padding-left: var(--space-xl);
+      border-left: 3px solid var(--border);
+    }
+
+    .comment-pending {
+      padding: var(--space-sm) var(--space-md);
+      background: var(--warning-light);
+      color: var(--warning-dark);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-sm);
+      margin-top: var(--space-sm);
+    }
+
+    .auth-required-message {
+      padding: var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: var(--space-lg);
+    }
+
+    .auth-required-message a {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .blog-post-container {
+        padding: var(--space-lg) var(--space-md);
+      }
+
+      .blog-post-title {
+        font-size: 2rem;
+      }
+
+      .newsletter-form {
+        flex-direction: column;
+      }
+
+      .comment-replies {
+        padding-left: var(--space-md);
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner wrap">
+      <div class="brand">
+        <div class="mark"></div>
+        <a href="/"><span class="brand-text">ToursPanama</span></a>
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Tours</a>
+        <a href="/blog.html" class="nav-link active">Blog</a>
+        <a href="/reservas.html" class="nav-link">Mis Reservas</a>
+        <span class="nav-user-greeting" id="userGreeting" style="display:none;"></span>
+        <a href="/login.html" class="nav-link" id="loginLink">Iniciar Sesión</a>
+        <a href="/profile.html" class="nav-link" id="profileLink" style="display:none;">Mi Perfil</a>
+        <button class="btn-primary" id="logoutBtn" style="display:none;">Cerrar Sesión</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="blog-post-container">
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs">
+      <a href="/">Home</a>
+      <span>/</span>
+      <a href="/blog.html">Blog</a>
+      <span>/</span>
+      <span id="breadcrumbPost">Post</span>
+    </nav>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="loading" style="display:none;">
+      <div class="spinner"></div>
+      <p>Cargando artículo...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="error-state" style="display:none;">
+      <div class="error-state-icon">⚠️</div>
+      <h2 class="empty-state-title">Error al cargar artículo</h2>
+      <p class="empty-state-message">
+        No pudimos cargar este artículo. Por favor, intenta nuevamente.
+      </p>
+      <button class="btn-primary" onclick="loadBlogPost()">Reintentar</button>
+    </div>
+
+    <!-- Post Content -->
+    <article id="postContent" style="display:none;">
+      <header class="blog-post-header">
+        <h1 class="blog-post-title" id="postTitle"></h1>
+        <div class="blog-post-meta">
+          <span id="postDate"></span>
+          <span id="postAuthor"></span>
+        </div>
+      </header>
+
+      <img id="postHeroImage" class="blog-post-hero-image" style="display:none;" />
+
+      <div class="blog-post-content" id="postContentHtml"></div>
+
+      <!-- Newsletter CTA -->
+      <div class="newsletter-cta">
+        <h3>📧 Suscríbete a nuestro Newsletter</h3>
+        <p style="color: var(--text-muted); margin-bottom: var(--space-md);">
+          Recibe las últimas noticias y ofertas especiales
+        </p>
+        <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event)">
+          <input 
+            type="email" 
+            class="newsletter-input" 
+            placeholder="Tu email"
+            required
+          />
+          <button type="submit" class="newsletter-button">Suscribirse</button>
+        </form>
+      </div>
+
+      <!-- Comentarios -->
+      <section class="comments-section">
+        <div class="comments-header">
+          <h2>Comentarios</h2>
+          <p style="color: var(--text-muted);" id="commentsCount"></p>
+        </div>
+
+        <!-- Formulario de comentario -->
+        <div id="commentFormContainer" class="comment-form">
+          <div id="authRequiredMessage" class="auth-required-message" style="display:none;">
+            <a href="/login.html?redirect=" id="loginLinkComment">Inicia sesión</a> para comentar
+          </div>
+          <form id="commentForm" onsubmit="handleCommentSubmit(event)">
+            <div id="anonymousFields" class="comment-form-group" style="display:none;">
+              <label class="comment-form-label" for="commentName">Nombre *</label>
+              <input 
+                type="text" 
+                id="commentName" 
+                class="comment-form-input" 
+                required
+              />
+            </div>
+            <div id="emailField" class="comment-form-group" style="display:none;">
+              <label class="comment-form-label" for="commentEmail">Email (opcional)</label>
+              <input 
+                type="email" 
+                id="commentEmail" 
+                class="comment-form-input"
+              />
+            </div>
+            <div class="comment-form-group">
+              <label class="comment-form-label" for="commentContent">Comentario *</label>
+              <textarea 
+                id="commentContent" 
+                class="comment-form-textarea" 
+                required
+                placeholder="Escribe tu comentario..."
+              ></textarea>
+            </div>
+            <div class="comment-form-actions">
+              <button type="submit" class="btn-primary">Enviar Comentario</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Lista de comentarios -->
+        <div id="commentsList" class="comments-list"></div>
+        <div id="commentsLoading" class="loading" style="display:none;">
+          <div class="spinner"></div>
+          <p>Cargando comentarios...</p>
+        </div>
+        <div id="commentsEmpty" class="empty-state" style="display:none;">
+          <p>No hay comentarios aún. ¡Sé el primero en comentar!</p>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  <script src="/js/loading.js"></script>
+  <script src="/js/logger.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script>
+    let blogPostId = null;
+    let currentUser = null;
+    let replyingToCommentId = null;
+
+    // Helper para obtener valores
+    const getValue = (obj, pascalKey, camelKey, defaultValue = null) => {
+      return obj[pascalKey] ?? obj[camelKey] ?? defaultValue;
+    };
+
+    // Sanitizar HTML
+    function sanitizeHtml(html) {
+      if (!html) return '';
+      
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      
+      // Eliminar scripts y eventos peligrosos
+      const scripts = div.querySelectorAll('script');
+      scripts.forEach(s => s.remove());
+      
+      // Eliminar atributos on* y javascript:
+      const allElements = div.querySelectorAll('*');
+      allElements.forEach(el => {
+        Array.from(el.attributes).forEach(attr => {
+          if (attr.name.startsWith('on')) {
+            el.removeAttribute(attr.name);
+          }
+          if (attr.name === 'href') {
+            const href = attr.value;
+            if (href.startsWith('javascript:') || (!href.startsWith('http') && !href.startsWith('/') && !href.startsWith('#'))) {
+              el.removeAttribute('href');
+            }
+          }
+          if (attr.name === 'src') {
+            const src = attr.value;
+            if (src.startsWith('javascript:') || (!src.startsWith('http') && !src.startsWith('/') && !src.startsWith('data:image/'))) {
+              el.removeAttribute('src');
+            }
+          }
+        });
+        
+        // Forzar rel="noopener noreferrer" en links
+        if (el.tagName === 'A') {
+          el.setAttribute('rel', 'noopener noreferrer');
+          el.setAttribute('target', '_blank');
+        }
+      });
+      
+      // Permitir solo tags específicos
+      const allowedTags = ['p', 'br', 'b', 'strong', 'i', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'a', 'img'];
+      const allowedAttributes = ['href', 'target', 'rel', 'src', 'alt', 'loading'];
+      
+      // Limpiar elementos no permitidos
+      allElements.forEach(el => {
+        if (!allowedTags.includes(el.tagName.toLowerCase())) {
+          const parent = el.parentNode;
+          while (el.firstChild) {
+            parent.insertBefore(el.firstChild, el);
+          }
+          parent.removeChild(el);
+        } else {
+          // Agregar lazy loading a imágenes del contenido (no hero)
+          if (el.tagName === 'IMG' && !el.hasAttribute('loading')) {
+            el.setAttribute('loading', 'lazy');
+          }
+          
+          // Limpiar atributos no permitidos
+          Array.from(el.attributes).forEach(attr => {
+            if (!allowedAttributes.includes(attr.name.toLowerCase())) {
+              el.removeAttribute(attr.name);
+            }
+          });
+        }
+      });
+      
+      return div.innerHTML;
+    }
+
+    // Formatear fecha
+    function formatDate(dateStr, includeTime = false) {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        const options = {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        };
+        if (includeTime) {
+          options.hour = '2-digit';
+          options.minute = '2-digit';
+        }
+        return date.toLocaleDateString('es-PA', options);
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    // Obtener slug de URL
+    function getSlugFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('slug');
+    }
+
+    // Helper para setear meta tags
+    function setMeta(name, content) {
+      let meta = document.querySelector(`meta[name="${name}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', name);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    }
+
+    // Helper para setear Open Graph tags
+    function setOG(property, content) {
+      let meta = document.querySelector(`meta[property="${property}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('property', property);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    }
+
+    // Cargar post
+    async function loadBlogPost() {
+      const slug = getSlugFromUrl();
+      if (!slug) {
+        document.getElementById('errorState').style.display = 'block';
+        return;
+      }
+
+      const loadingState = document.getElementById('loadingState');
+      const errorState = document.getElementById('errorState');
+      const postContent = document.getElementById('postContent');
+
+      try {
+        loadingState.style.display = 'flex';
+        errorState.style.display = 'none';
+        postContent.style.display = 'none';
+
+        const post = await api.getBlogPostBySlug(slug);
+
+        loadingState.style.display = 'none';
+        postContent.style.display = 'block';
+
+        // Obtener blogPostId
+        blogPostId = getValue(post, 'Id', 'id') || 
+                    getValue(post, 'BlogPostId', 'blogPostId') ||
+                    getValue(post, 'post', {}).id ||
+                    getValue(post, 'data', {}).id;
+
+        // SEO: Title dinámico
+        const title = getValue(post, 'Title', 'title', 'Sin título');
+        const metaTitle = getValue(post, 'MetaTitle', 'metaTitle', title);
+        document.title = metaTitle || title || 'Blog | ToursPanama';
+
+        // SEO: Meta description
+        const metaDescription = getValue(post, 'MetaDescription', 'metaDescription', '');
+        const excerpt = getValue(post, 'Excerpt', 'excerpt', '');
+        const description = metaDescription || excerpt || title;
+        setMeta('description', description);
+
+        // SEO: Open Graph
+        const imageUrl = getValue(post, 'ImageUrl', 'imageUrl', '');
+        setOG('og:title', metaTitle || title);
+        setOG('og:description', description);
+        setOG('og:image', imageUrl || window.location.origin + '/images/og-default.jpg');
+        setOG('og:type', 'article');
+        setOG('og:url', window.location.href);
+
+        // Renderizar post
+        document.getElementById('postTitle').textContent = title;
+        document.getElementById('breadcrumbPost').textContent = title;
+        
+        const publishedAt = getValue(post, 'PublishedAt', 'publishedAt');
+        if (publishedAt) {
+          const dateText = formatDate(publishedAt);
+          document.getElementById('postDate').innerHTML = `<time datetime="${publishedAt}">📅 ${dateText}</time>`;
+        }
+
+        const author = getValue(post, 'Author', 'author');
+        if (author) {
+          document.getElementById('postAuthor').textContent = `✍️ ${author}`;
+        }
+
+        if (imageUrl) {
+          const heroImg = document.getElementById('postHeroImage');
+          heroImg.src = imageUrl;
+          heroImg.alt = title;
+          heroImg.loading = 'eager';
+          heroImg.setAttribute('fetchpriority', 'high');
+          heroImg.style.display = 'block';
+        }
+
+        const content = getValue(post, 'Content', 'content', '');
+        document.getElementById('postContentHtml').innerHTML = sanitizeHtml(content);
+
+        // Actualizar login redirect
+        const loginLink = document.getElementById('loginLinkComment');
+        if (loginLink) {
+          loginLink.href = `/login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+        }
+
+        // Cargar comentarios
+        loadComments();
+        setupCommentForm();
+      } catch (error) {
+        console.error('Error loading blog post:', error);
+        loadingState.style.display = 'none';
+        const errorMsg = error.message && error.message.includes('401')
+          ? 'Tu sesión expiró. Por favor, inicia sesión nuevamente.'
+          : error.message && (error.message.includes('network') || error.message.includes('fetch'))
+          ? 'Algo salió mal. Inténtalo de nuevo en unos segundos.'
+          : 'Error al cargar este artículo. Por favor, intenta de nuevo.';
+        const errorStateTitle = document.querySelector('#errorState .empty-state-title');
+        const errorStateMessage = document.querySelector('#errorState .empty-state-message');
+        if (errorStateTitle) errorStateTitle.textContent = 'Error al cargar artículo';
+        if (errorStateMessage) errorStateMessage.textContent = errorMsg;
+        errorState.style.display = 'block';
+      }
+    }
+
+    // Cargar comentarios
+    async function loadComments(parentId = null) {
+      if (!blogPostId) return;
+
+      const commentsList = document.getElementById('commentsList');
+      const commentsLoading = document.getElementById('commentsLoading');
+      const commentsEmpty = document.getElementById('commentsEmpty');
+
+      try {
+        commentsLoading.style.display = 'flex';
+        commentsList.innerHTML = '';
+        commentsEmpty.style.display = 'none';
+
+        const response = await api.getBlogComments(blogPostId, { parentCommentId: parentId });
+
+        commentsLoading.style.display = 'none';
+
+        const comments = getValue(response, 'Comments', 'comments', []);
+        const totalCount = getValue(response, 'TotalCount', 'totalCount', 0);
+
+        document.getElementById('commentsCount').textContent = `${totalCount} comentario${totalCount !== 1 ? 's' : ''}`;
+
+        if (comments.length === 0 && !parentId) {
+          commentsEmpty.style.display = 'block';
+          return;
+        }
+
+        if (parentId) {
+          // Cargar respuestas en el contenedor específico
+          const parentElement = document.querySelector(`[data-comment-id="${parentId}"]`);
+          if (parentElement) {
+            let repliesContainer = parentElement.querySelector('.comment-replies');
+            if (!repliesContainer) {
+              repliesContainer = document.createElement('div');
+              repliesContainer.className = 'comment-replies';
+              parentElement.appendChild(repliesContainer);
+            }
+            repliesContainer.innerHTML = comments.map(c => renderComment(c, true)).join('');
+          }
+        } else {
+          commentsList.innerHTML = comments.map(c => renderComment(c, false)).join('');
+        }
+      } catch (error) {
+        console.error('Error loading comments:', error);
+        commentsLoading.style.display = 'none';
+      }
+    }
+
+    // Renderizar comentario
+    function renderComment(comment, isReply = false) {
+      const id = getValue(comment, 'Id', 'id', '');
+      const authorName = getValue(comment, 'AuthorName', 'authorName', 'Anónimo');
+      const content = getValue(comment, 'Content', 'content', '');
+      const createdAt = getValue(comment, 'CreatedAt', 'createdAt');
+      const likes = getValue(comment, 'Likes', 'likes', 0);
+      const dislikes = getValue(comment, 'Dislikes', 'dislikes', 0);
+      const replyCount = getValue(comment, 'ReplyCount', 'replyCount', 0);
+      const status = getValue(comment, 'Status', 'status', '');
+      const userId = getValue(comment, 'UserId', 'userId');
+
+      const isPending = status && status.toLowerCase() === 'pending';
+      const isAuthor = currentUser && userId && getValue(currentUser, 'Id', 'id') === userId;
+
+      return `
+        <div class="comment-item" data-comment-id="${id}">
+          <div class="comment-header">
+            <div>
+              <div class="comment-author">${sanitizeHtml(authorName)}</div>
+              <div class="comment-date">${formatDate(createdAt, true)}</div>
+            </div>
+          </div>
+          <div class="comment-content">${sanitizeHtml(content)}</div>
+          ${isPending && isAuthor ? '<div class="comment-pending">⏳ Tu comentario está en revisión</div>' : ''}
+          <div class="comment-actions">
+            <button class="comment-reaction-button" onclick="reactToComment('${id}', true)">
+              👍 ${likes}
+            </button>
+            <button class="comment-reaction-button" onclick="reactToComment('${id}', false)">
+              👎 ${dislikes}
+            </button>
+            ${!isReply ? `<button class="comment-reply-button" onclick="replyToComment('${id}')">Responder</button>` : ''}
+          </div>
+          ${!isReply && replyCount > 0 ? `
+            <div class="comment-replies">
+              <button class="comment-reply-button" onclick="loadReplies('${id}')">
+                Ver ${replyCount} respuesta${replyCount !== 1 ? 's' : ''}
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // Cargar respuestas
+    async function loadReplies(commentId) {
+      await loadComments(commentId);
+      const button = document.querySelector(`[onclick="loadReplies('${commentId}')"]`);
+      if (button) button.style.display = 'none';
+    }
+
+    // Responder a comentario
+    function replyToComment(commentId) {
+      replyingToCommentId = commentId;
+      const form = document.getElementById('commentForm');
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('commentContent').focus();
+      document.getElementById('commentContent').placeholder = 'Escribe tu respuesta...';
+    }
+
+    // Configurar formulario de comentario
+    async function setupCommentForm() {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      const authRequiredMessage = document.getElementById('authRequiredMessage');
+      const anonymousFields = document.getElementById('anonymousFields');
+      const emailField = document.getElementById('emailField');
+      const commentForm = document.getElementById('commentForm');
+
+      if (token) {
+        try {
+          currentUser = await api.getCurrentUser();
+          authRequiredMessage.style.display = 'none';
+          anonymousFields.style.display = 'none';
+          emailField.style.display = 'none';
+        } catch (error) {
+          // Token inválido, tratar como anónimo
+          authRequiredMessage.style.display = 'block';
+          anonymousFields.style.display = 'block';
+          emailField.style.display = 'block';
+        }
+      } else {
+        authRequiredMessage.style.display = 'block';
+        anonymousFields.style.display = 'block';
+        emailField.style.display = 'block';
+      }
+    }
+
+    // Enviar comentario
+    async function handleCommentSubmit(event) {
+      event.preventDefault();
+      if (!blogPostId) return;
+
+      const content = document.getElementById('commentContent').value.trim();
+      if (!content) return;
+
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      const name = document.getElementById('commentName')?.value.trim();
+      const email = document.getElementById('commentEmail')?.value.trim();
+
+      const payload = {
+        blogPostId: blogPostId,
+        content: content
+      };
+
+      if (replyingToCommentId) {
+        payload.parentCommentId = replyingToCommentId;
+      }
+
+      if (!token) {
+        if (name) payload.name = name;
+        if (email) payload.email = email;
+      }
+
+      try {
+        await api.createBlogComment(payload);
+        
+        // Limpiar formulario
+        document.getElementById('commentForm').reset();
+        replyingToCommentId = null;
+        document.getElementById('commentContent').placeholder = 'Escribe tu comentario...';
+        
+        // Recargar comentarios
+        loadComments();
+        
+        if (typeof showNotification === 'function') {
+          showNotification('Comentario enviado. Está pendiente de moderación.', 'success');
+        }
+      } catch (error) {
+        console.error('Error creating comment:', error);
+        if (error.message && (error.message.includes('401') || error.message.includes('403'))) {
+          document.getElementById('authRequiredMessage').style.display = 'block';
+        } else {
+          if (typeof showNotification === 'function') {
+            showNotification('Error al enviar comentario. Intenta nuevamente.', 'error');
+          }
+        }
+      }
+    }
+
+    // Reaccionar a comentario
+    async function reactToComment(commentId, isLike) {
+      try {
+        const response = await api.reactToComment(commentId, isLike);
+        // Recargar comentarios para actualizar contadores
+        loadComments();
+      } catch (error) {
+        console.error('Error reacting to comment:', error);
+      }
+    }
+
+    // Newsletter (solo UI por ahora)
+    function handleNewsletterSubmit(event) {
+      event.preventDefault();
+      if (typeof showNotification === 'function') {
+        showNotification('¡Gracias por suscribirte! (Funcionalidad próximamente)', 'success');
+      }
+    }
+
+    // Cargar información del usuario
+    async function loadUserInfo() {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+      const userGreeting = document.getElementById('userGreeting');
+      const loginLink = document.getElementById('loginLink');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const profileLink = document.getElementById('profileLink');
+      
+      if (!token) {
+        if (userGreeting) userGreeting.style.display = 'none';
+        if (loginLink) loginLink.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (profileLink) profileLink.style.display = 'none';
+        return;
+      }
+
+      try {
+        let userName = localStorage.getItem('userName');
+        if (!userName) {
+          currentUser = await api.getCurrentUser();
+          const firstName = getValue(currentUser, 'FirstName', 'firstName', '');
+          const lastName = getValue(currentUser, 'LastName', 'lastName', '');
+          userName = `${firstName} ${lastName}`.trim();
+          if (userName) localStorage.setItem('userName', userName);
+        }
+        if (userName && userGreeting) {
+          userGreeting.textContent = `Hola, ${userName}`;
+          userGreeting.style.display = 'inline-flex';
+        }
+        if (loginLink) loginLink.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'block';
+        if (profileLink) profileLink.style.display = 'block';
+      } catch (error) {
+        console.warn('Error loading user info:', error);
+      }
+    }
+
+    // Logout
+    if (document.getElementById('logoutBtn')) {
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await api.logout();
+        window.location.href = '/';
+      });
+    }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUserInfo();
+      loadBlogPost();
+    });
+  </script>
+</body>
+</html>

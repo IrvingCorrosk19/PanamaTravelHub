@@ -15,6 +15,8 @@ public class CreateTourRequestDto
     public DateTime? TourDate { get; set; } // Fecha principal del tour
     public bool? IsActive { get; set; }
     public List<string>? Images { get; set; }
+    public List<Guid>? CategoryIds { get; set; }
+    public List<Guid>? TagIds { get; set; }
 }
 
 public class CreateTourRequestValidator : AbstractValidator<CreateTourRequestDto>

@@ -31,5 +31,17 @@ public interface IEmailNotificationService
         Guid? userId = null,
         Guid? bookingId = null,
         DateTime? scheduledFor = null);
+
+    /// <summary>
+    /// Envía email de factura con PDF adjunto
+    /// </summary>
+    Task SendInvoiceAsync(
+        string toEmail,
+        string invoiceNumber,
+        byte[] pdfBytes,
+        string fileName,
+        string language = "ES",
+        Guid? userId = null,
+        Guid? bookingId = null);
 }
 

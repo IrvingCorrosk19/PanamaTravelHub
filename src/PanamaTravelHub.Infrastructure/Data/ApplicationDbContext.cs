@@ -37,6 +37,14 @@ public class ApplicationDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<UserFavorite> UserFavorites { get; set; }
     public DbSet<UserTwoFactor> UserTwoFactors { get; set; }
     public DbSet<LoginHistory> LoginHistories { get; set; }
+    public DbSet<BlogComment> BlogComments { get; set; }
+    public DbSet<TourCategory> TourCategories { get; set; }
+    public DbSet<TourTag> TourTags { get; set; }
+    public DbSet<TourCategoryAssignment> TourCategoryAssignments { get; set; }
+    public DbSet<TourTagAssignment> TourTagAssignments { get; set; }
+    public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; }
+    public DbSet<Invoice> Invoices { get; set; }
+    public DbSet<InvoiceSequence> InvoiceSequences { get; set; }
     
     // Data Protection Keys (para persistencia en PostgreSQL)
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
