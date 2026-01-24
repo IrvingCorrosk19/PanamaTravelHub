@@ -405,6 +405,9 @@
         <li><a href="#" class="nav-link" data-section="reviews">⭐ Reviews</a></li>
         <li><a href="#" class="nav-link" data-section="waitlist">⏳ Waitlist</a></li>
         <li><a href="#" class="nav-link" data-section="blog-comments">💬 Comentarios Blog</a></li>
+        <li><a href="#" class="nav-link" data-section="homepage">🏠 Homepage</a></li>
+        <li><a href="#" class="nav-link" data-section="media">🖼️ Media</a></li>
+        <li><a href="#" class="nav-link" data-section="pages">📄 Páginas</a></li>
         <li><a href="#" class="nav-link" data-section="reports">📈 Reportes</a></li>
         <li><a href="#" class="nav-link" data-section="analytics">📊 Analytics</a></li>
         <li><a href="/" class="nav-link">🏠 Volver al sitio</a></li>
@@ -646,6 +649,88 @@
         <div class="chart-container">
           <h3>Top Tours por Ventas</h3>
           <canvas id="toursReportChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Homepage Section -->
+      <div id="homepage-section" class="admin-content">
+        <div class="form-group">
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="loadHomepageContent()">🔄 Recargar</button>
+            <button class="btn btn-success" onclick="saveHomepageContent()">💾 Guardar Cambios</button>
+          </div>
+        </div>
+        <div id="homepageContentEditor" class="chart-container">
+          <h3>Contenido de la Homepage</h3>
+          <div id="homepageForm" style="display: grid; gap: 20px;">
+            <!-- Se cargará dinámicamente -->
+            <div class="loading">Cargando contenido...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media Section -->
+      <div id="media-section" class="admin-content">
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="openMediaUploadModal()">📤 Subir Archivo</button>
+          <select id="mediaCategoryFilter" onchange="loadMedia()" style="margin-left: auto;">
+            <option value="">Todas las categorías</option>
+            <option value="Tours">Tours</option>
+            <option value="Hero">Hero</option>
+            <option value="Gallery">Galería</option>
+            <option value="Blog">Blog</option>
+          </select>
+          <select id="mediaTypeFilter" onchange="loadMedia()">
+            <option value="">Todos los tipos</option>
+            <option value="true">Solo imágenes</option>
+            <option value="false">Otros archivos</option>
+          </select>
+        </div>
+        <div class="table-container">
+          <table id="mediaTable">
+            <thead>
+              <tr>
+                <th>Archivo</th>
+                <th>Categoría</th>
+                <th>Tipo</th>
+                <th>Tamaño</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="mediaTableBody">
+              <tr><td colspan="6" class="loading">Cargando archivos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pages Section -->
+      <div id="pages-section" class="admin-content">
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="openPageModal()">➕ Nueva Página</button>
+          <select id="pagesStatusFilter" onchange="loadPages()" style="margin-left: auto;">
+            <option value="">Todos los estados</option>
+            <option value="true">Publicadas</option>
+            <option value="false">Borradores</option>
+          </select>
+        </div>
+        <div class="table-container">
+          <table id="pagesTable">
+            <thead>
+              <tr>
+                <th>Título</th>
+                <th>Slug</th>
+                <th>Template</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="pagesTableBody">
+              <tr><td colspan="6" class="loading">Cargando páginas...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

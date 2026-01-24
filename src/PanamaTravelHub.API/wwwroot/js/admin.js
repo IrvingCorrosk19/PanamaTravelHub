@@ -73,6 +73,9 @@ function showSection(sectionName) {
       'reviews': 'Moderación de Reviews',
       'waitlist': 'Lista de Espera',
       'blog-comments': 'Comentarios de Blog',
+      'homepage': 'Contenido de Homepage',
+      'media': 'Biblioteca de Media',
+      'pages': 'Gestión de Páginas',
       'reports': 'Reportes y Analytics',
       'analytics': 'Analytics y Conversión',
       'cms-blocks': 'Bloques CMS'
@@ -124,6 +127,15 @@ async function loadSectionData(sectionName) {
       break;
     case 'blog-comments':
       await loadBlogComments();
+      break;
+    case 'homepage':
+      await loadHomepageContent();
+      break;
+    case 'media':
+      await loadMedia();
+      break;
+    case 'pages':
+      await loadPages();
       break;
     case 'reports':
       await loadReports();
@@ -463,6 +475,372 @@ async function loadWaitlist() {
 }
 
 // Blog Comments
+// Homepage Content
+async function loadHomepageContent() {
+  try {
+    const content = await api.getAdminHomePageContent();
+    const form = document.getElementById('homepageForm');
+    
+    if (!form) return;
+    
+    form.innerHTML = `
+      <div class="form-group">
+        <label>Hero Title</label>
+        <input type="text" id="homepageHeroTitle" value="${content.heroTitle || ''}" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Hero Subtitle</label>
+        <textarea id="homepageHeroSubtitle" class="form-input" rows="3">${content.heroSubtitle || ''}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Hero Image URL</label>
+        <input type="url" id="homepageHeroImageUrl" value="${content.heroImageUrl || ''}" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Hero Search Placeholder</label>
+        <input type="text" id="homepageHeroSearchPlaceholder" value="${content.heroSearchPlaceholder || ''}" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Tours Section Title</label>
+        <input type="text" id="homepageToursSectionTitle" value="${content.toursSectionTitle || ''}" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Tours Section Subtitle</label>
+        <input type="text" id="homepageToursSectionSubtitle" value="${content.toursSectionSubtitle || ''}" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Page Title (SEO)</label>
+        <input type="text" id="homepagePageTitle" value="${content.pageTitle || ''}" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Meta Description (SEO)</label>
+        <textarea id="homepageMetaDescription" class="form-input" rows="3">${content.metaDescription || ''}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Logo URL</label>
+        <input type="url" id="homepageLogoUrl" value="${content.logoUrl || ''}" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Favicon URL</label>
+        <input type="url" id="homepageFaviconUrl" value="${content.faviconUrl || ''}" class="form-input" />
+      </div>
+    `;
+  } catch (error) {
+    console.error('Error cargando homepage content:', error);
+    showError('Error al cargar el contenido de la homepage');
+  }
+}
+
+async function saveHomepageContent() {
+  try {
+    const data = {
+      heroTitle: document.getElementById('homepageHeroTitle')?.value || '',
+      heroSubtitle: document.getElementById('homepageHeroSubtitle')?.value || '',
+      heroImageUrl: document.getElementById('homepageHeroImageUrl')?.value || '',
+      heroSearchPlaceholder: document.getElementById('homepageHeroSearchPlaceholder')?.value || '',
+      toursSectionTitle: document.getElementById('homepageToursSectionTitle')?.value || '',
+      toursSectionSubtitle: document.getElementById('homepageToursSectionSubtitle')?.value || '',
+      pageTitle: document.getElementById('homepagePageTitle')?.value || '',
+      metaDescription: document.getElementById('homepageMetaDescription')?.value || '',
+      logoUrl: document.getElementById('homepageLogoUrl')?.value || '',
+      faviconUrl: document.getElementById('homepageFaviconUrl')?.value || ''
+    };
+    
+    await api.updateAdminHomePageContent(data);
+    showSuccess('Contenido de la homepage guardado exitosamente');
+  } catch (error) {
+    console.error('Error guardando homepage content:', error);
+    showError('Error al guardar el contenido de la homepage');
+  }
+}
+
+// Media Files
+async function loadMedia() {
+  try {
+    const category = document.getElementById('mediaCategoryFilter')?.value || null;
+    const isImage = document.getElementById('mediaTypeFilter')?.value || null;
+    const isImageBool = isImage === 'true' ? true : isImage === 'false' ? false : null;
+    
+    const media = await api.getAdminMedia(category, isImageBool);
+    const tbody = document.getElementById('mediaTableBody');
+    
+    if (!tbody) return;
+    
+    if (!media || media.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay archivos de media</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = media.map(file => `
+      <tr>
+        <td>
+          ${file.isImage ? `<img src="${file.fileUrl}" alt="${file.altText || ''}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" />` : '📄'}
+          <span style="margin-left: 10px;">${file.fileName}</span>
+        </td>
+        <td>${file.category || '-'}</td>
+        <td>${file.isImage ? 'Imagen' : 'Archivo'}</td>
+        <td>${formatFileSize(file.fileSize)}</td>
+        <td>${new Date(file.createdAt).toLocaleDateString()}</td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="deleteMediaFile('${file.id}')">🗑️ Eliminar</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando media:', error);
+    showError('Error al cargar archivos de media');
+  }
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function openMediaUploadModal() {
+  // Crear modal simple para subir archivo
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Subir Archivo</h2>
+        <button class="close-modal" onclick="this.closest('.modal').remove()">&times;</button>
+      </div>
+      <div>
+        <div class="form-group">
+          <label>Archivo</label>
+          <input type="file" id="mediaFileInput" class="form-input" accept="image/*,video/*,application/pdf" />
+        </div>
+        <div class="form-group">
+          <label>Alt Text (para imágenes)</label>
+          <input type="text" id="mediaAltText" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="mediaDescription" class="form-input" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Categoría</label>
+          <select id="mediaCategory" class="form-input">
+            <option value="">Sin categoría</option>
+            <option value="Tours">Tours</option>
+            <option value="Hero">Hero</option>
+            <option value="Gallery">Galería</option>
+            <option value="Blog">Blog</option>
+          </select>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancelar</button>
+          <button class="btn btn-primary" onclick="uploadMediaFile()">📤 Subir</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function uploadMediaFile() {
+  try {
+    const fileInput = document.getElementById('mediaFileInput');
+    const file = fileInput?.files[0];
+    
+    if (!file) {
+      showError('Por favor selecciona un archivo');
+      return;
+    }
+    
+    const altText = document.getElementById('mediaAltText')?.value || null;
+    const description = document.getElementById('mediaDescription')?.value || null;
+    const category = document.getElementById('mediaCategory')?.value || null;
+    
+    await api.uploadMediaFile(file, altText, description, category);
+    showSuccess('Archivo subido exitosamente');
+    document.querySelector('.modal')?.remove();
+    await loadMedia();
+  } catch (error) {
+    console.error('Error subiendo archivo:', error);
+    showError('Error al subir el archivo');
+  }
+}
+
+async function deleteMediaFile(mediaId) {
+  if (!confirm('¿Estás seguro de eliminar este archivo?')) return;
+  
+  try {
+    await api.deleteMediaFile(mediaId);
+    showSuccess('Archivo eliminado exitosamente');
+    await loadMedia();
+  } catch (error) {
+    console.error('Error eliminando archivo:', error);
+    showError('Error al eliminar el archivo');
+  }
+}
+
+// Pages
+async function loadPages() {
+  try {
+    const isPublished = document.getElementById('pagesStatusFilter')?.value || null;
+    const isPublishedBool = isPublished === 'true' ? true : isPublished === 'false' ? false : null;
+    
+    const pages = await api.getAdminPages(isPublishedBool);
+    const tbody = document.getElementById('pagesTableBody');
+    
+    if (!tbody) return;
+    
+    if (!pages || pages.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay páginas</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = pages.map(page => `
+      <tr>
+        <td><strong>${page.title}</strong></td>
+        <td><code>${page.slug}</code></td>
+        <td>${page.template || '-'}</td>
+        <td>${page.isPublished ? '<span class="badge badge-success">Publicada</span>' : '<span class="badge badge-warning">Borrador</span>'}</td>
+        <td>${new Date(page.createdAt).toLocaleDateString()}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="editPage('${page.id}')">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePage('${page.id}')">🗑️ Eliminar</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error cargando páginas:', error);
+    showError('Error al cargar páginas');
+  }
+}
+
+function openPageModal(pageId = null) {
+  // Modal para crear/editar página
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.id = 'pageModal';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2>${pageId ? 'Editar Página' : 'Nueva Página'}</h2>
+        <button class="close-modal" onclick="closePageModal()">&times;</button>
+      </div>
+      <div id="pageModalBody">
+        <div class="loading">Cargando...</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  if (pageId) {
+    editPage(pageId);
+  } else {
+    loadPageForm();
+  }
+}
+
+async function loadPageForm(pageId = null) {
+  const body = document.getElementById('pageModalBody');
+  if (!body) return;
+  
+  let pageData = null;
+  if (pageId) {
+    try {
+      pageData = await api.getAdminPage(pageId);
+    } catch (error) {
+      console.error('Error cargando página:', error);
+      showError('Error al cargar la página');
+      return;
+    }
+  }
+  
+  body.innerHTML = `
+    <div class="form-group">
+      <label>Título</label>
+      <input type="text" id="pageTitle" value="${pageData?.title || ''}" class="form-input" required />
+    </div>
+    <div class="form-group">
+      <label>Slug (URL amigable)</label>
+      <input type="text" id="pageSlug" value="${pageData?.slug || ''}" class="form-input" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" />
+      <small style="color: #64748b;">Solo letras minúsculas, números y guiones</small>
+    </div>
+    <div class="form-group">
+      <label>Contenido</label>
+      <textarea id="pageContent" class="form-input" rows="10" required>${pageData?.content || ''}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Excerpt (Resumen)</label>
+      <textarea id="pageExcerpt" class="form-input" rows="3">${pageData?.excerpt || ''}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Template</label>
+      <select id="pageTemplate" class="form-input">
+        <option value="">Default</option>
+        <option value="Blog" ${pageData?.template === 'Blog' ? 'selected' : ''}>Blog</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>
+        <input type="checkbox" id="pageIsPublished" ${pageData?.isPublished ? 'checked' : ''} />
+        Publicada
+      </label>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="closePageModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePage('${pageId || ''}')">💾 Guardar</button>
+    </div>
+  `;
+}
+
+async function editPage(pageId) {
+  await loadPageForm(pageId);
+}
+
+async function savePage(pageId) {
+  try {
+    const data = {
+      title: document.getElementById('pageTitle').value,
+      slug: document.getElementById('pageSlug').value,
+      content: document.getElementById('pageContent').value,
+      excerpt: document.getElementById('pageExcerpt').value || null,
+      template: document.getElementById('pageTemplate').value || null,
+      isPublished: document.getElementById('pageIsPublished').checked
+    };
+    
+    if (pageId) {
+      await api.updatePage(pageId, data);
+      showSuccess('Página actualizada exitosamente');
+    } else {
+      await api.createPage(data);
+      showSuccess('Página creada exitosamente');
+    }
+    
+    closePageModal();
+    await loadPages();
+  } catch (error) {
+    console.error('Error guardando página:', error);
+    showError(error.message || 'Error al guardar la página');
+  }
+}
+
+function closePageModal() {
+  document.getElementById('pageModal')?.remove();
+}
+
+async function deletePage(pageId) {
+  if (!confirm('¿Estás seguro de eliminar esta página? Esta acción no se puede deshacer.')) return;
+  
+  try {
+    await api.deletePage(pageId);
+    showSuccess('Página eliminada exitosamente');
+    await loadPages();
+  } catch (error) {
+    console.error('Error eliminando página:', error);
+    showError('Error al eliminar la página');
+  }
+}
+
 async function loadBlogComments() {
   try {
     const statusFilter = document.getElementById('commentStatusFilter')?.value;
