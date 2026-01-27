@@ -100,12 +100,39 @@
     }
 
     .newsletter-cta {
-      background: var(--primary-50);
-      border: 2px solid var(--primary);
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%);
+      border: 2px solid rgba(14, 165, 233, 0.3);
       border-radius: var(--radius-lg);
       padding: var(--space-xl);
       margin: var(--space-xxl) 0;
       text-align: center;
+      box-shadow: 
+        0 8px 24px rgba(14, 165, 233, 0.1),
+        0 4px 12px rgba(0, 0, 0, 0.04);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .newsletter-cta::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    .newsletter-cta:hover {
+      border-color: rgba(14, 165, 233, 0.5);
+      box-shadow: 
+        0 12px 32px rgba(14, 165, 233, 0.15),
+        0 6px 16px rgba(0, 0, 0, 0.06);
+      transform: translateY(-2px);
     }
 
     .newsletter-cta h3 {
@@ -129,18 +156,47 @@
     }
 
     .newsletter-button {
-      padding: var(--space-md) var(--space-xl);
-      background: var(--primary);
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
       color: white;
       border: none;
-      border-radius: var(--radius-sm);
+      border-radius: var(--radius);
       font-weight: var(--font-weight-semibold);
       cursor: pointer;
-      transition: all var(--transition-base);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 
+        0 4px 16px rgba(14, 165, 233, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+      letter-spacing: -0.01em;
+    }
+
+    .newsletter-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .newsletter-button:hover::before {
+      left: 100%;
     }
 
     .newsletter-button:hover {
-      background: var(--primary-dark);
+      background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%);
+      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 24px rgba(14, 165, 233, 0.4),
+        0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .newsletter-button:active {
+      transform: translateY(0);
     }
 
     /* Comentarios */
@@ -165,8 +221,38 @@
       background: var(--card);
       padding: var(--space-xl);
       border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
+      box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.04),
+        0 2px 8px rgba(0, 0, 0, 0.02);
       margin-bottom: var(--space-xl);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Borde superior con gradiente en hover */
+    .comment-form::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #0ea5e9, #06b6d4, #6366f1);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .comment-form:hover::before {
+      opacity: 1;
+    }
+
+    .comment-form:hover {
+      box-shadow: 
+        0 8px 24px rgba(0, 0, 0, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.04);
+      border-color: rgba(14, 165, 233, 0.2);
+      transform: translateY(-2px);
     }
 
     .comment-form-group {
@@ -183,19 +269,37 @@
     .comment-form-input,
     .comment-form-textarea {
       width: 100%;
-      padding: var(--space-md);
-      border: 2px solid var(--border);
-      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      border: 2px solid rgba(226, 232, 240, 0.8);
+      border-radius: var(--radius);
       font-size: var(--text-base);
       font-family: inherit;
-      transition: all var(--transition-base);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: #ffffff;
+      color: var(--text);
+      box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .comment-form-input:hover,
+    .comment-form-textarea:hover {
+      border-color: rgba(14, 165, 233, 0.3);
+      box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
 
     .comment-form-input:focus,
     .comment-form-textarea:focus {
       outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-50);
+      border-color: #0ea5e9;
+      box-shadow: 
+        0 0 0 4px rgba(14, 165, 233, 0.12),
+        0 4px 12px rgba(14, 165, 233, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      transform: translateY(-1px);
+      background: #ffffff;
     }
 
     .comment-form-textarea {
@@ -218,7 +322,41 @@
       background: var(--card);
       padding: var(--space-lg);
       border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
+      box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.04),
+        0 2px 8px rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Indicador lateral en hover */
+    .comment-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, #0ea5e9, #6366f1);
+      transform: scaleY(0);
+      transition: transform 0.4s ease;
+      transform-origin: top;
+      border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    }
+
+    .comment-item:hover::before {
+      transform: scaleY(1);
+    }
+
+    .comment-item:hover {
+      box-shadow: 
+        0 8px 24px rgba(0, 0, 0, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.04);
+      border-color: rgba(14, 165, 233, 0.3);
+      transform: translateX(4px);
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.02), rgba(99, 102, 241, 0.01));
     }
 
     .comment-header {

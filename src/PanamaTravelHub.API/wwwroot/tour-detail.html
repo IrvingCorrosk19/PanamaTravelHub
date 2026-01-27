@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/css/carousel.css" />
   <link rel="stylesheet" href="/css/loading.css" />
   <link rel="stylesheet" href="/css/enhancements.css" />
+  <link rel="stylesheet" href="/css/tour-detail-premium.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈</text></svg>" type="image/svg+xml" />
 </head>
 <body>
@@ -208,25 +209,40 @@
     <script src="/js/notifications.js"></script>
     <script src="/js/api.js"></script>
     <style>
-      /* Sticky CTA de Disponibilidad */
+      /* Sticky CTA de Disponibilidad - Premium */
       .sticky-availability-cta {
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
-        background: white;
-        border-top: 2px solid var(--border);
-        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.95) 100%);
+        border-top: 2px solid rgba(14, 165, 233, 0.2);
+        box-shadow: 
+          0 -8px 32px rgba(0, 0, 0, 0.12),
+          0 -4px 16px rgba(0, 0, 0, 0.08);
         z-index: 1000;
-        padding: var(--space-md) 0;
+        padding: var(--space-lg) 0;
         display: none; /* Se muestra con JS cuando availability sale de vista */
+        backdrop-filter: blur(20px) saturate(180%);
+        animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
       }
       
       .sticky-cta-content {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: var(--space-lg);
+        gap: var(--space-xl);
       }
       
       .sticky-cta-info {
@@ -236,24 +252,37 @@
       }
       
       .sticky-cta-price {
-        font-size: 1.5rem;
-        font-weight: var(--font-weight-bold);
-        color: var(--primary);
+        font-size: 1.75rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.02em;
       }
       
       .sticky-cta-availability {
-        font-size: 0.9rem;
+        font-size: 0.9375rem;
         color: var(--text-secondary);
+        font-weight: 500;
       }
       
-      /* Bloque Availability Premium */
-      .tour-availability {
-        background: white;
-        padding: var(--space-2xl);
-        border-radius: var(--radius-lg);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-        margin-bottom: var(--space-2xl);
+      @media (max-width: 768px) {
+        .sticky-cta-content {
+          flex-direction: column;
+          gap: var(--space-md);
+        }
+        
+        .sticky-cta-price {
+          font-size: 1.5rem;
+        }
+        
+        .sticky-availability-cta .btn-booking {
+          width: 100%;
+        }
       }
+      
+      /* Bloque Availability Premium - Mejorado en tour-detail-premium.css */
       
       .availability-content {
         max-width: 500px;
@@ -273,18 +302,7 @@
         font-size: 0.95rem;
       }
       
-      .availability-input {
-        padding: var(--space-md);
-        border: 2px solid var(--border);
-        border-radius: var(--radius);
-        font-size: 1rem;
-        transition: border-color 0.2s;
-      }
-      
-      .availability-input:focus {
-        outline: none;
-        border-color: var(--primary);
-      }
+      /* Estilos de inputs mejorados en tour-detail-premium.css */
       
       .availability-price {
         display: flex;
@@ -307,21 +325,7 @@
         color: var(--primary);
       }
       
-      .availability-urgency {
-        background: #fff5e5;
-        color: #a85b00;
-        padding: var(--space-md);
-        border-radius: var(--radius);
-        margin-bottom: var(--space-lg);
-        font-size: 0.95rem;
-        text-align: center;
-        border-left: 4px solid #ff9800;
-      }
-      
-      .availability-urgency strong {
-        font-weight: var(--font-weight-bold);
-        color: #d97706;
-      }
+      /* Estilos de urgencia mejorados en tour-detail-premium.css */
       
       .availability-microcopy {
         text-align: center;
@@ -352,38 +356,13 @@
         margin-bottom: var(--space-2xl);
       }
       
-      .cms-block-social-proof {
-        padding: var(--space-xl);
-        background: var(--bg-secondary);
-        border-radius: var(--radius-lg);
-        text-align: center;
-      }
+      /* Estilos de social proof mejorados en tour-detail-premium.css */
       
-      .cms-block-highlights {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--space-lg);
-        padding: var(--space-xl);
-        background: var(--card);
-        border-radius: var(--radius-lg);
-      }
+      /* Estilos de highlights mejorados en tour-detail-premium.css */
       
-      .cms-block-story {
-        padding: var(--space-xl);
-      }
+      /* Estilos de story mejorados en tour-detail-premium.css */
       
-      .cms-block-story h2 {
-        margin-bottom: var(--space-lg);
-      }
-      
-      .cms-block-includes-excludes {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: var(--space-xl);
-        padding: var(--space-xl);
-        background: var(--card);
-        border-radius: var(--radius-lg);
-      }
+      /* Estilos de includes/excludes mejorados en tour-detail-premium.css */
       
       @media (max-width: 768px) {
         .cms-block-includes-excludes {
@@ -394,64 +373,11 @@
         }
       }
       
-      .cms-block-final-cta {
-        text-align: center;
-        padding: var(--space-3xl);
-        background: var(--gradient-subtle);
-        border-radius: var(--radius-lg);
-      }
+      /* Estilos de final CTA mejorados en tour-detail-premium.css */
       
-      .social-badge {
-        padding: var(--space-sm) var(--space-md);
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        font-size: 0.9rem;
-        color: var(--text);
-      }
+      /* Estilos de badges e icons mejorados en tour-detail-premium.css */
       
-      .highlight-item {
-        display: flex;
-        gap: var(--space-md);
-        align-items: start;
-      }
-      
-      .highlight-icon {
-        font-size: 2rem;
-        flex-shrink: 0;
-      }
-      
-      .excluded-list {
-        list-style: none;
-        padding: 0;
-      }
-      
-      .excluded-item {
-        display: flex;
-        gap: var(--space-sm);
-        margin-bottom: var(--space-sm);
-        color: var(--text-secondary);
-      }
-      
-      .excluded-icon {
-        color: var(--danger);
-      }
-      
-      .story-content {
-        line-height: 1.8;
-        color: var(--text);
-      }
-      
-      .story-content p {
-        margin-bottom: var(--space-md);
-      }
-      
-      .story-content img {
-        max-width: 100%;
-        height: auto;
-        border-radius: var(--radius);
-        margin: var(--space-lg) 0;
-      }
+      /* Estilos de listas y contenido mejorados en tour-detail-premium.css */
     </style>
     <!-- Variables globales para el carrusel -->
     <script>

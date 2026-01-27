@@ -23,11 +23,28 @@
       border-radius: var(--radius-lg);
       padding: var(--space-xl);
       margin-bottom: var(--space-xl);
-      box-shadow: var(--shadow);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        0 4px 16px rgba(0, 0, 0, 0.04);
       display: flex;
       align-items: center;
       gap: var(--space-lg);
       flex-wrap: wrap;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Gradiente sutil en el header */
+    .profile-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #0ea5e9, #06b6d4, #6366f1);
+      opacity: 0.8;
     }
 
     .profile-avatar {
@@ -84,12 +101,45 @@
       border-radius: var(--radius-lg);
       padding: var(--space-xl);
       margin-bottom: var(--space-lg);
-      box-shadow: var(--shadow);
-      transition: all var(--transition-base);
+      box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.04),
+        0 2px 8px rgba(0, 0, 0, 0.02);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Efecto de brillo sutil */
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.05), transparent);
+      transition: left 0.6s ease;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .profile-card:hover::before {
+      left: 100%;
     }
 
     .profile-card:hover {
-      box-shadow: var(--shadow-md);
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.1),
+        0 6px 20px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(14, 165, 233, 0.15);
+      border-color: rgba(14, 165, 233, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .profile-card > * {
+      position: relative;
+      z-index: 1;
     }
 
     .card-header {
@@ -230,14 +280,39 @@
     .reservation-item {
       padding: var(--space-md);
       background: var(--bg-secondary);
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      transition: all var(--transition-base);
+      border-radius: var(--radius);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Indicador lateral en hover */
+    .reservation-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, #0ea5e9, #6366f1);
+      transform: scaleY(0);
+      transition: transform 0.4s ease;
+      transform-origin: top;
+      border-radius: var(--radius) 0 0 var(--radius);
+    }
+
+    .reservation-item:hover::before {
+      transform: scaleY(1);
     }
 
     .reservation-item:hover {
-      border-color: var(--primary);
-      box-shadow: var(--shadow-sm);
+      border-color: rgba(14, 165, 233, 0.3);
+      box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 2px 4px rgba(0, 0, 0, 0.04);
+      transform: translateX(4px);
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(99, 102, 241, 0.02));
     }
 
     .reservation-header {
