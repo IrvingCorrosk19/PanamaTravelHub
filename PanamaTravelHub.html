@@ -923,10 +923,303 @@
       }
     }
 
-    /* Prefer reduced motion */
-    @media (prefers-reduced-motion: reduce){
-      *{transition:none !important; scroll-behavior:auto !important}
-      .tour:hover, .btn:hover{transform:none}
+    /* ====== Admin Panel Styles ====== */
+    .admin-tabs{
+      display:flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+      margin-top: var(--space-4);
+      padding: var(--space-3);
+      background: var(--card-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-xl);
+    }
+    .admin-tab{
+      padding: var(--space-3) var(--space-5);
+      border-radius: var(--radius-lg);
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .admin-tab.active{
+      background: var(--gradient-primary);
+      color: #ffffff;
+      border-color: var(--accent-primary);
+      box-shadow: var(--shadow-md);
+    }
+    .admin-tab:not(.active){
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+    }
+    .admin-tab:not(.active):hover{
+      background: var(--bg-elevated);
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+    
+    .admin-content{
+      margin-top: var(--space-6);
+    }
+    .admin-panel{
+      display: none;
+    }
+    .admin-panel.active{
+      display: block;
+    }
+    
+    .config-grid{
+      display: grid;
+      gap: var(--space-6);
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 1024px){
+      .config-grid{
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    .config-section{
+      background: var(--card-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-6);
+    }
+    .config-section h5{
+      margin: 0 0 var(--space-4);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .config-section h6{
+      margin: 0 0 var(--space-3);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    
+    .quick-replies{
+      display: grid;
+      gap: var(--space-3);
+    }
+    .reply-item{
+      display: flex;
+      gap: var(--space-3);
+      align-items: center;
+    }
+    .reply-item input{
+      flex: 1;
+    }
+    
+    .schedule-grid{
+      display: grid;
+      gap: var(--space-4);
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .email-templates{
+      display: grid;
+      gap: var(--space-6);
+    }
+    .template-item{
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+    }
+    
+    .config-actions{
+      display: flex;
+      gap: var(--space-4);
+      margin-top: var(--space-8);
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--border-subtle);
+    }
+    
+    /* ====== Chatbot Widget ====== */
+    .chatbot-widget{
+      position: fixed;
+      bottom: var(--space-6);
+      right: var(--space-6);
+      z-index: 1000;
+    }
+    .chatbot-widget.bottom-left{
+      right: auto;
+      left: var(--space-6);
+    }
+    .chatbot-widget.right{
+      bottom: 50%;
+      transform: translateY(50%);
+    }
+    
+    .chatbot-bubble{
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius-full);
+      background: var(--gradient-primary);
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .chatbot-bubble:hover{
+      transform: scale(1.1);
+      box-shadow: var(--shadow-2xl);
+    }
+    .chatbot-bubble::before{
+      content: '💬';
+      font-size: 24px;
+    }
+    
+    .chatbot-window{
+      position: absolute;
+      bottom: 80px;
+      right: 0;
+      width: 380px;
+      height: 500px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-2xl);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .chatbot-widget.bottom-left .chatbot-window{
+      right: auto;
+      left: 0;
+    }
+    .chatbot-widget.right .chatbot-window{
+      bottom: 0;
+      right: 80px;
+    }
+    
+    .chatbot-window.open{
+      display: flex;
+    }
+    
+    .chatbot-header{
+      background: var(--gradient-primary);
+      padding: var(--space-4);
+      color: white;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chatbot-close{
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      padding: var(--space-2);
+      border-radius: var(--radius-sm);
+    }
+    .chatbot-close:hover{
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .chatbot-messages{
+      flex: 1;
+      padding: var(--space-4);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    
+    .chatbot-message{
+      max-width: 80%;
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .chatbot-message.bot{
+      background: var(--card-primary);
+      border: 1px solid var(--border-subtle);
+      align-self: flex-start;
+    }
+    .chatbot-message.user{
+      background: var(--gradient-primary);
+      color: white;
+      align-self: flex-end;
+    }
+    
+    .chatbot-quick-replies{
+      padding: var(--space-4);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+    .chatbot-quick-reply{
+      padding: var(--space-2) var(--space-3);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .chatbot-quick-reply:hover{
+      background: var(--bg-elevated);
+      border-color: var(--accent-primary);
+    }
+    
+    .chatbot-input{
+      padding: var(--space-4);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: var(--space-3);
+    }
+    .chatbot-input input{
+      flex: 1;
+      padding: var(--space-3);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-full);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+    .chatbot-input button{
+      padding: var(--space-3) var(--space-4);
+      background: var(--gradient-primary);
+      border: none;
+      border-radius: var(--radius-full);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .chatbot-input button:hover{
+      transform: scale(1.05);
+    }
+    
+    @media (max-width: 480px){
+      .chatbot-widget{
+        bottom: var(--space-4);
+        right: var(--space-4);
+        left: var(--space-4);
+      }
+      .chatbot-widget.bottom-left{
+        left: var(--space-4);
+      }
+      .chatbot-window{
+        width: 100%;
+        height: 400px;
+      }
+      .chatbot-widget.right .chatbot-window{
+        right: 0;
+      }
     }
   </style>
 </head>
@@ -1309,29 +1602,215 @@
       <section class="section" id="admin" aria-label="Panel administrativo">
         <div class="section-head">
           <div>
-            <h3>Panel Admin (Preview UI)</h3>
-            <p>Control total: tours, clientes, reservas, estados y reportes. Listo para .NET Core + PostgreSQL.</p>
+            <h3>Panel Administrativo</h3>
+            <p>Control total: tours, clientes, reservas, chatbot y emails configurables.</p>
           </div>
-          <button class="btn" id="btnOpenAdminModal" type="button">Ver ejemplo</button>
+          <div class="admin-tabs">
+            <button class="btn btn-primary admin-tab active" data-tab="general">General</button>
+            <button class="btn admin-tab" data-tab="chatbot">Chatbot</button>
+            <button class="btn admin-tab" data-tab="emails">Emails</button>
+          </div>
         </div>
 
-        <div class="band" style="margin-top:0">
-          <div class="band-inner" style="grid-template-columns:1fr 1fr 1fr 1fr">
-            <div class="feature">
-              <b>Reservas</b>
-              <p>Confirmadas, pendientes y canceladas con trazabilidad.</p>
+        <div class="admin-content">
+          <!-- General Tab -->
+          <div class="admin-panel active" id="general-panel">
+            <div class="band" style="margin-top:0">
+              <div class="band-inner" style="grid-template-columns:1fr 1fr 1fr 1fr">
+                <div class="feature">
+                  <b>Reservas</b>
+                  <p>Confirmadas, pendientes y canceladas con trazabilidad.</p>
+                </div>
+                <div class="feature">
+                  <b>Tours</b>
+                  <p>CRUD completo, imágenes, precios y cupos por fecha.</p>
+                </div>
+                <div class="feature">
+                  <b>Pagos</b>
+                  <p>Stripe/PayPal/Yappy con webhooks e idempotencia.</p>
+                </div>
+                <div class="feature">
+                  <b>Reportes</b>
+                  <p>Ventas, ticket promedio, top tours y series de tiempo.</p>
+                </div>
+              </div>
             </div>
-            <div class="feature">
-              <b>Tours</b>
-              <p>CRUD completo, imágenes, precios y cupos por fecha.</p>
+          </div>
+
+          <!-- Chatbot Tab -->
+          <div class="admin-panel" id="chatbot-panel">
+            <div class="band" style="margin-top:0">
+              <div class="chatbot-config">
+                <h4>Configuración del Chatbot</h4>
+                <div class="config-grid">
+                  <div class="config-section">
+                    <h5>Configuración Básica</h5>
+                    <div class="field">
+                      <label for="chatbot-name">Nombre del Chatbot</label>
+                      <input class="input" id="chatbot-name" type="text" value="TouraBot" placeholder="Nombre del asistente" />
+                    </div>
+                    <div class="field">
+                      <label for="chatbot-welcome">Mensaje de Bienvenida</label>
+                      <textarea class="input" id="chatbot-welcome" rows="3" placeholder="Hola! Soy TouraBot, ¿en qué puedo ayudarte?">¡Hola! Soy TouraBot, tu asistente virtual para tours en Panamá. ¿En qué puedo ayudarte hoy?</textarea>
+                    </div>
+                    <div class="field">
+                      <label for="chatbot-position">Posición en Pantalla</label>
+                      <select class="input" id="chatbot-position">
+                        <option value="bottom-right" selected>Inferior Derecha</option>
+                        <option value="bottom-left">Inferior Izquierda</option>
+                        <option value="right">Lado Derecho</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div class="config-section">
+                    <h5>Respuestas Rápidas</h5>
+                    <div class="quick-replies" id="quick-replies">
+                      <div class="reply-item">
+                        <input class="input" type="text" value="¿Cuáles tours disponibles?" placeholder="Pregunta rápida" />
+                        <button class="btn btn-mini" type="button" onclick="removeReply(this)">Eliminar</button>
+                      </div>
+                      <div class="reply-item">
+                        <input class="input" type="text" value="¿Cómo reservar?" placeholder="Pregunta rápida" />
+                        <button class="btn btn-mini" type="button" onclick="removeReply(this)">Eliminar</button>
+                      </div>
+                    </div>
+                    <button class="btn btn-primary btn-mini" type="button" onclick="addQuickReply()">+ Añadir Respuesta</button>
+                  </div>
+                  
+                  <div class="config-section">
+                    <h5>Horario de Atención</h5>
+                    <div class="schedule-grid">
+                      <div class="field">
+                        <label for="chatbot-hours">Horario</label>
+                        <input class="input" id="chatbot-hours" type="text" value="08:00 - 22:00" placeholder="Ej: 08:00 - 22:00" />
+                      </div>
+                      <div class="field">
+                        <label for="chatbot-timezone">Zona Horaria</label>
+                        <select class="input" id="chatbot-timezone">
+                          <option value="UTC-5" selected>Panamá (UTC-5)</option>
+                          <option value="UTC-4">Caribe (UTC-4)</option>
+                          <option value="UTC-6">Centroamérica (UTC-6)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="config-actions">
+                  <button class="btn btn-primary" onclick="saveChatbotConfig()">Guardar Configuración</button>
+                  <button class="btn" onclick="previewChatbot()">Vista Previa</button>
+                </div>
+              </div>
             </div>
-            <div class="feature">
-              <b>Pagos</b>
-              <p>Stripe/PayPal/Yappy con webhooks e idempotencia.</p>
-            </div>
-            <div class="feature">
-              <b>Reportes</b>
-              <p>Ventas, ticket promedio, top tours y series de tiempo.</p>
+          </div>
+
+          <!-- Emails Tab -->
+          <div class="admin-panel" id="emails-panel">
+            <div class="band" style="margin-top:0">
+              <div class="email-config">
+                <h4>Configuración de Emails</h4>
+                <div class="config-grid">
+                  <div class="config-section">
+                    <h5>Configuración SMTP</h5>
+                    <div class="field">
+                      <label for="smtp-host">Servidor SMTP</label>
+                      <input class="input" id="smtp-host" type="text" placeholder="smtp.gmail.com" />
+                    </div>
+                    <div class="field">
+                      <label for="smtp-port">Puerto</label>
+                      <input class="input" id="smtp-port" type="number" value="587" placeholder="587" />
+                    </div>
+                    <div class="field">
+                      <label for="smtp-username">Usuario</label>
+                      <input class="input" id="smtp-username" type="email" placeholder="email@tourapanama.com" />
+                    </div>
+                    <div class="field">
+                      <label for="smtp-password">Contraseña</label>
+                      <input class="input" id="smtp-password" type="password" placeholder="Contraseña SMTP" />
+                    </div>
+                    <div class="field">
+                      <label for="smtp-ssl">Usar SSL/TLS</label>
+                      <select class="input" id="smtp-ssl">
+                        <option value="tls" selected>TLS</option>
+                        <option value="ssl">SSL</option>
+                        <option value="none">Sin cifrado</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div class="config-section">
+                    <h5>Templates de Email</h5>
+                    <div class="email-templates">
+                      <div class="template-item">
+                        <h6>Confirmación de Reserva</h6>
+                        <div class="field">
+                          <label>Asunto</label>
+                          <input class="input" type="text" value="Confirmación de tu reserva - TouraPanama" />
+                        </div>
+                        <div class="field">
+                          <label>Contenido</label>
+                          <textarea class="input" rows="6" placeholder="Email de confirmación">Hola {nombre},
+
+Gracias por tu reserva con TouraPanama.
+
+Detalles de tu reserva:
+Tour: {tour}
+Fecha: {fecha}
+Personas: {personas}
+Total: {total}
+
+Nos vemos pronto!
+
+TouraPanama</textarea>
+                        </div>
+                      </div>
+                      
+                      <div class="template-item">
+                        <h6>Recordatorio</h6>
+                        <div class="field">
+                          <label>Asunto</label>
+                          <input class="input" type="text" value="Recordatorio de tu tour - TouraPanama" />
+                        </div>
+                        <div class="field">
+                          <label>Contenido</label>
+                          <textarea class="input" rows="6" placeholder="Email de recordatorio">Hola {nombre},
+
+Te recordamos tu tour mañana:
+{tour} a las {hora}
+
+Punto de encuentro: {pickup}
+
+¡No faltes!
+
+TouraPanama</textarea>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="config-section">
+                    <h5>Configuración de Envío</h5>
+                    <div class="field">
+                      <label for="email-from">Email de Origen</label>
+                      <input class="input" id="email-from" type="email" placeholder="reservas@tourapanama.com" />
+                    </div>
+                    <div class="field">
+                      <label for="email-reply-to">Email de Respuesta</label>
+                      <input class="input" id="email-reply-to" type="email" placeholder="soporte@tourapanama.com" />
+                    </div>
+                    <div class="field">
+                      <label for="email-bcc">Email BCC (opcional)</label>
+                      <input class="input" id="email-bcc" type="email" placeholder="admin@tourapanama.com" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="config-actions">
+                  <button class="btn btn-primary" onclick="saveEmailConfig()">Guardar Configuración</button>
+                  <button class="btn" onclick="testEmail()">Enviar Email de Prueba</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1395,6 +1874,28 @@
       </div>
     </div>
   </footer>
+
+  <!-- Chatbot Widget -->
+  <div class="chatbot-widget" id="chatbotWidget">
+    <button class="chatbot-bubble" id="chatbotBubble" aria-label="Abrir chat"></button>
+    <div class="chatbot-window" id="chatbotWindow">
+      <div class="chatbot-header">
+        <span id="chatbotTitle">TouraBot</span>
+        <button class="chatbot-close" id="chatbotClose" aria-label="Cerrar chat">×</button>
+      </div>
+      <div class="chatbot-messages" id="chatbotMessages">
+        <div class="chatbot-message bot">¡Hola! Soy TouraBot, tu asistente virtual para tours en Panamá. ¿En qué puedo ayudarte hoy?</div>
+      </div>
+      <div class="chatbot-quick-replies" id="chatbotQuickReplies">
+        <button class="chatbot-quick-reply">¿Cuáles tours disponibles?</button>
+        <button class="chatbot-quick-reply">¿Cómo reservar?</button>
+      </div>
+      <div class="chatbot-input">
+        <input type="text" id="chatbotInput" placeholder="Escribe tu mensaje..." />
+        <button type="button" id="chatbotSend">Enviar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal -->
   <div class="modal" id="modal" aria-hidden="true" aria-label="Modal">
@@ -1628,6 +2129,257 @@
     // Simple top nav "login" demo
     $("#btnLogin").addEventListener("click", () => {
       alert("Demo: Aquí iría el login. En producción: JWT + roles (ADMIN/CUSTOMER).");
+    });
+
+    // =========================
+    // ADMIN PANEL FUNCTIONALITY
+    // =========================
+
+    // Admin tabs functionality
+    const adminTabs = document.querySelectorAll('.admin-tab');
+    const adminPanels = document.querySelectorAll('.admin-panel');
+
+    adminTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetTab = tab.dataset.tab;
+        
+        // Remove active class from all tabs and panels
+        adminTabs.forEach(t => t.classList.remove('active'));
+        adminPanels.forEach(p => p.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding panel
+        tab.classList.add('active');
+        document.getElementById(`${targetTab}-panel`).classList.add('active');
+      });
+    });
+
+    // Chatbot configuration functions
+    function saveChatbotConfig() {
+      const config = {
+        name: document.getElementById('chatbot-name').value,
+        welcome: document.getElementById('chatbot-welcome').value,
+        position: document.getElementById('chatbot-position').value,
+        hours: document.getElementById('chatbot-hours').value,
+        timezone: document.getElementById('chatbot-timezone').value,
+        quickReplies: Array.from(document.querySelectorAll('#quick-replies input')).map(input => input.value).filter(v => v.trim())
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('chatbotConfig', JSON.stringify(config));
+      
+      // Update chatbot with new config
+      updateChatbotUI(config);
+      
+      alert('Configuración del chatbot guardada exitosamente!');
+    }
+
+    function updateChatbotUI(config) {
+      // Update chatbot title
+      document.getElementById('chatbotTitle').textContent = config.name;
+      
+      // Update chatbot position
+      const widget = document.getElementById('chatbotWidget');
+      widget.className = `chatbot-widget ${config.position}`;
+      
+      // Update welcome message
+      const messages = document.getElementById('chatbotMessages');
+      messages.innerHTML = `<div class="chatbot-message bot">${config.welcome}</div>`;
+      
+      // Update quick replies
+      const quickRepliesContainer = document.getElementById('chatbotQuickReplies');
+      quickRepliesContainer.innerHTML = config.quickReplies.map(reply => 
+        `<button class="chatbot-quick-reply">${reply}</button>`
+      ).join('');
+      
+      // Re-attach event listeners to new quick replies
+      attachQuickReplyListeners();
+    }
+
+    function previewChatbot() {
+      const widget = document.getElementById('chatbotWidget');
+      const window = document.getElementById('chatbotWindow');
+      
+      // Show chatbot preview
+      window.classList.add('open');
+      
+      // Scroll to chatbot
+      widget.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      
+      setTimeout(() => {
+        alert('Esta es una vista previa del chatbot. Puedes interactuar con él para probar la configuración.');
+      }, 1000);
+    }
+
+    function addQuickReply() {
+      const container = document.getElementById('quick-replies');
+      const newItem = document.createElement('div');
+      newItem.className = 'reply-item';
+      newItem.innerHTML = `
+        <input class="input" type="text" placeholder="Pregunta rápida" />
+        <button class="btn btn-mini" type="button" onclick="removeReply(this)">Eliminar</button>
+      `;
+      container.appendChild(newItem);
+    }
+
+    function removeReply(button) {
+      button.parentElement.remove();
+    }
+
+    // Email configuration functions
+    function saveEmailConfig() {
+      const config = {
+        smtp: {
+          host: document.getElementById('smtp-host').value,
+          port: document.getElementById('smtp-port').value,
+          username: document.getElementById('smtp-username').value,
+          password: document.getElementById('smtp-password').value,
+          ssl: document.getElementById('smtp-ssl').value
+        },
+        from: document.getElementById('email-from').value,
+        replyTo: document.getElementById('email-reply-to').value,
+        bcc: document.getElementById('email-bcc').value
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('emailConfig', JSON.stringify(config));
+      
+      alert('Configuración de email guardada exitosamente!');
+    }
+
+    function testEmail() {
+      const config = JSON.parse(localStorage.getItem('emailConfig') || '{}');
+      
+      if (!config.smtp || !config.smtp.host) {
+        alert('Por favor configura los datos SMTP primero.');
+        return;
+      }
+      
+      alert('Demo: En producción, esto enviaría un email de prueba usando la configuración SMTP guardada.');
+    }
+
+    // =========================
+    // CHATBOT FUNCTIONALITY
+    // =========================
+
+    const chatbotBubble = document.getElementById('chatbotBubble');
+    const chatbotWindow = document.getElementById('chatbotWindow');
+    const chatbotClose = document.getElementById('chatbotClose');
+    const chatbotInput = document.getElementById('chatbotInput');
+    const chatbotSend = document.getElementById('chatbotSend');
+    const chatbotMessages = document.getElementById('chatbotMessages');
+
+    // Toggle chat window
+    chatbotBubble.addEventListener('click', () => {
+      chatbotWindow.classList.toggle('open');
+      if (chatbotWindow.classList.contains('open')) {
+        chatbotInput.focus();
+      }
+    });
+
+    chatbotClose.addEventListener('click', () => {
+      chatbotWindow.classList.remove('open');
+    });
+
+    // Send message functionality
+    function sendMessage() {
+      const message = chatbotInput.value.trim();
+      if (!message) return;
+
+      // Add user message
+      addMessage(message, 'user');
+      chatbotInput.value = '';
+
+      // Simulate bot response
+      setTimeout(() => {
+        const response = generateBotResponse(message);
+        addMessage(response, 'bot');
+      }, 1000);
+    }
+
+    function addMessage(text, sender) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `chatbot-message ${sender}`;
+      messageDiv.textContent = text;
+      chatbotMessages.appendChild(messageDiv);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    }
+
+    function generateBotResponse(userMessage) {
+      const message = userMessage.toLowerCase();
+      
+      if (message.includes('tour') || message.includes('disponible')) {
+        return 'Tenemos 6 tours disponibles: Canal de Panamá, San Blas, Casco Antiguo, Gamboa, Boquete e Isla Contadora. ¿Cuál te interesa?';
+      } else if (message.includes('reserv') || message.includes('como')) {
+        return 'Para reservar, selecciona tu tour, elige fecha y personas, y haz clic en "Continuar a pago". Aceptamos Yappy, Stripe y PayPal.';
+      } else if (message.includes('precio') || message.includes('cuanto')) {
+        return 'Nuestros precios van desde $35 hasta $220 por persona. El City Tour cuesta $89 y San Blas Full Day $149.';
+      } else if (message.includes('horario') || message.includes('hora')) {
+        return 'Nuestros horarios son flexibles. La mayoría de tours inician entre 8:00 AM y 9:00 AM.';
+      } else if (message.includes('contact') || message.includes('ayuda')) {
+        return 'Puedes contactarnos por email a soporte@tourapanama.com o llamar al +507 123-4567.';
+      } else {
+        return 'Gracias por tu pregunta. Puedes preguntarme sobre tours, reservas, precios o contactarme para más ayuda.';
+      }
+    }
+
+    // Send message on button click
+    chatbotSend.addEventListener('click', sendMessage);
+
+    // Send message on Enter key
+    chatbotInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // Quick replies functionality
+    function attachQuickReplyListeners() {
+      const quickReplies = document.querySelectorAll('.chatbot-quick-reply');
+      quickReplies.forEach(reply => {
+        reply.addEventListener('click', () => {
+          const text = reply.textContent;
+          chatbotInput.value = text;
+          sendMessage();
+        });
+      });
+    }
+
+    // Initial quick replies attachment
+    attachQuickReplyListeners();
+
+    // Load saved configurations on page load
+    window.addEventListener('load', () => {
+      // Load chatbot config
+      const savedChatbotConfig = localStorage.getItem('chatbotConfig');
+      if (savedChatbotConfig) {
+        const config = JSON.parse(savedChatbotConfig);
+        updateChatbotUI(config);
+        
+        // Update form fields
+        document.getElementById('chatbot-name').value = config.name || 'TouraBot';
+        document.getElementById('chatbot-welcome').value = config.welcome || '';
+        document.getElementById('chatbot-position').value = config.position || 'bottom-right';
+        document.getElementById('chatbot-hours').value = config.hours || '08:00 - 22:00';
+        document.getElementById('chatbot-timezone').value = config.timezone || 'UTC-5';
+      }
+      
+      // Load email config
+      const savedEmailConfig = localStorage.getItem('emailConfig');
+      if (savedEmailConfig) {
+        const config = JSON.parse(savedEmailConfig);
+        
+        // Update form fields
+        if (config.smtp) {
+          document.getElementById('smtp-host').value = config.smtp.host || '';
+          document.getElementById('smtp-port').value = config.smtp.port || '587';
+          document.getElementById('smtp-username').value = config.smtp.username || '';
+          document.getElementById('smtp-password').value = config.smtp.password || '';
+          document.getElementById('smtp-ssl').value = config.smtp.ssl || 'tls';
+        }
+        document.getElementById('email-from').value = config.from || '';
+        document.getElementById('email-reply-to').value = config.replyTo || '';
+        document.getElementById('email-bcc').value = config.bcc || '';
+      }
     });
   </script>
 </body>

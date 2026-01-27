@@ -15,13 +15,32 @@
       background: #f5f5f5;
     }
     .admin-sidebar {
-      width: 250px;
-      background: #1e293b;
+      width: 260px;
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
       color: white;
       padding: 20px 0;
       position: fixed;
       height: 100vh;
       overflow-y: auto;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .admin-sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .admin-sidebar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .admin-sidebar::-webkit-scrollbar-thumb {
+      background: rgba(14, 165, 233, 0.5);
+      border-radius: 3px;
+    }
+
+    .admin-sidebar::-webkit-scrollbar-thumb:hover {
+      background: rgba(14, 165, 233, 0.7);
     }
     .admin-sidebar .logo {
       padding: 0 20px 30px;
@@ -41,17 +60,39 @@
       margin: 0;
     }
     .admin-nav a {
-      display: block;
-      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
       color: #cbd5e1;
       text-decoration: none;
-      transition: all 0.2s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      border-left: 3px solid transparent;
+      margin: 2px 0;
+    }
+    .admin-nav a::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, #0ea5e9, #6366f1);
+      transform: scaleY(0);
+      transition: transform 0.3s ease;
+      transform-origin: top;
     }
     .admin-nav a:hover,
     .admin-nav a.active {
-      background: #334155;
+      background: linear-gradient(90deg, rgba(14, 165, 233, 0.15), rgba(99, 102, 241, 0.1));
       color: white;
-      border-left: 3px solid #0ea5e9;
+      transform: translateX(4px);
+      box-shadow: -2px 0 8px rgba(14, 165, 233, 0.2);
+    }
+    .admin-nav a:hover::before,
+    .admin-nav a.active::before {
+      transform: scaleY(1);
     }
     .admin-main {
       margin-left: 250px;
@@ -59,15 +100,40 @@
       padding: 30px;
     }
     .admin-header {
-      background: white;
-      padding: 20px 30px;
-      border-radius: 8px;
-      margin-bottom: 30px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+      padding: 28px 32px;
+      border-radius: 16px;
+      margin-bottom: 32px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        0 4px 16px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      position: relative;
+      overflow: hidden;
+    }
+    .admin-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #0ea5e9, #06b6d4, #6366f1);
     }
     .admin-header h1 {
-      margin: 0 0 10px 0;
-      font-size: 2rem;
+      margin: 0 0 8px 0;
+      font-size: 2.25rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+    .admin-header p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      margin: 0;
     }
     .admin-content {
       display: none;
@@ -82,21 +148,55 @@
       margin-bottom: 30px;
     }
     .stat-card {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.06),
+        0 2px 8px rgba(0, 0, 0, 0.03);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #0ea5e9, #6366f1);
+      transform: scaleX(0);
+      transition: transform 0.4s ease;
+      transform-origin: left;
+    }
+    .stat-card:hover::before {
+      transform: scaleX(1);
+    }
+    .stat-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.12),
+        0 6px 20px rgba(0, 0, 0, 0.08);
+      border-color: rgba(14, 165, 233, 0.3);
     }
     .stat-card h3 {
-      margin: 0 0 10px 0;
-      font-size: 0.9rem;
+      margin: 0 0 12px 0;
+      font-size: 0.875rem;
       color: #64748b;
       text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
     }
     .stat-card .value {
-      font-size: 2rem;
-      font-weight: bold;
-      color: #1e293b;
+      font-size: 2.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
     }
     .stat-card .change {
       font-size: 0.85rem;
@@ -109,39 +209,110 @@
       color: #ef4444;
     }
     .chart-container {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      margin-bottom: 30px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+      padding: 28px;
+      border-radius: 16px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        0 4px 16px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      margin-bottom: 32px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .chart-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #0ea5e9, #6366f1);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .chart-container:hover::before {
+      opacity: 1;
+    }
+    .chart-container:hover {
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.12),
+        0 6px 20px rgba(0, 0, 0, 0.08);
+      border-color: rgba(14, 165, 233, 0.2);
+      transform: translateY(-2px);
     }
     .chart-container h3 {
-      margin: 0 0 20px 0;
+      margin: 0 0 24px 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
     }
     .table-container {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+      border-radius: 16px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.08),
+        0 4px 16px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(226, 232, 240, 0.8);
       overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .table-container:hover {
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.12),
+        0 6px 20px rgba(0, 0, 0, 0.08);
+      border-color: rgba(14, 165, 233, 0.2);
     }
     table {
       width: 100%;
       border-collapse: collapse;
     }
     table th {
-      background: #f8fafc;
-      padding: 12px;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%);
+      padding: 16px 20px;
       text-align: left;
-      font-weight: 600;
-      color: #475569;
-      border-bottom: 2px solid #e2e8f0;
+      font-weight: 700;
+      color: #1e293b;
+      border-bottom: 3px solid #0ea5e9;
+      font-size: 0.8125rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
     }
     table td {
-      padding: 12px;
-      border-bottom: 1px solid #e2e8f0;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+    }
+    table tr {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    table tr::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, #0ea5e9, #6366f1);
+      transform: scaleY(0);
+      transition: transform 0.3s ease;
+      transform-origin: top;
     }
     table tr:hover {
-      background: #f8fafc;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.06) 0%, rgba(99, 102, 241, 0.03) 100%);
+      transform: translateX(4px);
+      box-shadow: -2px 0 8px rgba(14, 165, 233, 0.15);
+    }
+    table tr:hover::before {
+      transform: scaleY(1);
     }
     .btn-group {
       display: flex;
@@ -157,11 +328,38 @@
       transition: all 0.2s;
     }
     .btn-primary {
-      background: #0ea5e9;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
       color: white;
+      border: none;
+      box-shadow: 
+        0 4px 12px rgba(14, 165, 233, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+    .btn-primary:hover::before {
+      left: 100%;
     }
     .btn-primary:hover {
-      background: #0284c7;
+      background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%);
+      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 20px rgba(14, 165, 233, 0.4),
+        0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
     }
     .btn-secondary {
       background: #64748b;
@@ -393,8 +591,8 @@
   <div class="admin-container">
     <!-- Sidebar -->
     <aside class="admin-sidebar">
-      <div class="logo">
-        <h2>🚀 Admin Panel</h2>
+      <div class="logo" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(99, 102, 241, 0.1)); padding: 20px; border-radius: 12px; margin: 20px; border: 1px solid rgba(14, 165, 233, 0.2);">
+        <h2 style="background: linear-gradient(135deg, #0ea5e9, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 800; letter-spacing: -0.02em;">🚀 Admin Panel</h2>
       </div>
       <ul class="admin-nav">
         <li><a href="#" class="nav-link active" data-section="dashboard">📊 Dashboard</a></li>
@@ -407,6 +605,7 @@
         <li><a href="#" class="nav-link" data-section="blog-comments">💬 Comentarios Blog</a></li>
         <li><a href="#" class="nav-link" data-section="homepage">🏠 Homepage</a></li>
         <li><a href="#" class="nav-link" data-section="email-settings">📧 Configuración de Email</a></li>
+        <li><a href="#" class="nav-link" data-section="chatbot-settings">🤖 Configuración del Chatbot</a></li>
         <li><a href="#" class="nav-link" data-section="media">🖼️ Media</a></li>
         <li><a href="#" class="nav-link" data-section="pages">📄 Páginas</a></li>
         <li><a href="#" class="nav-link" data-section="reports">📈 Reportes</a></li>
@@ -699,6 +898,70 @@
                 <tr><td colspan="2" class="loading">Cargando...</td></tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chatbot Settings Section -->
+      <div id="chatbot-settings-section" class="admin-content">
+        <div class="form-group">
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="loadChatbotSettings()">🔄 Recargar</button>
+            <button class="btn btn-success" onclick="saveChatbotSettings()">💾 Guardar Cambios</button>
+            <button class="btn btn-secondary" onclick="testChatbotConnection()">🧪 Probar Conexión</button>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <h3>Configuración de OpenAI para el Chatbot</h3>
+          <p class="form-hint">Configura la API de OpenAI para habilitar respuestas inteligentes en el chatbot. Si no configuras la API Key, el chatbot usará respuestas predefinidas.</p>
+          
+          <div id="chatbotSettingsForm" style="display: grid; gap: 20px; max-width: 700px;">
+            <div class="loading">Cargando configuración...</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <h3>Estado del Chatbot</h3>
+          <div id="chatbotStatus" style="padding: 20px; background: var(--bg-secondary); border-radius: 12px;">
+            <div class="loading">Verificando estado...</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <h3>Configuración actual (resumen)</h3>
+          <div class="table-container">
+            <table id="chatbotSettingsTable">
+              <thead>
+                <tr>
+                  <th>Campo</th>
+                  <th>Valor</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="chatbotSettingsTableBody">
+                <tr><td colspan="3" class="loading">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="chart-container" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(99, 102, 241, 0.03)); border: 1px solid rgba(14, 165, 233, 0.2);">
+          <h3>💡 Información</h3>
+          <div style="line-height: 1.8; color: var(--text-secondary);">
+            <p><strong>¿Cómo obtener una API Key de OpenAI?</strong></p>
+            <ol style="margin-left: 20px; margin-top: 10px;">
+              <li>Visita <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a></li>
+              <li>Crea una cuenta o inicia sesión</li>
+              <li>Genera una nueva API Key</li>
+              <li>Copia la clave y pégala en el campo "API Key" arriba</li>
+            </ol>
+            <p style="margin-top: 15px;"><strong>Modelos disponibles:</strong></p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+              <li><code>gpt-4o-mini</code> - Recomendado: rápido y económico</li>
+              <li><code>gpt-4o</code> - Más potente pero más costoso</li>
+              <li><code>gpt-3.5-turbo</code> - Alternativa económica</li>
+            </ul>
           </div>
         </div>
       </div>

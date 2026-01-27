@@ -24,10 +24,11 @@
   </nav>
 
   <main class="checkout-container wrap">
-    <!-- Header Minimalista -->
+    <!-- Header Premium -->
     <div class="checkout-header">
+      <div style="font-size: 3.5rem; margin-bottom: 16px; animation: fadeInUp 0.6s ease-out;">✨</div>
       <h1>Confirma tu Reserva</h1>
-      <p class="checkout-subtitle">Estás a un paso de vivir esta experiencia</p>
+      <p class="checkout-subtitle">Estás a un paso de vivir esta experiencia inolvidable</p>
     </div>
 
     <div class="checkout-grid">
@@ -36,7 +37,12 @@
         
         <!-- Login Inline (si no está autenticado) -->
         <section class="checkout-section" id="loginInlineSection" style="display:none;">
-          <h2 class="section-title">Inicia Sesión o Continúa Rápido</h2>
+          <h2 class="section-title">
+            <span style="display: inline-flex; align-items: center; gap: 10px;">
+              <span>🔐</span>
+              <span>Inicia Sesión o Continúa Rápido</span>
+            </span>
+          </h2>
           <div class="login-inline">
             <div class="form-group">
               <label class="form-label">Email</label>
@@ -71,7 +77,12 @@
 
         <!-- Número de Participantes (Solo esto antes de pagar) -->
         <section class="checkout-section">
-          <h2 class="section-title">¿Cuántas personas?</h2>
+          <h2 class="section-title">
+            <span style="display: inline-flex; align-items: center; gap: 10px;">
+              <span>👥</span>
+              <span>¿Cuántas personas?</span>
+            </span>
+          </h2>
           <div class="form-group" style="max-width: 200px;">
             <label class="form-label">Número de Personas</label>
             <input type="number" id="numberOfParticipants" class="form-input" min="1" max="10" value="1" onchange="updateParticipantsCount()" />
@@ -90,7 +101,12 @@
 
         <!-- Método de Pago (Simplificado) -->
         <section class="checkout-section">
-          <h2 class="section-title">Método de Pago</h2>
+          <h2 class="section-title">
+            <span style="display: inline-flex; align-items: center; gap: 10px;">
+              <span>💳</span>
+              <span>Método de Pago</span>
+            </span>
+          </h2>
           <div class="payment-methods">
             <!-- Stripe -->
             <div class="payment-method-card selected" data-method="stripe" onclick="selectPaymentMethod('stripe')">
@@ -233,8 +249,9 @@
           </div>
 
           <!-- Microcopy de Seguridad Final -->
-          <p class="checkout-confirmation-hint" style="font-size: 0.9rem; color: var(--text-secondary); text-align: center; margin-bottom: var(--space-md); padding: var(--space-sm); background: var(--bg-secondary); border-radius: var(--radius-sm);">
-            ✉️ Confirmación inmediata por email
+          <p class="checkout-confirmation-hint" style="font-size: 0.9rem; color: var(--text-secondary); text-align: center; margin-bottom: var(--space-md); padding: var(--space-md); background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(99, 102, 241, 0.05)); border-radius: var(--radius); border: 1px solid rgba(14, 165, 233, 0.2); display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span style="font-size: 1.2rem;">✉️</span>
+            <span>Confirmación inmediata por email</span>
           </p>
 
           <!-- Botón Principal -->
@@ -244,23 +261,26 @@
           </button>
 
           <!-- Confianza -->
-          <div class="trust-badges">
-            <div class="trust-item">
-              <span class="trust-icon">🔒</span>
-              <span class="trust-text">Pago 100% seguro</span>
+          <div class="trust-badges" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(99, 102, 241, 0.03)); padding: var(--space-lg); border-radius: var(--radius); border: 1px solid rgba(14, 165, 233, 0.15);">
+            <div class="trust-item" style="padding: var(--space-sm) 0;">
+              <span class="trust-icon" style="font-size: 1.25rem;">🔒</span>
+              <span class="trust-text" style="font-weight: 600;">Pago 100% seguro</span>
             </div>
-            <div class="trust-item">
-              <span class="trust-icon">💳</span>
-              <span class="trust-text">Datos cifrados SSL</span>
+            <div class="trust-item" style="padding: var(--space-sm) 0;">
+              <span class="trust-icon" style="font-size: 1.25rem;">💳</span>
+              <span class="trust-text" style="font-weight: 600;">Datos cifrados SSL</span>
             </div>
-            <div class="trust-item">
-              <span class="trust-icon">↩️</span>
-              <span class="trust-text">Cancelación flexible</span>
+            <div class="trust-item" style="padding: var(--space-sm) 0;">
+              <span class="trust-icon" style="font-size: 1.25rem;">↩️</span>
+              <span class="trust-text" style="font-weight: 600;">Cancelación flexible</span>
             </div>
           </div>
 
-          <p class="summary-note">
-            Recibirás confirmación inmediata por email con todos los detalles de tu reserva
+          <p class="summary-note" style="background: rgba(14, 165, 233, 0.05); padding: var(--space-md); border-radius: var(--radius); border-left: 3px solid #0ea5e9; margin-top: var(--space-lg);">
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <span>📧</span>
+              <span>Recibirás confirmación inmediata por email con todos los detalles de tu reserva</span>
+            </span>
           </p>
         </div>
       </aside>
@@ -301,8 +321,9 @@
     /* Checkout Premium Styles */
     .checkout-nav {
       border-bottom: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     }
 
     .checkout-nav .nav-links {
@@ -316,15 +337,31 @@
     }
 
     .checkout-header h1 {
-      font-size: 2rem;
-      font-weight: var(--font-weight-bold);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 900;
       margin-bottom: var(--space-sm);
-      color: var(--text);
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
     }
 
     .checkout-subtitle {
       color: var(--text-secondary);
-      font-size: 1rem;
+      font-size: 1.125rem;
+      line-height: 1.6;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .checkout-grid {

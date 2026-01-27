@@ -807,6 +807,23 @@ class ApiClient {
     });
   }
 
+  async getAdminChatbotSettings() {
+    return this.request('/api/admin/chatbot-settings');
+  }
+
+  async updateAdminChatbotSettings(data) {
+    return this.request('/api/admin/chatbot-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async testChatbotConnection() {
+    return this.request('/api/admin/chatbot-settings/test', {
+      method: 'POST',
+    });
+  }
+
   // Admin Media
   async getAdminMedia(category = null, isImage = null, page = 1, pageSize = 50) {
     const params = new URLSearchParams();

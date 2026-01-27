@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PanamaTravelHub.Infrastructure.Data;
+using PanamaTravelHub.Infrastructure.Services;
 using System.Text.RegularExpressions;
 
 namespace PanamaTravelHub.API.Controllers;
@@ -11,11 +12,82 @@ public class ChatbotController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<ChatbotController> _logger;
+    private readonly IChatbotAIService _aiService;
+    private readonly IChatbotConversationService _conversationService;
 
-    public ChatbotController(ApplicationDbContext context, ILogger<ChatbotController> logger)
+    public ChatbotController(
+        ApplicationDbContext context, 
+        ILogger<ChatbotController> logger,
+        IChatbotAIService aiService,
+        IChatbotConversationService conversationService)
     {
         _context = context;
         _logger = logger;
+        _aiService = aiService;
+        _conversationService = conversationService;
+    }
+
+    /// <summary>
+    /// Endpoint simplificado para chat - FASE 3 (Integración con IA)
+    /// </summary>
+    [HttpPost("~/api/chat")]
+    public async Task<ActionResult<ChatbotResponseDto>> Chat([FromBody] ChatRequestDto request)
+    {
+        try
+        {
+            // Validación básica
+            if (string.IsNullOrWhiteSpace(request.Message))
+            {
+                return BadRequest(new ChatbotResponseDto
+                {
+                    Response = "Por favor, envía un mensaje válido.",
+                    SessionId = request.SessionId ?? string.Empty
+                });
+            }
+
+            // Validar sessionId
+            if (string.IsNullOrWhiteSpace(request.SessionId))
+            {
+                return BadRequest(new ChatbotResponseDto
+                {
+                    Response = "SessionId es requerido para mantener el contexto de la conversación.",
+                    SessionId = string.Empty
+                });
+            }
+
+            _logger.LogInformation("Chat request recibido - SessionId: {SessionId}, Message: {Message}", 
+                request.SessionId, request.Message);
+
+            // Agregar mensaje del usuario al historial
+            _conversationService.AddMessage(request.SessionId, "user", request.Message);
+
+            // Obtener historial de conversación
+            var conversationHistory = _conversationService.GetConversationHistory(request.SessionId);
+
+            // Generar respuesta usando IA
+            var response = await _aiService.GenerateResponseAsync(
+                request.Message, 
+                request.SessionId, 
+                conversationHistory);
+
+            // Agregar respuesta del bot al historial
+            _conversationService.AddMessage(request.SessionId, "assistant", response);
+
+            return Ok(new ChatbotResponseDto
+            {
+                Response = response,
+                SessionId = request.SessionId
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error procesando mensaje del chat - SessionId: {SessionId}", request.SessionId);
+            return StatusCode(500, new ChatbotResponseDto
+            {
+                Response = "Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo en un momento.",
+                SessionId = request.SessionId ?? string.Empty
+            });
+        }
     }
 
     [HttpPost("message")]
@@ -322,6 +394,65 @@ Si tienes problemas al realizar un pago, contacta con nuestro equipo de soporte.
                "• \"¿Cuánto cuesta un tour?\"\n" +
                "• \"¿Cómo puedo reservar?\"";
     }
+
+    /// <summary>
+    /// Genera respuesta mock sin consultar BD (FASE 2)
+    /// </summary>
+    private async Task<string> GenerateMockResponse(string message, string sessionId)
+    {
+        // Simular delay de procesamiento
+        await Task.Delay(500 + new Random().Next(500));
+
+        var messageLower = message.Trim().ToLower();
+        
+        // Detectar intención simple
+        if (Regex.IsMatch(messageLower, @"\b(hola|hi|buenos|buenas|saludos|hey)\b", RegexOptions.IgnoreCase))
+        {
+            var greetings = new[]
+            {
+                "¡Hola! 👋 Me alegra saludarte. ¿En qué puedo ayudarte hoy?",
+                "¡Bienvenido! 😊 Estoy aquí para ayudarte a encontrar el tour perfecto.",
+                "Hola! 👋 ¿Buscas algún tour en particular o tienes alguna pregunta?",
+                "¡Hola! 🎉 ¿Qué te gustaría saber sobre nuestros tours?"
+            };
+            return greetings[new Random().Next(greetings.Length)];
+        }
+
+        if (Regex.IsMatch(messageLower, @"\b(tour|tours|disponible|disponibles|ver|mostrar|listar|buscar|encontrar|recomendar)\b", RegexOptions.IgnoreCase))
+        {
+            return "¡Excelente! Tenemos una amplia variedad de tours disponibles en Panamá. Puedes explorar tours de aventura, culturales, ecológicos y más. ¿Te gustaría que te recomiende alguno en particular? 🌴✨";
+        }
+
+        if (Regex.IsMatch(messageLower, @"\b(precio|precios|costo|costos|cuanto|cuánto|barato|económico|descuento|promoción|oferta)\b", RegexOptions.IgnoreCase))
+        {
+            return "Nuestros precios varían según el tipo de tour y la temporada. Ofrecemos descuentos especiales para grupos y reservas anticipadas. También tenemos cupones de descuento disponibles. ¿Quieres que te muestre las opciones? 💰";
+        }
+
+        if (Regex.IsMatch(messageLower, @"\b(reservar|reserva|booking|reservación|comprar|pagar|checkout)\b", RegexOptions.IgnoreCase))
+        {
+            return "¡Reservar es muy fácil! Solo necesitas: 1) Seleccionar el tour que te interesa, 2) Elegir la fecha, 3) Completar tus datos y 4) Realizar el pago. Todo el proceso toma menos de 5 minutos. ¿Necesitas ayuda con algún paso? 📅";
+        }
+
+        if (Regex.IsMatch(messageLower, @"\b(contacto|contactar|soporte|ayuda|hablar|llamar|email|correo|teléfono|telefono)\b", RegexOptions.IgnoreCase))
+        {
+            return "Puedes contactarnos por: 📧 Email: info@panamatravelhub.com 📱 Teléfono: +507 1234-5678 💬 Este chat (estamos aquí para ayudarte) También puedes visitarnos en nuestras oficinas. ¿En qué podemos ayudarte? 🤝";
+        }
+
+        if (Regex.IsMatch(messageLower, @"\b(gracias|muchas gracias|thank you|thanks)\b", RegexOptions.IgnoreCase))
+        {
+            return "¡De nada! 😊 Estoy aquí para ayudarte siempre que lo necesites. ¿Hay algo más en lo que pueda asistirte?";
+        }
+
+        // Respuesta genérica amigable
+        return "Gracias por tu mensaje. Estoy aquí para ayudarte con información sobre nuestros tours, precios, reservas y más. ¿Hay algo específico en lo que pueda asistirte? 😊";
+    }
+}
+
+// DTO simplificado para FASE 2
+public class ChatRequestDto
+{
+    public string Message { get; set; } = string.Empty;
+    public string SessionId { get; set; } = string.Empty;
 }
 
 // DTOs

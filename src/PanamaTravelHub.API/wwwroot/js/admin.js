@@ -75,6 +75,7 @@ function showSection(sectionName) {
       'blog-comments': 'Comentarios de Blog',
       'homepage': 'Contenido de Homepage',
       'email-settings': 'Configuración de Email',
+      'chatbot-settings': 'Configuración del Chatbot',
       'media': 'Biblioteca de Media',
       'pages': 'Gestión de Páginas',
       'reports': 'Reportes y Analytics',
@@ -134,6 +135,9 @@ async function loadSectionData(sectionName) {
       break;
     case 'email-settings':
       await loadEmailSettings();
+      break;
+    case 'chatbot-settings':
+      await loadChatbotSettings();
       break;
     case 'media':
       await loadMedia();
@@ -664,6 +668,218 @@ async function saveEmailSettings() {
   } catch (error) {
     console.error('Error guardando configuración de email:', error);
     showError('Error al guardar la configuración de email');
+  }
+}
+
+// Configuración del Chatbot (OpenAI)
+async function loadChatbotSettings() {
+  try {
+    const settings = await api.getAdminChatbotSettings();
+    const apiKey = settings.ApiKey ?? settings.apiKey ?? '';
+    const model = settings.Model ?? settings.model ?? 'gpt-4o-mini';
+    const maxTokens = settings.MaxTokens ?? settings.maxTokens ?? 300;
+    const temperature = settings.Temperature ?? settings.temperature ?? 0.7;
+    const isEnabled = (settings.Enabled ?? settings.enabled) !== false;
+
+    const form = document.getElementById('chatbotSettingsForm');
+    const tbody = document.getElementById('chatbotSettingsTableBody');
+    const statusDiv = document.getElementById('chatbotStatus');
+    
+    if (!form || !tbody || !statusDiv) return;
+
+    // Formulario
+    form.innerHTML = `
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="chatbotEnabled" ${isEnabled ? 'checked' : ''} /> 
+          Habilitar Chatbot con IA
+        </label>
+        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 8px;">
+          Si está deshabilitado, el chatbot usará respuestas predefinidas.
+        </p>
+      </div>
+      <div class="form-group">
+        <label>API Key de OpenAI</label>
+        <input 
+          type="password" 
+          id="chatbotApiKey" 
+          value="${escapeHtml(apiKey)}" 
+          class="form-input" 
+          placeholder="sk-..." 
+          autocomplete="new-password"
+        />
+        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 8px;">
+          Deja en blanco para mantener la actual. La clave se mostrará oculta por seguridad.
+        </p>
+      </div>
+      <div class="form-group">
+        <label>Modelo de IA</label>
+        <select id="chatbotModel" class="form-input">
+          <option value="gpt-4o-mini" ${model === 'gpt-4o-mini' ? 'selected' : ''}>gpt-4o-mini (Recomendado - Rápido y económico)</option>
+          <option value="gpt-4o" ${model === 'gpt-4o' ? 'selected' : ''}>gpt-4o (Más potente pero más costoso)</option>
+          <option value="gpt-3.5-turbo" ${model === 'gpt-3.5-turbo' ? 'selected' : ''}>gpt-3.5-turbo (Alternativa económica)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Máximo de Tokens (longitud de respuesta)</label>
+        <input 
+          type="number" 
+          id="chatbotMaxTokens" 
+          value="${maxTokens}" 
+          class="form-input" 
+          min="50" 
+          max="1000" 
+          step="50"
+        />
+        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 8px;">
+          Recomendado: 200-300 tokens para respuestas concisas.
+        </p>
+      </div>
+      <div class="form-group">
+        <label>Temperatura (creatividad)</label>
+        <input 
+          type="number" 
+          id="chatbotTemperature" 
+          value="${temperature}" 
+          class="form-input" 
+          min="0" 
+          max="2" 
+          step="0.1"
+        />
+        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 8px;">
+          Valores más bajos (0.3-0.7) = más consistente. Valores más altos (0.8-1.2) = más creativo.
+        </p>
+      </div>
+    `;
+
+    // Tabla de resumen
+    const apiKeyDisplay = apiKey ? `${apiKey.substring(0, 7)}...${apiKey.substring(apiKey.length - 4)}` : 'No configurada';
+    const statusText = isEnabled && apiKey ? '✅ Activo' : apiKey ? '⚠️ Configurado pero deshabilitado' : '❌ No configurado';
+    const statusColor = isEnabled && apiKey ? '#10b981' : apiKey ? '#f59e0b' : '#ef4444';
+    
+    tbody.innerHTML = `
+      <tr>
+        <td>Estado</td>
+        <td><strong style="color: ${statusColor};">${statusText}</strong></td>
+        <td>-</td>
+      </tr>
+      <tr>
+        <td>API Key</td>
+        <td>${apiKeyDisplay}</td>
+        <td>${apiKey ? '✅' : '❌'}</td>
+      </tr>
+      <tr>
+        <td>Modelo</td>
+        <td>${escapeHtml(model)}</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td>Max Tokens</td>
+        <td>${maxTokens}</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td>Temperatura</td>
+        <td>${temperature}</td>
+        <td>✅</td>
+      </tr>
+    `;
+
+    // Estado del chatbot
+    if (isEnabled && apiKey) {
+      statusDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05)); border-radius: 12px; border: 2px solid rgba(16, 185, 129, 0.3);">
+          <div style="font-size: 2rem;">✅</div>
+          <div>
+            <strong style="color: #059669;">Chatbot con IA Activo</strong>
+            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">
+              El chatbot está configurado y funcionando con OpenAI. Los usuarios recibirán respuestas inteligentes.
+            </p>
+          </div>
+        </div>
+      `;
+    } else if (apiKey) {
+      statusDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.05)); border-radius: 12px; border: 2px solid rgba(245, 158, 11, 0.3);">
+          <div style="font-size: 2rem;">⚠️</div>
+          <div>
+            <strong style="color: #d97706;">Chatbot Deshabilitado</strong>
+            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">
+              La API Key está configurada pero el chatbot está deshabilitado. Actívalo para usar respuestas inteligentes.
+            </p>
+          </div>
+        </div>
+      `;
+    } else {
+      statusDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05)); border-radius: 12px; border: 2px solid rgba(239, 68, 68, 0.3);">
+          <div style="font-size: 2rem;">❌</div>
+          <div>
+            <strong style="color: #dc2626;">Chatbot no configurado</strong>
+            <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">
+              El chatbot está usando respuestas predefinidas. Configura la API Key de OpenAI para habilitar respuestas inteligentes.
+            </p>
+          </div>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Error cargando configuración del chatbot:', error);
+    showError('Error al cargar la configuración del chatbot');
+    const form = document.getElementById('chatbotSettingsForm');
+    const tbody = document.getElementById('chatbotSettingsTableBody');
+    const statusDiv = document.getElementById('chatbotStatus');
+    if (form) form.innerHTML = '<div class="loading" style="color: var(--color-error);">Error al cargar. Reintenta.</div>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3">Error al cargar</td></tr>';
+    if (statusDiv) statusDiv.innerHTML = '<div style="color: var(--color-error);">Error al verificar estado</div>';
+  }
+}
+
+async function saveChatbotSettings() {
+  try {
+    const data = {
+      Enabled: document.getElementById('chatbotEnabled')?.checked ?? false,
+      ApiKey: document.getElementById('chatbotApiKey')?.value?.trim() || null,
+      Model: document.getElementById('chatbotModel')?.value || 'gpt-4o-mini',
+      MaxTokens: parseInt(document.getElementById('chatbotMaxTokens')?.value, 10) || 300,
+      Temperature: parseFloat(document.getElementById('chatbotTemperature')?.value) || 0.7
+    };
+    
+    // Si la API Key está vacía, no la enviamos (mantener la actual)
+    if (data.ApiKey === '') {
+      data.ApiKey = null;
+    }
+
+    await api.updateAdminChatbotSettings(data);
+    showSuccess('Configuración del chatbot guardada correctamente');
+    await loadChatbotSettings();
+  } catch (error) {
+    console.error('Error guardando configuración del chatbot:', error);
+    showError('Error al guardar la configuración del chatbot');
+  }
+}
+
+async function testChatbotConnection() {
+  try {
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Probando...';
+
+    const result = await api.testChatbotConnection();
+    
+    if (result.success) {
+      showSuccess('✅ Conexión exitosa con OpenAI. El chatbot está funcionando correctamente.');
+    } else {
+      showError(`❌ Error de conexión: ${result.message || 'No se pudo conectar con OpenAI'}`);
+    }
+  } catch (error) {
+    console.error('Error probando conexión del chatbot:', error);
+    showError('Error al probar la conexión del chatbot');
+  } finally {
+    const btn = event.target;
+    btn.disabled = false;
+    btn.textContent = '🧪 Probar Conexión';
   }
 }
 

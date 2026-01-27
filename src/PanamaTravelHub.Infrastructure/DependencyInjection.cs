@@ -77,6 +77,13 @@ public static class DependencyInjection
         // Registrar servicio de auditoría
         services.AddScoped<IAuditService, AuditService>();
 
+        // Registrar HttpClientFactory para el chatbot
+        services.AddHttpClient();
+
+        // Registrar servicios del chatbot - FASE 3
+        services.AddScoped<IChatbotAIService, ChatbotAIService>();
+        services.AddSingleton<IChatbotConversationService, ChatbotConversationService>();
+
         return services;
     }
 }

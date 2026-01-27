@@ -1,0 +1,161 @@
+﻿[
+    {
+        "Status":  "OK",
+        "Rol":  "Publico",
+        "Test":  "Homepage"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Publico",
+        "Test":  "Listar Tours"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Publico",
+        "Test":  "Buscar Tours"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Publico",
+        "Test":  "Detalle Tour"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Publico",
+        "Test":  "Fechas Tour"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Publico",
+        "Test":  "Paises"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Customer",
+        "Test":  "Login"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Customer",
+        "Test":  "Auth Me"
+    },
+    {
+        "Status":  "OK",
+        "Got":  400,
+        "Rol":  "Customer",
+        "Test":  "Validar Cupon (acceso)"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Customer",
+        "Test":  "Mis Reservas"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Customer",
+        "Test":  "Crear Reserva"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Customer",
+        "Test":  "Obtener Reserva"
+    },
+    {
+        "Status":  "OK",
+        "Got":  403,
+        "Rol":  "Customer",
+        "Expect":  403,
+        "Test":  "Admin Tours (debe 403)"
+    },
+    {
+        "Status":  "OK",
+        "Got":  403,
+        "Rol":  "Customer",
+        "Expect":  403,
+        "Test":  "Admin Bookings (debe 403)"
+    },
+    {
+        "Status":  "OK",
+        "Got":  403,
+        "Rol":  "Customer",
+        "Expect":  403,
+        "Test":  "Admin Stats (debe 403)"
+    },
+    {
+        "Status":  "OK",
+        "Got":  403,
+        "Rol":  "Customer",
+        "Expect":  403,
+        "Test":  "Admin Homepage (debe 403)"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Login"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Auth Me"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Cupones"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Mis Reservas"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Admin Tours"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Admin Bookings"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Admin Stats"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Admin Homepage Content"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Admin Media"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Admin Pages"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Admin Users"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Admin Roles"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Crear Reserva"
+    },
+    {
+        "Status":  "OK",
+        "Rol":  "Admin",
+        "Test":  "Obtener Reserva"
+    }
+]

@@ -1,0 +1,56 @@
+﻿[
+    {
+        "Test":  "1. Homepage Content",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "2. Listar Tours",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "2b. Buscar Tours",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "3. Detalle Tour",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "3b. Fechas Tour",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "4. Login",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "4b. Usuario Actual",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "5. Listar Cupones",
+        "Status":  "OK"
+    },
+    {
+        "Status":  "ERROR",
+        "Code":  400,
+        "Error":  "The remote server returned an error: (400) Bad Request.",
+        "Test":  "5b. Validar Cupon"
+    },
+    {
+        "Test":  "6. Listar Paises",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "7. Crear Reserva",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "7b. Obtener Reserva",
+        "Status":  "OK"
+    },
+    {
+        "Test":  "8. Mis Reservas",
+        "Status":  "OK"
+    }
+]

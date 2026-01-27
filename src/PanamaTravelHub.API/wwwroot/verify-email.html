@@ -26,6 +26,7 @@
   <div class="auth-container">
     <div class="auth-card">
       <div class="auth-header">
+        <div id="headerIcon" style="font-size: 4rem; margin-bottom: 16px; animation: fadeInUp 0.6s ease-out;">📧</div>
         <h1>Verificar Correo Electrónico</h1>
         <p id="statusMessage">Verificando tu correo electrónico...</p>
       </div>
@@ -34,29 +35,58 @@
       <div id="successMessage" class="success-message" style="display:none;"></div>
 
       <div id="verificationForm" style="display:none;">
-        <p style="margin-bottom: 20px; color: #666;">
-          Ingresa el código de verificación que enviamos a tu correo electrónico, o haz clic en el enlace del email.
+        <p style="margin-bottom: 24px; color: var(--text-secondary); line-height: 1.7; font-size: 0.9375rem;">
+          Ingresa el código de verificación de 6 dígitos que enviamos a tu correo electrónico, o haz clic en el enlace del email.
         </p>
         <div class="form-group">
-          <label class="form-label" for="verificationToken">Código de Verificación</label>
-          <input type="text" id="verificationToken" class="form-input" placeholder="Pega el código aquí" />
+          <label class="form-label" for="verificationToken">
+            <span style="display: inline-flex; align-items: center; gap: 8px;">
+              <span>🔢</span>
+              <span>Código de Verificación</span>
+            </span>
+          </label>
+          <div class="input-wrapper">
+            <input 
+              type="text" 
+              id="verificationToken" 
+              class="form-input" 
+              placeholder="000000" 
+              maxlength="6"
+              pattern="[0-9]{6}"
+              autocomplete="one-time-code"
+              style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5em; font-weight: 600;"
+            />
+          </div>
           <span class="field-error" id="tokenError"></span>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 8px; text-align: center;">
+            El código expira en 15 minutos
+          </p>
         </div>
-        <button type="button" class="btn-primary" style="width: 100%;" onclick="verifyEmail()">
-          Verificar Email
+        <button type="button" class="btn-primary" style="width: 100%; margin-top: 8px;" onclick="verifyEmail()">
+          <span>Verificar Email</span>
         </button>
-        <div style="margin-top: 20px; text-align: center;">
-          <a href="#" onclick="resendVerificationEmail(event)">¿No recibiste el email? Reenviar</a>
+        <div style="margin-top: 24px; text-align: center; padding-top: 24px; border-top: 1px solid var(--border);">
+          <a href="#" onclick="resendVerificationEmail(event)" style="color: var(--primary); font-weight: 600; text-decoration: none; transition: all 0.2s ease;">
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <span>↻</span>
+              <span>¿No recibiste el email? Reenviar</span>
+            </span>
+          </a>
         </div>
       </div>
 
-      <div id="successContent" style="display:none; text-align: center;">
-        <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
-        <h2 style="color: #0ea5e9; margin-bottom: 10px;">¡Email Verificado!</h2>
-        <p style="color: #666; margin-bottom: 30px;">
+      <div id="successContent" style="display:none; text-align: center; padding: var(--space-lg) 0;">
+        <div style="font-size: 5rem; margin-bottom: 24px; animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);">✅</div>
+        <h2 style="font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px; letter-spacing: -0.02em;">
+          ¡Email Verificado!
+        </h2>
+        <p style="color: var(--text-secondary); margin-bottom: 32px; line-height: 1.7; font-size: 1rem;">
           Tu correo electrónico ha sido verificado exitosamente. Ya puedes usar todas las funcionalidades de tu cuenta.
         </p>
-        <a href="/reservas.html" class="btn-primary">Ir a Mis Reservas</a>
+        <a href="/reservas.html" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 16px 32px; font-size: 1rem; font-weight: 600;">
+          <span>Ir a Mis Reservas</span>
+          <span>→</span>
+        </a>
       </div>
     </div>
   </div>
@@ -76,7 +106,23 @@
       // Mostrar formulario para ingresar token manualmente
       document.getElementById('verificationForm').style.display = 'block';
       document.getElementById('statusMessage').textContent = 'Ingresa el código de verificación';
+      document.getElementById('headerIcon').textContent = '🔐';
     }
+
+    // Validar código en tiempo real (solo números, 6 dígitos)
+    document.addEventListener('DOMContentLoaded', () => {
+      const verificationToken = document.getElementById('verificationToken');
+      if (verificationToken) {
+        verificationToken.addEventListener('input', function() {
+          // Solo permitir números
+          this.value = this.value.replace(/[^0-9]/g, '');
+          // Limitar a 6 dígitos
+          if (this.value.length > 6) {
+            this.value = this.value.substring(0, 6);
+          }
+        });
+      }
+    });
 
     async function verifyEmailWithToken(token) {
       const statusMessage = document.getElementById('statusMessage');
@@ -93,6 +139,7 @@
         verificationForm.style.display = 'none';
         statusMessage.style.display = 'none';
         successContent.style.display = 'block';
+        document.getElementById('headerIcon').textContent = '✅';
         
         logger.success('Email verificado exitosamente');
       } catch (error) {
@@ -127,7 +174,15 @@
 
       try {
         await api.sendVerificationEmail();
-        successMessage.textContent = 'Email de verificación reenviado. Revisa tu bandeja de entrada.';
+        successMessage.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 12px; padding: var(--space-md);">
+            <span style="font-size: 1.5rem;">✉️</span>
+            <div>
+              <strong style="display: block; margin-bottom: 4px; color: #059669;">Email Reenviado</strong>
+              <span style="color: #059669;">Revisa tu bandeja de entrada y la carpeta de spam.</span>
+            </div>
+          </div>
+        `;
         successMessage.style.display = 'block';
         errorMessage.style.display = 'none';
       } catch (error) {

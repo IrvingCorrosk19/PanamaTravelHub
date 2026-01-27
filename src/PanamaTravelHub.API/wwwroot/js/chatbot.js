@@ -1,19 +1,24 @@
 // ============================================
-// CHATBOT CON IA - Cliente Frontend
+// CHATBOT UI/UX - Solo Interfaz (Sin Backend)
+// Diseño Premium y Emocional
 // ============================================
 
 class Chatbot {
   constructor() {
     this.isOpen = false;
-    this.sessionId = this.generateSessionId();
-    this.messageHistory = [];
     this.isTyping = false;
+    this.messageHistory = [];
+    this.sessionId = null; // SessionId para mantener contexto
+    
+    // Respuestas de ejemplo para acciones rápidas (fallback)
+    this.demoResponses = {
+      'tours': '¡Excelente! Tenemos una amplia variedad de tours disponibles en Panamá. Puedes explorar tours de aventura, culturales, ecológicos y más. ¿Te gustaría que te recomiende alguno en particular? 🌴✨',
+      'pricing': 'Nuestros precios varían según el tipo de tour y la temporada. Ofrecemos descuentos especiales para grupos y reservas anticipadas. También tenemos cupones de descuento disponibles. ¿Quieres que te muestre las opciones? 💰',
+      'booking': '¡Reservar es muy fácil! Solo necesitas: 1) Seleccionar el tour que te interesa, 2) Elegir la fecha, 3) Completar tus datos y 4) Realizar el pago. Todo el proceso toma menos de 5 minutos. ¿Necesitas ayuda con algún paso? 📅',
+      'contact': 'Puedes contactarnos por: 📧 Email: info@panamatravelhub.com 📱 Teléfono: +507 1234-5678 💬 Este chat (estamos aquí para ayudarte) También puedes visitarnos en nuestras oficinas. ¿En qué podemos ayudarte? 🤝'
+    };
     
     this.init();
-  }
-
-  generateSessionId() {
-    return 'chatbot-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
   }
 
   init() {
@@ -35,7 +40,7 @@ class Chatbot {
               <p>Estamos aquí para ayudarte</p>
             </div>
           </div>
-          <button class="chatbot-close" id="chatbotClose">×</button>
+          <button class="chatbot-close" id="chatbotClose" aria-label="Cerrar chat">×</button>
         </div>
         <div class="chatbot-messages" id="chatbotMessages"></div>
         <div class="chatbot-quick-actions" id="chatbotQuickActions">
@@ -50,17 +55,18 @@ class Chatbot {
             id="chatbotInput" 
             placeholder="Escribe tu pregunta..."
             rows="1"
+            aria-label="Escribe tu mensaje"
           ></textarea>
-          <button class="chatbot-send" id="chatbotSend" type="button">
-            <svg viewBox="0 0 24 24">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          <button class="chatbot-send" id="chatbotSend" type="button" aria-label="Enviar mensaje">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
           </button>
         </div>
       </div>
-      <button class="chatbot-button" id="chatbotButton" type="button">
-        <svg viewBox="0 0 24 24">
-          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+      <button class="chatbot-button" id="chatbotButton" type="button" aria-label="Abrir chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </button>
     `;
@@ -87,6 +93,15 @@ class Chatbot {
     button.addEventListener('click', () => this.toggle());
     close.addEventListener('click', () => this.close());
     
+    // Cerrar al hacer clic fuera (opcional, solo en mobile)
+    if (window.innerWidth <= 480) {
+      window.addEventListener('click', (e) => {
+        if (e.target === window && this.isOpen) {
+          this.close();
+        }
+      });
+    }
+    
     send.addEventListener('click', () => this.sendMessage());
     
     input.addEventListener('keydown', (e) => {
@@ -99,7 +114,10 @@ class Chatbot {
     input.addEventListener('input', () => {
       // Auto-resize textarea
       input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+      
+      // Habilitar/deshabilitar botón de envío
+      send.disabled = !input.value.trim() || this.isTyping;
     });
 
     // Quick actions
@@ -109,27 +127,37 @@ class Chatbot {
         this.handleQuickAction(action);
       });
     });
+
+    // Inicializar estado del botón
+    send.disabled = true;
   }
 
   toggle() {
     this.isOpen = !this.isOpen;
     const window = document.getElementById('chatbotWindow');
+    const button = document.getElementById('chatbotButton');
+    
     if (this.isOpen) {
       window.classList.add('open');
       document.getElementById('chatbotInput').focus();
+      button.setAttribute('aria-expanded', 'true');
     } else {
       window.classList.remove('open');
+      button.setAttribute('aria-expanded', 'false');
     }
   }
 
   close() {
     this.isOpen = false;
-    document.getElementById('chatbotWindow').classList.remove('open');
+    const window = document.getElementById('chatbotWindow');
+    const button = document.getElementById('chatbotButton');
+    window.classList.remove('open');
+    button.setAttribute('aria-expanded', 'false');
   }
 
   loadWelcomeMessage() {
     const messages = document.getElementById('chatbotMessages');
-    this.addMessage('bot', '¡Hola! 👋 Soy tu asistente virtual de PanamaTravelHub. ¿En qué puedo ayudarte hoy? Puedo ayudarte a encontrar tours, responder preguntas sobre reservas, precios y más.');
+    this.addMessage('bot', '¡Hola! 👋 Soy tu asistente virtual de PanamaTravelHub. ¿En qué puedo ayudarte hoy? Puedo ayudarte a encontrar tours, responder preguntas sobre reservas, precios y más. ¡Estoy aquí para hacer tu experiencia más fácil! ✨');
   }
 
   addMessage(sender, text, isTyping = false) {
@@ -138,6 +166,7 @@ class Chatbot {
     if (isTyping) {
       const typingDiv = document.createElement('div');
       typingDiv.className = 'chatbot-message bot';
+      typingDiv.setAttribute('data-typing', 'true');
       typingDiv.innerHTML = `
         <div class="chatbot-message-avatar">🤖</div>
         <div class="chatbot-message-typing">
@@ -147,7 +176,7 @@ class Chatbot {
         </div>
       `;
       messages.appendChild(typingDiv);
-      messages.scrollTop = messages.scrollHeight;
+      this.scrollToBottom();
       return typingDiv;
     }
 
@@ -159,24 +188,45 @@ class Chatbot {
     `;
     
     messages.appendChild(messageDiv);
-    messages.scrollTop = messages.scrollHeight;
+    this.scrollToBottom();
+    
+    // Guardar en historial
+    this.messageHistory.push({ sender, text, timestamp: Date.now() });
     
     return messageDiv;
   }
 
   formatMessage(text) {
+    // Escapar HTML para seguridad
+    const div = document.createElement('div');
+    div.textContent = text;
+    let safeText = div.innerHTML;
+    
     // Convertir URLs a enlaces
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    text = text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    safeText = safeText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
     
     // Convertir saltos de línea
-    text = text.replace(/\n/g, '<br>');
+    safeText = safeText.replace(/\n/g, '<br>');
     
-    return text;
+    // Convertir emojis simples (ya están en el texto)
+    return safeText;
+  }
+
+  scrollToBottom() {
+    const messages = document.getElementById('chatbotMessages');
+    // Usar requestAnimationFrame para suavizar el scroll
+    requestAnimationFrame(() => {
+      messages.scrollTo({
+        top: messages.scrollHeight,
+        behavior: 'smooth'
+      });
+    });
   }
 
   async sendMessage() {
     const input = document.getElementById('chatbotInput');
+    const send = document.getElementById('chatbotSend');
     const message = input.value.trim();
     
     if (!message || this.isTyping) return;
@@ -185,60 +235,143 @@ class Chatbot {
     this.addMessage('user', message);
     input.value = '';
     input.style.height = 'auto';
+    send.disabled = true;
     
     // Mostrar typing indicator
     const typingIndicator = this.addMessage('bot', '', true);
     this.isTyping = true;
+    send.disabled = true;
     
     try {
-      const response = await fetch('/api/chatbot/message', {
+      // Obtener o generar sessionId
+      if (!this.sessionId) {
+        this.sessionId = this.generateSessionId();
+      }
+      
+      // Enviar mensaje al backend
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: message,
-          sessionId: this.sessionId,
-          history: this.messageHistory.slice(-5) // Últimos 5 mensajes para contexto
+          sessionId: this.sessionId
         })
       });
 
+      // Remover typing indicator
+      typingIndicator.remove();
+      this.isTyping = false;
+      send.disabled = false;
+
       if (!response.ok) {
-        throw new Error('Error en la respuesta del servidor');
+        // Manejar errores HTTP
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.response || `Error ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
       
-      // Remover typing indicator
-      typingIndicator.remove();
-      this.isTyping = false;
+      // Actualizar sessionId si viene en la respuesta
+      if (data.sessionId) {
+        this.sessionId = data.sessionId;
+      }
       
       // Agregar respuesta del bot
-      this.addMessage('bot', data.response);
-      
-      // Guardar en historial
-      this.messageHistory.push({ role: 'user', content: message });
-      this.messageHistory.push({ role: 'assistant', content: data.response });
+      this.addMessage('bot', data.response || 'Lo siento, no pude procesar tu mensaje.');
       
     } catch (error) {
       console.error('Error al enviar mensaje:', error);
+      
+      // Remover typing indicator en caso de error
       typingIndicator.remove();
       this.isTyping = false;
-      this.addMessage('bot', 'Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.');
+      send.disabled = false;
+      
+      // Mostrar mensaje de error amigable
+      this.addMessage('bot', 'Lo siento, hubo un problema al procesar tu mensaje. Por favor, intenta de nuevo en un momento. Si el problema persiste, contáctanos directamente.');
     }
   }
 
-  async handleQuickAction(action) {
-    const actions = {
-      'tours': '¿Qué tours tienen disponibles?',
-      'pricing': '¿Cuáles son los precios y descuentos disponibles?',
-      'booking': '¿Cómo puedo hacer una reserva?',
-      'contact': '¿Cómo puedo contactar con soporte?'
-    };
+  generateSessionId() {
+    return 'chat-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  }
 
-    const message = actions[action] || action;
-    document.getElementById('chatbotInput').value = message;
-    this.sendMessage();
+
+  async handleQuickAction(action) {
+    const input = document.getElementById('chatbotInput');
+    const send = document.getElementById('chatbotSend');
+    
+    // Deshabilitar acciones rápidas mientras se procesa
+    const quickActions = document.getElementById('chatbotQuickActions');
+    quickActions.querySelectorAll('.chatbot-quick-action').forEach(btn => {
+      btn.disabled = true;
+    });
+    
+    // Agregar mensaje del usuario
+    const actionText = quickActions.querySelector(`[data-action="${action}"]`).textContent;
+    this.addMessage('user', actionText);
+    
+    // Mostrar typing indicator
+    const typingIndicator = this.addMessage('bot', '', true);
+    this.isTyping = true;
+    send.disabled = true;
+    
+    try {
+      // Obtener o generar sessionId
+      if (!this.sessionId) {
+        this.sessionId = this.generateSessionId();
+      }
+      
+      // Enviar mensaje al backend
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: actionText,
+          sessionId: this.sessionId
+        })
+      });
+
+      // Remover typing indicator
+      typingIndicator.remove();
+      this.isTyping = false;
+      send.disabled = false;
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Actualizar sessionId si viene en la respuesta
+      if (data.sessionId) {
+        this.sessionId = data.sessionId;
+      }
+      
+      // Agregar respuesta del bot
+      this.addMessage('bot', data.response || this.demoResponses[action] || 'Gracias por tu interés. ¿Hay algo más en lo que pueda ayudarte?');
+      
+    } catch (error) {
+      console.error('Error al procesar acción rápida:', error);
+      
+      // Remover typing indicator
+      typingIndicator.remove();
+      this.isTyping = false;
+      send.disabled = false;
+      
+      // Usar respuesta de fallback
+      const fallbackResponse = this.demoResponses[action] || 'Gracias por tu interés. ¿Hay algo más en lo que pueda ayudarte?';
+      this.addMessage('bot', fallbackResponse);
+    } finally {
+      // Rehabilitar acciones rápidas
+      quickActions.querySelectorAll('.chatbot-quick-action').forEach(btn => {
+        btn.disabled = false;
+      });
+    }
   }
 }
 

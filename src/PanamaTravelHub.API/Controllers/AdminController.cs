@@ -23,6 +23,7 @@ public class AdminController : ControllerBase
     private readonly IBookingService _bookingService;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<AdminController> _logger;
+    private readonly IConfiguration _configuration;
 
     public AdminController(
         IRepository<Tour> tourRepository,
@@ -30,7 +31,8 @@ public class AdminController : ControllerBase
         IRepository<User> userRepository,
         IBookingService bookingService,
         ApplicationDbContext context,
-        ILogger<AdminController> logger)
+        ILogger<AdminController> logger,
+        IConfiguration configuration)
     {
         _tourRepository = tourRepository;
         _bookingRepository = bookingRepository;
@@ -38,6 +40,7 @@ public class AdminController : ControllerBase
         _bookingService = bookingService;
         _context = context;
         _logger = logger;
+        _configuration = configuration;
     }
 
     /// <summary>
@@ -772,6 +775,123 @@ public class AdminController : ControllerBase
         {
             _logger.LogError(ex, "Error al actualizar configuración de email");
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Obtiene la configuración del chatbot (OpenAI)
+    /// </summary>
+    [HttpGet("chatbot-settings")]
+    public ActionResult<ChatbotSettingsDto> GetChatbotSettings()
+    {
+        try
+        {
+            var apiKey = _configuration["OpenAI:ApiKey"] ?? "";
+            var model = _configuration["OpenAI:Model"] ?? "gpt-4o-mini";
+            var maxTokens = _configuration["OpenAI:MaxTokens"] ?? "300";
+            var temperature = _configuration["OpenAI:Temperature"] ?? "0.7";
+            var enabled = !string.IsNullOrWhiteSpace(apiKey) && apiKey != "YOUR_OPENAI_API_KEY";
+
+            return Ok(new ChatbotSettingsDto
+            {
+                ApiKey = apiKey.Length > 0 ? $"{apiKey.Substring(0, Math.Min(7, apiKey.Length))}...{apiKey.Substring(Math.Max(0, apiKey.Length - 4))}" : "",
+                Model = model,
+                MaxTokens = int.Parse(maxTokens),
+                Temperature = float.Parse(temperature),
+                Enabled = enabled
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener configuración del chatbot");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Actualiza la configuración del chatbot (OpenAI)
+    /// Nota: En producción, esto debería actualizar appsettings.json o una tabla de configuración
+    /// Por ahora, solo retornamos los valores actualizados sin persistirlos
+    /// </summary>
+    [HttpPut("chatbot-settings")]
+    public ActionResult<ChatbotSettingsDto> UpdateChatbotSettings([FromBody] UpdateChatbotSettingsDto request)
+    {
+        try
+        {
+            // Nota: En producción, esto debería actualizar appsettings.json o una tabla de configuración
+            // Por ahora, solo validamos y retornamos los valores
+            // TODO: Implementar persistencia en BD o archivo de configuración
+            
+            var apiKey = request.ApiKey ?? _configuration["OpenAI:ApiKey"] ?? "";
+            var model = request.Model ?? _configuration["OpenAI:Model"] ?? "gpt-4o-mini";
+            var maxTokens = request.MaxTokens ?? int.Parse(_configuration["OpenAI:MaxTokens"] ?? "300");
+            var temperature = request.Temperature ?? float.Parse(_configuration["OpenAI:Temperature"] ?? "0.7");
+            var enabled = request.Enabled ?? (!string.IsNullOrWhiteSpace(apiKey) && apiKey != "YOUR_OPENAI_API_KEY");
+
+            _logger.LogInformation("Configuración del chatbot actualizada - Modelo: {Model}, Habilitado: {Enabled}", model, enabled);
+
+            return Ok(new ChatbotSettingsDto
+            {
+                ApiKey = apiKey.Length > 0 ? $"{apiKey.Substring(0, Math.Min(7, apiKey.Length))}...{apiKey.Substring(Math.Max(0, apiKey.Length - 4))}" : "",
+                Model = model,
+                MaxTokens = maxTokens,
+                Temperature = temperature,
+                Enabled = enabled
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al actualizar configuración del chatbot");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Prueba la conexión con OpenAI
+    /// </summary>
+    [HttpPost("chatbot-settings/test")]
+    public async Task<ActionResult<object>> TestChatbotConnection()
+    {
+        try
+        {
+            var apiKey = _configuration["OpenAI:ApiKey"] ?? "";
+            
+            if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "YOUR_OPENAI_API_KEY")
+            {
+                return Ok(new { success = false, message = "API Key no configurada" });
+            }
+
+            // Intentar una llamada simple a OpenAI
+            using var httpClient = new HttpClient();
+            httpClient.BaseAddress = new Uri("https://api.openai.com/v1/");
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+            var testRequest = new
+            {
+                model = "gpt-4o-mini",
+                messages = new[]
+                {
+                    new { role = "user", content = "Hola" }
+                },
+                max_tokens = 10
+            };
+
+            var response = await httpClient.PostAsJsonAsync("chat/completions", testRequest);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                return Ok(new { success = true, message = "Conexión exitosa con OpenAI" });
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                return Ok(new { success = false, message = $"Error de conexión: {response.StatusCode}" });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al probar conexión del chatbot");
+            return Ok(new { success = false, message = $"Error: {ex.Message}" });
         }
     }
 
@@ -1902,6 +2022,24 @@ public class UpdateEmailSettingsDto
     public string? FromAddress { get; set; }
     public string? FromName { get; set; }
     public bool? EnableSsl { get; set; }
+}
+
+public class ChatbotSettingsDto
+{
+    public string ApiKey { get; set; } = string.Empty;
+    public string Model { get; set; } = "gpt-4o-mini";
+    public int MaxTokens { get; set; } = 300;
+    public float Temperature { get; set; } = 0.7f;
+    public bool Enabled { get; set; }
+}
+
+public class UpdateChatbotSettingsDto
+{
+    public string? ApiKey { get; set; }
+    public string? Model { get; set; }
+    public int? MaxTokens { get; set; }
+    public float? Temperature { get; set; }
+    public bool? Enabled { get; set; }
 }
 
 public class UpdateHomePageContentDto

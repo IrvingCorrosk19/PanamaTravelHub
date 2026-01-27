@@ -8,78 +8,590 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/css/main.css" />
   <link rel="stylesheet" href="/css/design-system.css" />
-  <link rel="stylesheet" href="/css/success.css" />
+  <link rel="stylesheet" href="/css/reservations.css" />
+  <link rel="stylesheet" href="/css/loading.css" />
+  <link rel="stylesheet" href="/css/enhancements.css" />
   <style>
-    .participants-section {
-      margin-top: var(--space-2xl);
-      padding: var(--space-xl);
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+    /* ====== BOOKING SUCCESS – UX POLISH ====== */
+    .booking-success-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: var(--space-24) var(--space-6);
     }
-    
-    .participants-section h2 {
-      font-size: 1.5rem;
-      margin-bottom: var(--space-md);
+
+    .booking-success-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
     }
-    
-    .participants-hint {
-      padding: var(--space-md);
-      background: var(--bg-secondary);
-      border-radius: var(--radius);
-      margin-bottom: var(--space-lg);
-      font-size: 0.95rem;
+
+    .status-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .status-icon.success {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08));
+      border: 2px solid rgba(16, 185, 129, 0.3);
+      color: #059669;
+      font-size: 1.25rem;
+    }
+
+    .booking-success-header h1 {
+      font-size: clamp(1.375rem, 2.5vw, 1.75rem);
+      font-weight: 800;
+      margin: 0 0 4px 0;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .booking-success-header p {
+      font-size: 0.9375rem;
       color: var(--text-secondary);
+      margin: 0;
     }
-    
-    .participant-card {
-      padding: var(--space-lg);
-      background: var(--bg-secondary);
-      border-radius: var(--radius);
-      margin-bottom: var(--space-md);
-      border: 2px solid var(--border);
+
+    .booking-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
     }
-    
-    .participant-header {
-      font-weight: var(--font-weight-bold);
-      margin-bottom: var(--space-md);
+
+    .summary-card {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.03), rgba(99, 102, 241, 0.02));
+      border: 1px solid rgba(226, 232, 240, 0.6);
+      border-radius: 10px;
+      padding: 12px 16px;
+      text-align: left;
+    }
+
+    .summary-card small {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-tertiary);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .summary-card strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 800;
       color: var(--text);
+      letter-spacing: -0.01em;
     }
-    
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-success {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08));
+      color: #059669;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-success::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.6;
+        transform: scale(0.9);
+      }
+    }
+
+    .booking-primary-action {
+      margin-bottom: 32px;
+    }
+
+    .booking-primary-action .btn-action-primary {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .participants-section {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+      border: 1px solid rgba(226, 232, 240, 0.5);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .participants-section h2 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin: 0 0 8px 0;
+    }
+
+    .participants-section p {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .participant-card {
+      background: #fafbfc;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid rgba(226, 232, 240, 0.4);
+      margin-bottom: 16px;
+    }
+
+    .participant-header {
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .form-label .required {
+      color: var(--accent-error);
+      margin-left: 2px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.2s ease;
+      background: white;
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .form-input:hover {
+      border-color: rgba(14, 165, 233, 0.4);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: var(--space-md);
+      gap: 16px;
     }
-    
-    @media (max-width: 768px) {
+
+    .booking-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(226, 232, 240, 0.4);
+    }
+
+    .booking-footer-actions .btn-link {
+      color: #6b7280;
+      font-size: 0.9rem;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .booking-footer-actions .btn-link:hover {
+      text-decoration: underline;
+      color: #0ea5e9;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--text);
+      border: 2px solid rgba(226, 232, 240, 0.8);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+      border-color: rgba(14, 165, 233, 0.4);
+      color: #0ea5e9;
+      background: var(--bg-secondary);
+    }
+
+    .btn-action-primary {
+      background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #6366f1 100%);
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 
+        0 4px 12px rgba(14, 165, 233, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-action-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-action-primary:hover::before {
+      left: 100%;
+    }
+
+    .btn-action-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #0284c7 0%, #0891b2 50%, #4f46e5 100%);
+      box-shadow: 
+        0 6px 20px rgba(14, 165, 233, 0.4),
+        0 3px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .participants-completed {
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.08));
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 10px;
+      margin-top: 16px;
+      color: #059669;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    /* ====== BOOKING SUCCESS – UX POLISH ====== */
+    .booking-success-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: var(--space-24) var(--space-6);
+    }
+
+    .booking-success-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .status-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .status-icon.success {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08));
+      border: 2px solid rgba(16, 185, 129, 0.3);
+      color: #059669;
+      font-size: 1.25rem;
+    }
+
+    .booking-success-header h1 {
+      font-size: clamp(1.375rem, 2.5vw, 1.75rem);
+      font-weight: 800;
+      margin: 0 0 4px 0;
+      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .booking-success-header p {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .booking-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.03), rgba(99, 102, 241, 0.02));
+      border: 1px solid rgba(226, 232, 240, 0.6);
+      border-radius: 10px;
+      padding: 12px 16px;
+      text-align: left;
+    }
+
+    .summary-card small {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-tertiary);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .summary-card strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-success {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08));
+      color: #059669;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-success::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    .booking-primary-action {
+      margin-bottom: 32px;
+    }
+
+    .booking-primary-action .btn-action-primary {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .participants-section {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+      border: 1px solid rgba(226, 232, 240, 0.5);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .participants-section h2 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin: 0 0 8px 0;
+    }
+
+    .participants-section p {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .participant-card {
+      background: #fafbfc;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid rgba(226, 232, 240, 0.4);
+      margin-bottom: 16px;
+    }
+
+    .participant-header {
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .form-label .required {
+      color: var(--accent-error);
+      margin-left: 2px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.2s ease;
+      background: white;
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .form-input:hover {
+      border-color: rgba(14, 165, 233, 0.4);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .participants-completed {
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.08));
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 10px;
+      margin-top: 16px;
+      color: #059669;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .booking-footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(226, 232, 240, 0.4);
+    }
+
+    .booking-footer-actions .btn-link {
+      color: #6b7280;
+      font-size: 0.9rem;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .booking-footer-actions .btn-link:hover {
+      text-decoration: underline;
+      color: #0ea5e9;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--text);
+      border: 2px solid rgba(226, 232, 240, 0.8);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+      border-color: rgba(14, 165, 233, 0.4);
+      color: #0ea5e9;
+      background: var(--bg-secondary);
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .booking-success-container {
+        padding: var(--space-6) var(--space-4);
+      }
+
+      .booking-summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .booking-footer-actions {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .booking-footer-actions .btn-secondary {
+        width: 100%;
+      }
+
       .form-row {
         grid-template-columns: 1fr;
       }
-    }
-    
-    .btn-complete-later {
-      background: transparent;
-      border: 2px solid var(--border);
-      color: var(--text);
-      padding: var(--space-md) var(--space-lg);
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-size: 1rem;
-      transition: all var(--transition-base);
-    }
-    
-    .btn-complete-later:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
-    
-    .participants-completed {
-      padding: var(--space-md);
-      background: #e8f5e9;
-      border-radius: var(--radius);
-      color: #2e7d32;
-      margin-top: var(--space-md);
+
+      .participants-section {
+        padding: 20px;
+      }
     }
   </style>
 </head>
@@ -97,56 +609,58 @@
     </div>
   </nav>
 
-  <div class="success-container">
-    <div class="success-card">
-      <div class="success-icon">✓</div>
-      <h1 class="success-title">¡Reserva Confirmada!</h1>
-      <p class="success-message">
-        Tu reserva ha sido procesada exitosamente. Hemos enviado un correo de confirmación con todos los detalles.
-      </p>
-
-      <div class="booking-details">
-        <div class="booking-detail-item">
-          <span class="booking-detail-label">Número de Reserva</span>
-          <span class="booking-detail-value" id="bookingId">-</span>
-        </div>
-        <div class="booking-detail-item">
-          <span class="booking-detail-label">Monto Pagado</span>
-          <span class="booking-detail-value" id="bookingAmount">-</span>
-        </div>
-        <div class="booking-detail-item">
-          <span class="booking-detail-label">Estado</span>
-          <span class="booking-detail-value" style="color: var(--accent);">Confirmada</span>
-        </div>
+  <div class="booking-success-container">
+    <!-- HEADER -->
+    <div class="booking-success-header">
+      <span class="status-icon success">✓</span>
+      <div>
+        <h1>Reserva confirmada</h1>
+        <p>Hemos enviado la confirmación a tu email.</p>
       </div>
+    </div>
 
-      <!-- Sección de Participantes (Premium) -->
-      <div class="participants-section" id="participantsSection">
-        <h2>${completeMode ? 'Completa los Datos de los Participantes' : 'Completa los Datos de los Participantes'}</h2>
-        <div class="participants-hint">
-          💡 ${completeMode ? 'Completa la información de cada participante para finalizar tu reserva.' : 'Completa la información de cada participante para finalizar tu reserva. Puedes hacerlo ahora o más tarde desde "Mis Reservas".'}
-          ${!completeMode ? '<br><br>📧 Recibirás un recordatorio por email si no completas los datos ahora.' : ''}
-        </div>
-        <div id="participantsList"></div>
-        <div style="display: flex; gap: var(--space-md); margin-top: var(--space-lg);">
-          <button class="btn-primary" onclick="saveParticipants()" id="saveParticipantsBtn">Guardar Datos</button>
-          <button class="btn-complete-later" onclick="skipParticipants()">Completar Más Tarde</button>
-        </div>
-        <div id="participantsSaved" class="participants-completed" style="display: none;">
-          ✓ Datos de participantes guardados exitosamente
-        </div>
+    <!-- RESUMEN -->
+    <div class="booking-summary">
+      <div class="summary-card">
+        <small>NÚMERO DE RESERVA</small>
+        <strong id="bookingId">-</strong>
       </div>
+      <div class="summary-card">
+        <small>ESTADO</small>
+        <span class="badge badge-success">Confirmada</span>
+      </div>
+      <div class="summary-card">
+        <small>MONTO PAGADO</small>
+        <strong id="bookingAmount">-</strong>
+      </div>
+    </div>
 
-      <div class="success-actions" style="margin-top: var(--space-xl);">
-        <a href="/reservas.html" class="btn-primary">Volver a Mis Reservas</a>
-        <a href="/" class="btn-secondary">Explorar Más Tours</a>
+    <!-- CTA PRINCIPAL -->
+    <div class="booking-primary-action">
+      <a href="/reservas.html" class="btn-action btn-action-primary">
+        Volver a Mis Reservas
+      </a>
+    </div>
+
+    <!-- PARTICIPANTES -->
+    <div class="participants-section" id="participantsSection" style="display: none;">
+      <h2 id="participantsTitle">Datos de los participantes</h2>
+      <p id="participantsSubtitle">Completa esta información cuando te sea conveniente.</p>
+      <div id="participantsList"></div>
+      <div id="participantsSaved" class="participants-completed" style="display: none;">
+        ✓ Datos guardados exitosamente
       </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="booking-footer-actions" id="participantsActions" style="display: none;">
+      <button class="btn-secondary" onclick="saveParticipants()" id="saveParticipantsBtn">Guardar datos</button>
+      <a href="/" class="btn-link">Explorar más tours</a>
     </div>
   </div>
 
   <script src="/js/api.js"></script>
   <script>
-    // ✅ Función helper para formatear precios de forma segura
     function formatPrice(value, fallbackText = '$0.00') {
       const rawPrice = value ?? null;
       let price = Number(rawPrice ?? 0);
@@ -159,40 +673,36 @@
       return price > 0 ? `$${formattedPrice}` : fallbackText;
     }
 
-    // Obtener datos de la URL
     const urlParams = new URLSearchParams(window.location.search);
     const bookingId = urlParams.get('bookingId');
     const amount = urlParams.get('amount');
     const numberOfParticipants = parseInt(urlParams.get('participants')) || 1;
-    const completeMode = urlParams.get('complete') === 'true'; // Si viene desde reservas.html
+    const completeMode = urlParams.get('complete') === 'true';
 
     let currentBookingId = bookingId;
 
     if (bookingId) {
-      document.getElementById('bookingId').textContent = bookingId;
+      document.getElementById('bookingId').textContent = bookingId.substring(0, 8).toUpperCase();
     }
     if (amount) {
       document.getElementById('bookingAmount').textContent = formatPrice(parseFloat(amount));
     }
 
-    // Cargar datos del booking y participantes
     async function loadBookingData() {
       if (!currentBookingId) return;
       
       try {
         const booking = await api.getBooking(currentBookingId);
         
-        // Si ya tiene participantes, ocultar sección o mostrar datos
         if (booking.participants && booking.participants.length > 0) {
           document.getElementById('participantsSection').style.display = 'none';
+          document.getElementById('participantsActions').style.display = 'none';
           return;
         }
         
-        // Renderizar formularios de participantes
         renderParticipantsForm(numberOfParticipants);
       } catch (error) {
         console.error('Error loading booking:', error);
-        // Si no se puede cargar, renderizar formulario con número de participantes de URL
         renderParticipantsForm(numberOfParticipants);
       }
     }
@@ -201,36 +711,109 @@
       const participantsList = document.getElementById('participantsList');
       participantsList.innerHTML = '';
       
+      const titleEl = document.getElementById('participantsTitle');
+      const subtitleEl = document.getElementById('participantsSubtitle');
+      
+      titleEl.textContent = 'Datos de los participantes';
+      subtitleEl.textContent = 'Completa esta información cuando te sea conveniente.';
+      
+      document.getElementById('participantsSection').style.display = 'block';
+      document.getElementById('participantsActions').style.display = 'flex';
+      
+      const maxDate = new Date().toISOString().split('T')[0];
+      
       for (let i = 1; i <= count; i++) {
         const participantCard = document.createElement('div');
         participantCard.className = 'participant-card';
-        participantCard.innerHTML = `
-          <div class="participant-header">Participante ${i}${i === 1 ? ' (Titular)' : ''}</div>
-          <div class="form-group">
-            <label class="form-label">Nombre <span class="required">*</span></label>
-            <input type="text" class="form-input participant-firstname" placeholder="Nombre completo" required maxlength="100" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Apellido <span class="required">*</span></label>
-            <input type="text" class="form-input participant-lastname" placeholder="Apellido completo" required maxlength="100" />
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Email ${i === 1 ? '<span class="required">*</span>' : ''}</label>
-              <input type="email" class="form-input participant-email" placeholder="email@ejemplo.com" ${i === 1 ? 'required' : ''} maxlength="255" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Teléfono</label>
-              <input type="tel" class="form-input participant-phone" placeholder="+507 6000-0000" maxlength="20" />
-            </div>
-          </div>
-          ${i > 1 ? `
-          <div class="form-group">
-            <label class="form-label">Fecha de Nacimiento (opcional)</label>
-            <input type="date" class="form-input participant-dob" max="${new Date().toISOString().split('T')[0]}" />
-          </div>
-          ` : ''}
-        `;
+        
+        const isFirst = i === 1;
+        const headerText = isFirst ? `Participante ${i} (Titular)` : `Participante ${i}`;
+        
+        const header = document.createElement('div');
+        header.className = 'participant-header';
+        header.textContent = headerText;
+        
+        const nameGroup = document.createElement('div');
+        nameGroup.className = 'form-group';
+        const nameLabel = document.createElement('label');
+        nameLabel.className = 'form-label';
+        nameLabel.innerHTML = 'Nombre <span class="required">*</span>';
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'form-input participant-firstname';
+        nameInput.placeholder = 'Nombre completo';
+        nameInput.required = true;
+        nameInput.maxLength = 100;
+        nameGroup.appendChild(nameLabel);
+        nameGroup.appendChild(nameInput);
+        
+        const lastNameGroup = document.createElement('div');
+        lastNameGroup.className = 'form-group';
+        const lastNameLabel = document.createElement('label');
+        lastNameLabel.className = 'form-label';
+        lastNameLabel.innerHTML = 'Apellido <span class="required">*</span>';
+        const lastNameInput = document.createElement('input');
+        lastNameInput.type = 'text';
+        lastNameInput.className = 'form-input participant-lastname';
+        lastNameInput.placeholder = 'Apellido completo';
+        lastNameInput.required = true;
+        lastNameInput.maxLength = 100;
+        lastNameGroup.appendChild(lastNameLabel);
+        lastNameGroup.appendChild(lastNameInput);
+        
+        const row = document.createElement('div');
+        row.className = 'form-row';
+        
+        const emailGroup = document.createElement('div');
+        emailGroup.className = 'form-group';
+        const emailLabel = document.createElement('label');
+        emailLabel.className = 'form-label';
+        emailLabel.innerHTML = isFirst ? 'Email <span class="required">*</span>' : 'Email';
+        const emailInput = document.createElement('input');
+        emailInput.type = 'email';
+        emailInput.className = 'form-input participant-email';
+        emailInput.placeholder = 'email@ejemplo.com';
+        emailInput.required = isFirst;
+        emailInput.maxLength = 255;
+        emailGroup.appendChild(emailLabel);
+        emailGroup.appendChild(emailInput);
+        
+        const phoneGroup = document.createElement('div');
+        phoneGroup.className = 'form-group';
+        const phoneLabel = document.createElement('label');
+        phoneLabel.className = 'form-label';
+        phoneLabel.textContent = 'Teléfono';
+        const phoneInput = document.createElement('input');
+        phoneInput.type = 'tel';
+        phoneInput.className = 'form-input participant-phone';
+        phoneInput.placeholder = '+507 6000-0000';
+        phoneInput.maxLength = 20;
+        phoneGroup.appendChild(phoneLabel);
+        phoneGroup.appendChild(phoneInput);
+        
+        row.appendChild(emailGroup);
+        row.appendChild(phoneGroup);
+        
+        participantCard.appendChild(header);
+        participantCard.appendChild(nameGroup);
+        participantCard.appendChild(lastNameGroup);
+        participantCard.appendChild(row);
+        
+        if (!isFirst) {
+          const dobGroup = document.createElement('div');
+          dobGroup.className = 'form-group';
+          const dobLabel = document.createElement('label');
+          dobLabel.className = 'form-label';
+          dobLabel.textContent = 'Fecha de Nacimiento (opcional)';
+          const dobInput = document.createElement('input');
+          dobInput.type = 'date';
+          dobInput.className = 'form-input participant-dob';
+          dobInput.max = maxDate;
+          dobGroup.appendChild(dobLabel);
+          dobGroup.appendChild(dobInput);
+          participantCard.appendChild(dobGroup);
+        }
+        
         participantsList.appendChild(participantCard);
       }
     }
@@ -283,16 +866,13 @@
         return;
       }
 
-      // Deshabilitar botón
       const btn = document.getElementById('saveParticipantsBtn');
       btn.disabled = true;
       btn.textContent = 'Guardando...';
 
       try {
-        // Actualizar booking con participantes
         await api.updateBookingParticipants(currentBookingId, participants);
         
-        // Track: participants_completed
         if (window.track && currentBookingId) {
           window.track('participants_completed', {
             entityType: 'booking',
@@ -303,21 +883,21 @@
           });
         }
         
-        // Mostrar éxito
-        document.getElementById('participantsSaved').style.display = 'block';
+        const savedEl = document.getElementById('participantsSaved');
+        savedEl.style.display = 'block';
         btn.textContent = '✓ Guardado';
-        btn.style.background = '#4caf50';
+        btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
         btn.style.color = 'white';
+        btn.style.border = 'none';
         
-        // Si viene desde reservas.html, redirigir de vuelta
         if (completeMode) {
           setTimeout(() => {
             window.location.href = '/reservas.html';
           }, 2000);
         } else {
-          // Ocultar botones después de 2 segundos
           setTimeout(() => {
             document.getElementById('participantsSection').style.opacity = '0.7';
+            document.getElementById('participantsActions').style.opacity = '0.7';
           }, 2000);
         }
       } catch (error) {
@@ -329,23 +909,22 @@
           : 'Error al guardar los datos. Por favor intenta de nuevo.';
         alert(errorMsg);
         btn.disabled = false;
-        btn.textContent = 'Guardar Datos';
+        btn.textContent = 'Guardar datos';
       }
     }
 
     function skipParticipants() {
       document.getElementById('participantsSection').style.display = 'none';
+      document.getElementById('participantsActions').style.display = 'none';
     }
 
-    // Cargar datos al iniciar
     if (currentBookingId) {
       loadBookingData();
     } else {
-      // Si no hay bookingId, ocultar sección de participantes
       document.getElementById('participantsSection').style.display = 'none';
+      document.getElementById('participantsActions').style.display = 'none';
     }
     
-    // Si viene en modo "complete", mostrar sección de participantes automáticamente
     if (completeMode && numberOfParticipants > 0) {
       renderParticipantsForm(numberOfParticipants);
     }
