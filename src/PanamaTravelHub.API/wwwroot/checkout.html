@@ -23,12 +23,11 @@
     </div>
   </nav>
 
-  <main class="checkout-container wrap">
-    <!-- Header Premium -->
+  <main class="checkout-container">
+    <!-- Header Minimalista -->
     <div class="checkout-header">
-      <div style="font-size: 3.5rem; margin-bottom: 16px; animation: fadeInUp 0.6s ease-out;">✨</div>
       <h1>Confirma tu Reserva</h1>
-      <p class="checkout-subtitle">Estás a un paso de vivir esta experiencia inolvidable</p>
+      <p class="checkout-subtitle">Revisa los detalles y completa tu reserva</p>
     </div>
 
     <div class="checkout-grid">
@@ -37,12 +36,7 @@
         
         <!-- Login Inline (si no está autenticado) -->
         <section class="checkout-section" id="loginInlineSection" style="display:none;">
-          <h2 class="section-title">
-            <span style="display: inline-flex; align-items: center; gap: 10px;">
-              <span>🔐</span>
-              <span>Inicia Sesión o Continúa Rápido</span>
-            </span>
-          </h2>
+          <h2 class="section-title">Inicia Sesión o Continúa Rápido</h2>
           <div class="login-inline">
             <div class="form-group">
               <label class="form-label">Email</label>
@@ -77,19 +71,12 @@
 
         <!-- Número de Participantes (Solo esto antes de pagar) -->
         <section class="checkout-section">
-          <h2 class="section-title">
-            <span style="display: inline-flex; align-items: center; gap: 10px;">
-              <span>👥</span>
-              <span>¿Cuántas personas?</span>
-            </span>
-          </h2>
+          <h2 class="section-title">Número de Participantes</h2>
           <div class="form-group" style="max-width: 200px;">
             <label class="form-label">Número de Personas</label>
             <input type="number" id="numberOfParticipants" class="form-input" min="1" max="10" value="1" onchange="updateParticipantsCount()" />
           </div>
-          <p class="form-hint" style="margin-top: 8px; font-size: 0.9rem; color: var(--text-muted);">
-            💡 Podrás completar los datos de cada participante después de confirmar la reserva
-          </p>
+          <p class="form-hint">Podrás completar los datos de cada participante después de confirmar la reserva</p>
           
           <!-- País (Oculto pero disponible para backend) -->
           <div style="display: none;">
@@ -101,12 +88,8 @@
 
         <!-- Método de Pago (Simplificado) -->
         <section class="checkout-section">
-          <h2 class="section-title">
-            <span style="display: inline-flex; align-items: center; gap: 10px;">
-              <span>💳</span>
-              <span>Método de Pago</span>
-            </span>
-          </h2>
+          <h2 class="section-title">Método de Pago</h2>
+          <p class="section-hint">Selecciona cómo deseas pagar de forma segura</p>
           <div class="payment-methods">
             <!-- Stripe -->
             <div class="payment-method-card selected" data-method="stripe" onclick="selectPaymentMethod('stripe')">
@@ -125,21 +108,25 @@
               <div class="payment-method-details" id="stripeDetails">
                 <div class="form-group">
                   <label class="form-label">Número de Tarjeta</label>
-                  <input type="text" class="form-input" placeholder="1234 5678 9012 3456" maxlength="19" id="cardNumber" />
+                  <input type="text" class="form-input" placeholder="1234 5678 9012 3456" maxlength="19" id="cardNumber" required />
+                  <span class="field-error" id="cardNumberError" style="display: none;"></span>
                 </div>
                 <div class="form-row">
                   <div class="form-group">
                     <label class="form-label">Vencimiento</label>
-                    <input type="text" class="form-input" placeholder="MM/AA" maxlength="5" id="cardExpiry" />
+                    <input type="text" class="form-input" placeholder="MM/AA" maxlength="5" id="cardExpiry" required />
+                    <span class="field-error" id="cardExpiryError" style="display: none;"></span>
                   </div>
                   <div class="form-group">
                     <label class="form-label">CVV</label>
-                    <input type="text" class="form-input" placeholder="123" maxlength="4" id="cardCvv" />
+                    <input type="text" class="form-input" placeholder="123" maxlength="4" id="cardCvv" required />
+                    <span class="field-error" id="cardCvvError" style="display: none;"></span>
                   </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Nombre en la Tarjeta</label>
-                  <input type="text" class="form-input" placeholder="Juan Pérez" id="cardName" />
+                  <input type="text" class="form-input" placeholder="Juan Pérez" id="cardName" required />
+                  <span class="field-error" id="cardNameError" style="display: none;"></span>
                 </div>
               </div>
             </div>
@@ -177,7 +164,8 @@
               <div class="payment-method-details" id="yappyDetails" style="display:none;">
                 <div class="form-group">
                   <label class="form-label">Teléfono</label>
-                  <input type="tel" class="form-input" placeholder="+507 6000-0000" id="yappyPhone" />
+                  <input type="tel" class="form-input" placeholder="+507 6000-0000" id="yappyPhone" required />
+                  <span class="field-error" id="yappyPhoneError" style="display: none;"></span>
                 </div>
               </div>
             </div>
@@ -190,23 +178,23 @@
         <div class="summary-card-sticky">
           <!-- Tour Info -->
           <div id="tourSummary" class="tour-summary-compact">
-            <div class="summary-loading">Cargando...</div>
+            <div class="summary-loading" style="display: none;">Cargando...</div>
           </div>
 
           <div class="summary-divider"></div>
 
           <!-- Fecha -->
-          <div class="summary-item">
-            <span class="summary-label">📅 Fecha</span>
-            <div id="dateSelection" class="date-selection-compact">
+          <div class="summary-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <span class="summary-label">Fecha</span>
+            <div id="dateSelection" class="date-selection-compact" style="width: 100%;">
               <button class="btn-date-selector" onclick="showDateModal()">Seleccionar Fecha</button>
             </div>
-            <div id="dateError" class="field-error" style="display: none; font-size: 0.85rem; margin-top: 4px;"></div>
+            <div id="dateError" class="field-error" style="display: none;"></div>
           </div>
 
           <!-- Participantes -->
           <div class="summary-item">
-            <span class="summary-label">👥 Participantes</span>
+            <span class="summary-label">Participantes</span>
             <span class="summary-value" id="summaryParticipants">1</span>
           </div>
 
@@ -221,11 +209,11 @@
               <button class="btn-secondary" onclick="applyCoupon()" style="width: 100%;">Aplicar</button>
               <span class="field-error" id="couponError" style="display: none; font-size: 0.85rem;"></span>
             </div>
-            <div id="couponApplied" style="display: none; margin-top: 8px; padding: 8px; background: #e8f5e9; border-radius: 4px;">
+            <div id="couponApplied" style="display: none; margin-top: 8px; padding: 12px; background: #F0F9F4; border-radius: 8px; border: 1px solid #D1F2E0;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span id="couponName" style="font-size: 0.9rem;"></span>
-                <span id="couponDiscount" style="color: #4caf50; font-weight: 600; font-size: 0.9rem;"></span>
-                <span onclick="removeCoupon()" style="color: #d32f2f; cursor: pointer; font-size: 0.85rem;">✕</span>
+                <span id="couponName" style="font-size: 14px; color: var(--checkout-text);"></span>
+                <span id="couponDiscount" style="color: var(--checkout-success); font-weight: 600; font-size: 14px;"></span>
+                <span onclick="removeCoupon()" style="color: var(--checkout-error); cursor: pointer; font-size: 18px; line-height: 1;">✕</span>
               </div>
             </div>
           </div>
@@ -240,47 +228,46 @@
           
           <div class="summary-item" id="discountItem" style="display: none;">
             <span class="summary-label">Descuento</span>
-            <span class="summary-value" id="summaryDiscount" style="color: #4caf50;">-$0.00</span>
+            <span class="summary-value" id="summaryDiscount" style="color: var(--checkout-success);">-$0.00</span>
           </div>
           
           <div class="summary-item summary-total">
             <span class="summary-label">Total</span>
             <span class="summary-value" id="summaryTotal">$0.00</span>
           </div>
+          <p class="summary-price-note">Precio final. Sin costos ocultos</p>
 
           <!-- Microcopy de Seguridad Final -->
-          <p class="checkout-confirmation-hint" style="font-size: 0.9rem; color: var(--text-secondary); text-align: center; margin-bottom: var(--space-md); padding: var(--space-md); background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(99, 102, 241, 0.05)); border-radius: var(--radius); border: 1px solid rgba(14, 165, 233, 0.2); display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <span style="font-size: 1.2rem;">✉️</span>
-            <span>Confirmación inmediata por email</span>
-          </p>
 
           <!-- Botón Principal -->
-          <button class="btn-checkout-premium" onclick="processPayment()" id="checkoutBtn">
-            <span class="btn-checkout-text">Confirmar y Reservar</span>
+          <button class="btn-checkout-premium" onclick="processPayment()" id="checkoutBtn" disabled>
+            <span class="btn-checkout-text">Confirmar y pagar</span>
             <span class="btn-checkout-icon">→</span>
           </button>
+          
+          <!-- Micro-copy de confianza debajo del botón -->
+          <p class="checkout-payment-hint">
+            Pago seguro • Datos protegidos
+          </p>
 
           <!-- Confianza -->
-          <div class="trust-badges" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.05), rgba(99, 102, 241, 0.03)); padding: var(--space-lg); border-radius: var(--radius); border: 1px solid rgba(14, 165, 233, 0.15);">
-            <div class="trust-item" style="padding: var(--space-sm) 0;">
-              <span class="trust-icon" style="font-size: 1.25rem;">🔒</span>
-              <span class="trust-text" style="font-weight: 600;">Pago 100% seguro</span>
+          <div class="trust-badges">
+            <div class="trust-item">
+              <span class="trust-icon">🔒</span>
+              <span class="trust-text">Pago 100% seguro</span>
             </div>
-            <div class="trust-item" style="padding: var(--space-sm) 0;">
-              <span class="trust-icon" style="font-size: 1.25rem;">💳</span>
-              <span class="trust-text" style="font-weight: 600;">Datos cifrados SSL</span>
+            <div class="trust-item">
+              <span class="trust-icon">💳</span>
+              <span class="trust-text">Datos cifrados SSL</span>
             </div>
-            <div class="trust-item" style="padding: var(--space-sm) 0;">
-              <span class="trust-icon" style="font-size: 1.25rem;">↩️</span>
-              <span class="trust-text" style="font-weight: 600;">Cancelación flexible</span>
+            <div class="trust-item">
+              <span class="trust-icon">↩️</span>
+              <span class="trust-text">Cancelación flexible</span>
             </div>
           </div>
 
-          <p class="summary-note" style="background: rgba(14, 165, 233, 0.05); padding: var(--space-md); border-radius: var(--radius); border-left: 3px solid #0ea5e9; margin-top: var(--space-lg);">
-            <span style="display: inline-flex; align-items: center; gap: 6px;">
-              <span>📧</span>
-              <span>Recibirás confirmación inmediata por email con todos los detalles de tu reserva</span>
-            </span>
+          <p class="summary-note">
+            Recibirás confirmación inmediata por email con todos los detalles de tu reserva
           </p>
         </div>
       </aside>
@@ -289,10 +276,10 @@
 
   <!-- Modal de Fechas -->
   <div id="dateModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-content">
       <div class="modal-header">
         <h2>Seleccionar Fecha</h2>
-        <button onclick="closeDateModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <button onclick="closeDateModal()">&times;</button>
       </div>
       <div id="dateModalContent" class="date-selection-container">
         <div class="date-loading">Cargando fechas...</div>
@@ -317,355 +304,5 @@
   <script src="/js/api.js"></script>
   <script src="/js/notifications.js"></script>
   <script src="/js/checkout.js"></script>
-  <style>
-    /* Checkout Premium Styles */
-    .checkout-nav {
-      border-bottom: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.98);
-      backdrop-filter: blur(20px);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    }
-
-    .checkout-nav .nav-links {
-      display: none;
-    }
-
-    .checkout-header {
-      text-align: center;
-      margin-bottom: var(--space-2xl);
-      padding-top: var(--space-lg);
-    }
-
-    .checkout-header h1 {
-      font-size: clamp(2rem, 4vw, 3rem);
-      font-weight: 900;
-      margin-bottom: var(--space-sm);
-      background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      letter-spacing: -0.02em;
-    }
-
-    .checkout-subtitle {
-      color: var(--text-secondary);
-      font-size: 1.125rem;
-      line-height: 1.6;
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .checkout-grid {
-      display: grid;
-      grid-template-columns: 1fr 400px;
-      gap: var(--space-2xl);
-      align-items: start;
-    }
-
-    .checkout-form-section {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-lg);
-    }
-
-    .checkout-section {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: var(--space-xl);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .section-title {
-      font-size: 1.25rem;
-      font-weight: var(--font-weight-bold);
-      margin: 0 0 var(--space-lg);
-      color: var(--text);
-    }
-
-    /* Login Inline */
-    .login-inline {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-md);
-    }
-
-    .login-hint {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: var(--space-sm);
-    }
-
-    /* Resumen Sticky */
-    .checkout-summary {
-      position: sticky;
-      top: 100px;
-      height: fit-content;
-    }
-
-    .summary-card-sticky {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: var(--space-xl);
-      box-shadow: var(--shadow-md);
-      position: sticky;
-      top: 100px;
-    }
-
-    .tour-summary-compact {
-      margin-bottom: var(--space-md);
-    }
-
-    .tour-summary-compact img {
-      width: 100%;
-      height: 120px;
-      object-fit: cover;
-      border-radius: var(--radius);
-      margin-bottom: var(--space-sm);
-    }
-
-    .tour-summary-compact h3 {
-      font-size: 1.1rem;
-      font-weight: var(--font-weight-bold);
-      margin-bottom: var(--space-xs);
-    }
-
-    .summary-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: var(--space-sm) 0;
-    }
-
-    .summary-label {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-    }
-
-    .summary-value {
-      font-weight: var(--font-weight-semibold);
-      color: var(--text);
-    }
-
-    .summary-total {
-      border-top: 2px solid var(--border);
-      padding-top: var(--space-md);
-      margin-top: var(--space-sm);
-    }
-
-    .summary-total .summary-label {
-      font-size: 1.1rem;
-      font-weight: var(--font-weight-bold);
-    }
-
-    .summary-total .summary-value {
-      font-size: 1.5rem;
-      color: var(--primary);
-    }
-
-    .summary-divider {
-      height: 1px;
-      background: var(--border);
-      margin: var(--space-md) 0;
-    }
-
-    /* Botón Premium */
-    .btn-checkout-premium {
-      width: 100%;
-      padding: var(--space-lg);
-      background: var(--gradient-primary);
-      color: white;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 1.1rem;
-      font-weight: var(--font-weight-bold);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-sm);
-      margin-top: var(--space-lg);
-      transition: all var(--transition-base);
-      box-shadow: var(--shadow-colored);
-    }
-
-    .btn-checkout-premium:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-colored-hover);
-    }
-
-    .btn-checkout-premium:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .btn-checkout-icon {
-      font-size: 1.2rem;
-    }
-
-    /* Trust Badges */
-    .trust-badges {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-xs);
-      margin-top: var(--space-lg);
-      padding-top: var(--space-lg);
-      border-top: 1px solid var(--border);
-    }
-
-    .trust-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-
-    .trust-icon {
-      font-size: 1rem;
-    }
-
-    .summary-note {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: var(--space-md);
-      line-height: 1.5;
-    }
-
-    /* Date Selector */
-    .btn-date-selector {
-      width: 100%;
-      padding: var(--space-md);
-      background: var(--bg-secondary);
-      border: 2px dashed var(--border);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-size: 0.95rem;
-      color: var(--text-secondary);
-      transition: all var(--transition-base);
-    }
-
-    .btn-date-selector:hover {
-      border-color: var(--primary);
-      background: var(--primary-50);
-      color: var(--primary);
-    }
-
-    /* Payment Methods Simplificados */
-    .payment-methods {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-md);
-    }
-
-    .payment-method-card {
-      border: 2px solid var(--border);
-      border-radius: var(--radius);
-      padding: var(--space-md);
-      cursor: pointer;
-      transition: all var(--transition-base);
-    }
-
-    .payment-method-card:hover {
-      border-color: var(--primary);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .payment-method-card.selected {
-      border-color: var(--primary);
-      background: var(--primary-50);
-    }
-
-    .payment-method-header {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-    }
-
-    .payment-icon-wrapper {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-    }
-
-    .payment-name {
-      display: block;
-      font-weight: var(--font-weight-semibold);
-      color: var(--text);
-    }
-
-    .payment-subtitle {
-      display: block;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
-    .payment-method-details {
-      margin-top: var(--space-md);
-      padding-top: var(--space-md);
-      border-top: 1px solid var(--border);
-    }
-
-    /* Modal */
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-content {
-      background: var(--card);
-      border-radius: var(--radius-lg);
-      padding: var(--space-xl);
-      max-width: 90%;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--space-lg);
-    }
-
-    /* Responsive */
-    @media (max-width: 968px) {
-      .checkout-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .checkout-summary {
-        position: static;
-      }
-
-      .summary-card-sticky {
-        position: static;
-      }
-    }
-  </style>
 </body>
 </html>

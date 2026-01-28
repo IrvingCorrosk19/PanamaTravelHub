@@ -45,7 +45,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadCountries();
   updateParticipantsCount(); // Solo actualizar contador, no campos detallados
   setupPaymentInputs();
+  setupPaymentFieldValidation(); // Validación en tiempo real
   checkAuthInline();
+  
+  // Validar estado inicial del checkout
+  setTimeout(() => {
+    validateCheckoutState();
+  }, 500);
 });
 
 // Login Inline - No redirige, solo muestra/oculta
@@ -286,6 +292,11 @@ async function loadTour(tourId) {
     
     // Actualizar resumen después de cargar todo
     updateOrderSummary();
+    
+    // Validar estado del checkout después de cargar todo
+    setTimeout(() => {
+      validateCheckoutState();
+    }, 300);
   } catch (error) {
     console.error('Error loading tour:', error);
     if (typeof notificationManager !== 'undefined' && notificationManager) {
@@ -610,6 +621,9 @@ function selectDate(dateId) {
   
   // Actualizar resumen de orden
   updateOrderSummary();
+  
+  // Validar estado del checkout
+  validateCheckoutState();
 }
 
 // Imágenes de referencia para usar como fallback
@@ -696,56 +710,59 @@ function updateOrderSummary() {
     return dateId === selectedTourDateId || (selectedTourDateId === 'tour-main-date' && !dateId);
   });
   
-  // Actualizar display en el resumen (ya no existe summaryDate, se usa updateDateDisplay)
-  updateDateDisplay();
+    // Actualizar display en el resumen (ya no existe summaryDate, se usa updateDateDisplay)
+    updateDateDisplay();
   
-  if (selectedDate) {
-    const tourDateTime = selectedDate.TourDateTime || selectedDate.tourDateTime;
-    if (tourDateTime) {
-      try {
-        const dateObj = new Date(tourDateTime);
-        if (!isNaN(dateObj.getTime())) {
-          // Fecha válida, continuar con cálculo
+    if (selectedDate) {
+      const tourDateTime = selectedDate.TourDateTime || selectedDate.tourDateTime;
+      if (tourDateTime) {
+        try {
+          const dateObj = new Date(tourDateTime);
+          if (!isNaN(dateObj.getTime())) {
+            // Fecha válida, continuar con cálculo
+          }
+        } catch (e) {
+          console.warn('Error al formatear fecha:', e);
         }
-      } catch (e) {
-        console.warn('Error al formatear fecha:', e);
       }
     }
-  }
   
-  // ✅ Calcular y formatear total de forma segura
-  const price = Number(currentTour.Price ?? currentTour.price ?? 0);
-  const subtotal = price * numberOfParticipants;
+    // ✅ Calcular y formatear total de forma segura
+    const price = Number(currentTour.Price ?? currentTour.price ?? 0);
+    const subtotal = price * numberOfParticipants;
   
-  // Aplicar descuento si hay cupón
-  let discount = 0;
-  if (appliedCoupon) {
-    if (appliedCoupon.discountType === 'Percentage') {
-      discount = subtotal * (appliedCoupon.discountAmount / 100);
-      if (appliedCoupon.maximumDiscountAmount && discount > appliedCoupon.maximumDiscountAmount) {
-        discount = appliedCoupon.maximumDiscountAmount;
-      }
-    } else if (appliedCoupon.discountType === 'FixedAmount') {
-      discount = appliedCoupon.discountAmount;
-      if (discount > subtotal) {
-        discount = subtotal;
+    // Aplicar descuento si hay cupón
+    let discount = 0;
+    if (appliedCoupon) {
+      if (appliedCoupon.discountType === 'Percentage') {
+        discount = subtotal * (appliedCoupon.discountAmount / 100);
+        if (appliedCoupon.maximumDiscountAmount && discount > appliedCoupon.maximumDiscountAmount) {
+          discount = appliedCoupon.maximumDiscountAmount;
+        }
+      } else if (appliedCoupon.discountType === 'FixedAmount') {
+        discount = appliedCoupon.discountAmount;
+        if (discount > subtotal) {
+          discount = subtotal;
+        }
       }
     }
-  }
   
-  const total = subtotal - discount;
+    const total = subtotal - discount;
   
-  // Mostrar/ocultar descuento
-  const discountItem = document.getElementById('discountItem');
-  const summaryDiscount = document.getElementById('summaryDiscount');
-  if (discount > 0) {
-    discountItem.style.display = 'flex';
-    summaryDiscount.textContent = `-${formatPrice(discount)}`;
-  } else {
-    discountItem.style.display = 'none';
-  }
+    // Mostrar/ocultar descuento
+    const discountItem = document.getElementById('discountItem');
+    const summaryDiscount = document.getElementById('summaryDiscount');
+    if (discount > 0) {
+      discountItem.style.display = 'flex';
+      summaryDiscount.textContent = `-${formatPrice(discount)}`;
+    } else {
+      discountItem.style.display = 'none';
+    }
   
-  document.getElementById('summaryTotal').textContent = formatPrice(total);
+    document.getElementById('summaryTotal').textContent = formatPrice(total);
+    
+    // Validar estado del checkout después de actualizar resumen
+    validateCheckoutState();
 }
 
 // Función simplificada: solo actualiza el contador, NO crea campos detallados
@@ -761,6 +778,9 @@ function updateParticipantsCount() {
   
   // Actualizar resumen
   updateOrderSummary();
+  
+  // Validar estado del checkout
+  validateCheckoutState();
 }
 
 // Función antigua mantenida por compatibilidad (ya no se usa en checkout)
@@ -882,6 +902,18 @@ function setupParticipantValidation(card, index) {
 function selectPaymentMethod(method) {
   selectedPaymentMethod = method;
   
+  // Track: payment_method_selected
+  const tourId = currentTour?.Id || currentTour?.id;
+  if (window.track && tourId) {
+    window.track('payment_method_selected', {
+      entityType: 'tour',
+      entityId: tourId,
+      metadata: {
+        paymentMethod: method
+      }
+    });
+  }
+  
   // Actualizar radio buttons
   document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
     radio.checked = radio.value === method;
@@ -905,6 +937,9 @@ function selectPaymentMethod(method) {
       }
     }
   });
+  
+  // Validar y actualizar estado del botón
+  validateCheckoutState();
 }
 
 function setupPaymentInputs() {
@@ -1017,6 +1052,162 @@ function validateParticipants() {
   return isValid;
 }
 
+// Validar estado del checkout y habilitar/deshabilitar botón
+function validateCheckoutState() {
+  const btn = document.getElementById('checkoutBtn');
+  if (!btn) return;
+  
+  let isValid = true;
+  
+  // Validar que haya tour cargado
+  if (!currentTour) {
+    isValid = false;
+  }
+  
+  // Validar que haya fecha seleccionada (si hay fechas disponibles)
+  if (availableDates && availableDates.length > 0 && !selectedTourDateId) {
+    isValid = false;
+  }
+  
+  // Validar método de pago seleccionado
+  if (!selectedPaymentMethod) {
+    isValid = false;
+  }
+  
+  // Validar campos de pago según método
+  if (selectedPaymentMethod === 'stripe' && isStripeEnabled) {
+    const cardNumber = document.getElementById('cardNumber')?.value.replace(/\s/g, '') || '';
+    const cardExpiry = document.getElementById('cardExpiry')?.value || '';
+    const cardCvv = document.getElementById('cardCvv')?.value || '';
+    const cardName = document.getElementById('cardName')?.value.trim() || '';
+    
+    if (!cardNumber || cardNumber.length < 13 || cardNumber.length > 19) {
+      isValid = false;
+    }
+    if (!cardExpiry || !/^\d{2}\/\d{2}$/.test(cardExpiry)) {
+      isValid = false;
+    }
+    if (!cardCvv || cardCvv.length < 3 || cardCvv.length > 4) {
+      isValid = false;
+    }
+    if (!cardName || cardName.length < 2) {
+      isValid = false;
+    }
+  }
+  
+  if (selectedPaymentMethod === 'yappy') {
+    const phone = document.getElementById('yappyPhone')?.value.trim() || '';
+    if (!phone || !/^\+?[\d\s\-\(\)]+$/.test(phone)) {
+      isValid = false;
+    }
+  }
+  
+  // Actualizar estado del botón
+  btn.disabled = !isValid;
+  
+  return isValid;
+}
+
+// Validar campos de pago en tiempo real
+function setupPaymentFieldValidation() {
+  // Validación de tarjeta
+  const cardNumber = document.getElementById('cardNumber');
+  const cardExpiry = document.getElementById('cardExpiry');
+  const cardCvv = document.getElementById('cardCvv');
+  const cardName = document.getElementById('cardName');
+  const yappyPhone = document.getElementById('yappyPhone');
+  
+  if (cardNumber) {
+    cardNumber.addEventListener('blur', function() {
+      const value = this.value.replace(/\s/g, '');
+      const errorEl = document.getElementById('cardNumberError');
+      if (!value || value.length < 13 || value.length > 19) {
+        if (errorEl) {
+          errorEl.textContent = 'Este campo es obligatorio';
+          errorEl.style.display = 'block';
+        }
+        this.classList.add('input-error');
+      } else {
+        if (errorEl) errorEl.style.display = 'none';
+        this.classList.remove('input-error');
+      }
+      validateCheckoutState();
+    });
+  }
+  
+  if (cardExpiry) {
+    cardExpiry.addEventListener('blur', function() {
+      const value = this.value;
+      const errorEl = document.getElementById('cardExpiryError');
+      if (!value || !/^\d{2}\/\d{2}$/.test(value)) {
+        if (errorEl) {
+          errorEl.textContent = 'Este campo es obligatorio';
+          errorEl.style.display = 'block';
+        }
+        this.classList.add('input-error');
+      } else {
+        if (errorEl) errorEl.style.display = 'none';
+        this.classList.remove('input-error');
+      }
+      validateCheckoutState();
+    });
+  }
+  
+  if (cardCvv) {
+    cardCvv.addEventListener('blur', function() {
+      const value = this.value;
+      const errorEl = document.getElementById('cardCvvError');
+      if (!value || value.length < 3 || value.length > 4) {
+        if (errorEl) {
+          errorEl.textContent = 'Este campo es obligatorio';
+          errorEl.style.display = 'block';
+        }
+        this.classList.add('input-error');
+      } else {
+        if (errorEl) errorEl.style.display = 'none';
+        this.classList.remove('input-error');
+      }
+      validateCheckoutState();
+    });
+  }
+  
+  if (cardName) {
+    cardName.addEventListener('blur', function() {
+      const value = this.value.trim();
+      const errorEl = document.getElementById('cardNameError');
+      if (!value || value.length < 2) {
+        if (errorEl) {
+          errorEl.textContent = 'Este campo es obligatorio';
+          errorEl.style.display = 'block';
+        }
+        this.classList.add('input-error');
+      } else {
+        if (errorEl) errorEl.style.display = 'none';
+        this.classList.remove('input-error');
+      }
+      validateCheckoutState();
+    });
+  }
+  
+  if (yappyPhone) {
+    yappyPhone.addEventListener('blur', function() {
+      const value = this.value.trim();
+      const errorEl = document.getElementById('yappyPhoneError');
+      if (!value || !/^\+?[\d\s\-\(\)]+$/.test(value)) {
+        if (errorEl) {
+          errorEl.textContent = 'Este campo es obligatorio';
+          errorEl.style.display = 'block';
+        }
+        this.classList.add('input-error');
+      } else {
+        if (errorEl) errorEl.style.display = 'none';
+        this.classList.remove('input-error');
+      }
+      validateCheckoutState();
+    });
+  }
+}
+
 function validatePaymentMethod() {
   if (selectedPaymentMethod === 'stripe') {
     // En modo simulación, no validar campos de tarjeta
@@ -1032,8 +1223,11 @@ function validatePaymentMethod() {
 
     // Validar número de tarjeta (algoritmo de Luhn básico)
     if (!cardNumber || cardNumber.length < 13 || cardNumber.length > 19) {
-      const msg = 'Por favor ingresa un número de tarjeta válido (13-19 dígitos)';
-      showNotificationError(msg);
+      const errorEl = document.getElementById('cardNumberError');
+      if (errorEl) {
+        errorEl.textContent = 'Por favor ingresa un número de tarjeta válido (13-19 dígitos)';
+        errorEl.style.display = 'block';
+      }
       document.getElementById('cardNumber').classList.add('input-error');
       document.getElementById('cardNumber').focus();
       return false;
@@ -1041,8 +1235,11 @@ function validatePaymentMethod() {
 
     // Validar formato de fecha MM/AA
     if (!cardExpiry || !/^\d{2}\/\d{2}$/.test(cardExpiry)) {
-      const msg = 'Por favor ingresa una fecha de vencimiento válida (MM/AA)';
-      showNotificationError(msg);
+      const errorEl = document.getElementById('cardExpiryError');
+      if (errorEl) {
+        errorEl.textContent = 'Por favor ingresa una fecha de vencimiento válida (MM/AA)';
+        errorEl.style.display = 'block';
+      }
       document.getElementById('cardExpiry').classList.add('input-error');
       document.getElementById('cardExpiry').focus();
       return false;
@@ -1053,8 +1250,11 @@ function validatePaymentMethod() {
     const expiryDate = new Date(2000 + parseInt(year), parseInt(month) - 1);
     const today = new Date();
     if (expiryDate < today) {
-      const msg = 'La tarjeta está vencida';
-      showNotificationError(msg);
+      const errorEl = document.getElementById('cardExpiryError');
+      if (errorEl) {
+        errorEl.textContent = 'La tarjeta está vencida';
+        errorEl.style.display = 'block';
+      }
       document.getElementById('cardExpiry').classList.add('input-error');
       document.getElementById('cardExpiry').focus();
       return false;
@@ -1062,8 +1262,11 @@ function validatePaymentMethod() {
 
     // Validar CVV
     if (!cardCvv || cardCvv.length < 3 || cardCvv.length > 4) {
-      const msg = 'Por favor ingresa un CVV válido (3-4 dígitos)';
-      showNotificationError(msg);
+      const errorEl = document.getElementById('cardCvvError');
+      if (errorEl) {
+        errorEl.textContent = 'Por favor ingresa un CVV válido (3-4 dígitos)';
+        errorEl.style.display = 'block';
+      }
       document.getElementById('cardCvv').classList.add('input-error');
       document.getElementById('cardCvv').focus();
       return false;
@@ -1071,8 +1274,11 @@ function validatePaymentMethod() {
 
     // Validar nombre
     if (!cardName || cardName.length < 2) {
-      const msg = 'Por favor ingresa el nombre completo en la tarjeta';
-      showNotificationError(msg);
+      const errorEl = document.getElementById('cardNameError');
+      if (errorEl) {
+        errorEl.textContent = 'Por favor ingresa el nombre completo en la tarjeta';
+        errorEl.style.display = 'block';
+      }
       document.getElementById('cardName').classList.add('input-error');
       document.getElementById('cardName').focus();
       return false;
@@ -1082,15 +1288,21 @@ function validatePaymentMethod() {
   if (selectedPaymentMethod === 'yappy') {
     const phone = document.getElementById('yappyPhone').value.trim();
     if (!phone) {
-      const msg = 'Por favor ingresa tu número de teléfono para Yappy';
-      showNotificationError(msg);
+      const errorEl = document.getElementById('yappyPhoneError');
+      if (errorEl) {
+        errorEl.textContent = 'Por favor ingresa tu número de teléfono para Yappy';
+        errorEl.style.display = 'block';
+      }
       document.getElementById('yappyPhone').classList.add('input-error');
       document.getElementById('yappyPhone').focus();
       return false;
     }
     if (!/^\+?[\d\s\-\(\)]+$/.test(phone)) {
-      const msg = 'Por favor ingresa un número de teléfono válido';
-      showNotificationError(msg);
+      const errorEl = document.getElementById('yappyPhoneError');
+      if (errorEl) {
+        errorEl.textContent = 'Por favor ingresa un número de teléfono válido';
+        errorEl.style.display = 'block';
+      }
       document.getElementById('yappyPhone').classList.add('input-error');
       document.getElementById('yappyPhone').focus();
       return false;
@@ -1107,7 +1319,16 @@ async function processPayment() {
 
   // Limpiar errores previos
   document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+  document.querySelectorAll('.field-error').forEach(el => {
+    el.style.display = 'none';
+    el.textContent = '';
+  });
 
+  // Validar método de pago
+  if (!validatePaymentMethod()) {
+    return;
+  }
+  
   // Validar fecha seleccionada (solo si hay fechas disponibles)
   // Si no hay fechas disponibles, el tour puede no requerir fecha específica
   if (availableDates && availableDates.length > 0 && !selectedTourDateId) {
@@ -1379,8 +1600,21 @@ async function processPayment() {
     return subtotal - discount;
   }
 
-  // Track: payment_started
+  // Track: checkout_confirm_clicked
   const tourId = currentTour?.Id || currentTour?.id;
+  if (window.track && tourId) {
+    window.track('checkout_confirm_clicked', {
+      entityType: 'tour',
+      entityId: tourId,
+      metadata: {
+        paymentMethod: selectedPaymentMethod,
+        participants: numParticipants,
+        totalAmount: calculateTotal()
+      }
+    });
+  }
+  
+  // Track: payment_started (mantener por compatibilidad)
   if (window.track && tourId) {
     window.track('payment_started', {
       entityType: 'tour',
@@ -1795,7 +2029,22 @@ async function processPayment() {
         // Redirigir a página de éxito
         const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
         loadingManager.hideGlobal();
-        // Track: payment_success
+        
+        // Track: checkout_completed
+        if (window.track && tourId) {
+          window.track('checkout_completed', {
+            entityType: 'booking',
+            entityId: bookingId,
+            metadata: {
+              tourId: tourId,
+              amount: totalAmount,
+              participants: finalNumberOfParticipants,
+              paymentMethod: selectedPaymentMethod
+            }
+          });
+        }
+        
+        // Track: payment_success (mantener por compatibilidad)
         if (window.track && tourId) {
           window.track('payment_success', {
             entityType: 'booking',
@@ -1879,7 +2128,21 @@ async function processPayment() {
       // Redirigir a página de éxito
       const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
       
-      // Track: payment_success (Stripe confirmado)
+      // Track: checkout_completed
+      if (window.track && tourId) {
+        window.track('checkout_completed', {
+          entityType: 'booking',
+          entityId: bookingId,
+          metadata: {
+            tourId: tourId,
+            amount: totalAmount,
+            participants: finalNumberOfParticipants,
+            paymentMethod: 'stripe'
+          }
+        });
+      }
+      
+      // Track: payment_success (mantener por compatibilidad)
       if (window.track && tourId) {
         window.track('payment_success', {
           entityType: 'booking',
@@ -1931,6 +2194,21 @@ async function processPayment() {
         await api.confirmPayment(paymentIntentId);
         
         const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
+        
+        // Track: checkout_completed
+        if (window.track && tourId) {
+          window.track('checkout_completed', {
+            entityType: 'booking',
+            entityId: bookingId,
+            metadata: {
+              tourId: tourId,
+              amount: totalAmount,
+              participants: finalNumberOfParticipants,
+              paymentMethod: 'paypal'
+            }
+          });
+        }
+        
         loadingManager.hideGlobal();
         window.location.href = `/booking-success.html?bookingId=${bookingId}&amount=${totalAmount}&participants=${finalNumberOfParticipants}`;
       } else {
@@ -1980,7 +2258,21 @@ async function processPayment() {
       
       const totalAmount = bookingResponse.totalAmount || (currentTour.price * numberOfParticipants);
       
-      // Track: payment_success (Stripe confirmado)
+      // Track: checkout_completed
+      if (window.track && tourId) {
+        window.track('checkout_completed', {
+          entityType: 'booking',
+          entityId: bookingId,
+          metadata: {
+            tourId: tourId,
+            amount: totalAmount,
+            participants: finalNumberOfParticipants,
+            paymentMethod: 'yappy'
+          }
+        });
+      }
+      
+      // Track: payment_success (mantener por compatibilidad)
       if (window.track && tourId) {
         window.track('payment_success', {
           entityType: 'booking',
@@ -1989,7 +2281,7 @@ async function processPayment() {
             tourId: tourId,
             amount: totalAmount,
             participants: finalNumberOfParticipants,
-            paymentMethod: 'stripe'
+            paymentMethod: 'yappy'
           }
         });
       }
@@ -2001,17 +2293,29 @@ async function processPayment() {
   } catch (error) {
     console.error('Error processing payment:', error);
     
-    // Track: payment_failed
-    if (window.track && tourId) {
-      window.track('payment_failed', {
-        entityType: 'tour',
-        entityId: tourId,
-        metadata: {
-          error: error.message || 'Error desconocido',
-          paymentMethod: selectedPaymentMethod
-        }
-      });
-    }
+      // Track: checkout_error
+      if (window.track && tourId) {
+        window.track('checkout_error', {
+          entityType: 'tour',
+          entityId: tourId,
+          metadata: {
+            error: error.message || 'Error desconocido',
+            paymentMethod: selectedPaymentMethod
+          }
+        });
+      }
+      
+      // Track: payment_failed (mantener por compatibilidad)
+      if (window.track && tourId) {
+        window.track('payment_failed', {
+          entityType: 'tour',
+          entityId: tourId,
+          metadata: {
+            error: error.message || 'Error desconocido',
+            paymentMethod: selectedPaymentMethod
+          }
+        });
+      }
     
     loadingManager.hideGlobal();
     
@@ -2170,5 +2474,24 @@ document.getElementById('paymentModal')?.addEventListener('click', function(e) {
     const btn = document.getElementById('checkoutBtn');
     if (btn.disabled) return;
     this.style.display = 'none';
+  }
+});
+
+// Track: checkout_abandoned (cuando el usuario sale de la página)
+let checkoutAbandonedTracked = false;
+window.addEventListener('beforeunload', function() {
+  if (!checkoutAbandonedTracked && currentTour) {
+    const tourId = currentTour?.Id || currentTour?.id;
+    if (window.track && tourId) {
+      checkoutAbandonedTracked = true;
+      window.track('checkout_abandoned', {
+        entityType: 'tour',
+        entityId: tourId,
+        metadata: {
+          paymentMethod: selectedPaymentMethod,
+          participants: numberOfParticipants
+        }
+      });
+    }
   }
 });

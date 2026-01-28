@@ -11,11 +11,20 @@ Write-Host "  Multi-aplicación (sin afectar CarnetQR)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Verificar que CarnetQR sigue funcionando
-Write-Host "Verificando aplicación existente (CarnetQR)..." -ForegroundColor Yellow
-$cmdCheck = "docker ps --filter name=carnetqr --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
-$resultCheck = & $plink -ssh -pw $password -batch -hostkey $hostkey $hostname $cmdCheck 2>&1
-Write-Host $resultCheck
+# Verificar TODAS las aplicaciones antes del deploy (PROTECCION)
+Write-Host "========================================" -ForegroundColor Yellow
+Write-Host "  VERIFICACION PRE-DEPLOY (PROTECCION)" -ForegroundColor Yellow
+Write-Host "========================================" -ForegroundColor Yellow
+Write-Host "Verificando estado de TODAS las aplicaciones..." -ForegroundColor Yellow
+$cmdCheckAll = "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+$resultCheckAll = & $plink -ssh -pw $password -batch -hostkey $hostkey $hostname $cmdCheckAll 2>&1
+Write-Host $resultCheckAll
+Write-Host ""
+Write-Host "IMPORTANTE: Solo se afectará PanamaTravelHub" -ForegroundColor Cyan
+Write-Host "  - Puerto web: 8082 (único)" -ForegroundColor Gray
+Write-Host "  - Puerto DB: 5433 (único)" -ForegroundColor Gray
+Write-Host "  - Contenedores: panamatravelhub_* (nombres únicos)" -ForegroundColor Gray
+Write-Host "  - Red: panamatravelhub_net (aislada)" -ForegroundColor Gray
 Write-Host ""
 
 # PASO 0: Crear directorio si no existe
@@ -99,18 +108,53 @@ $result6 = & $plink -ssh -pw $password -batch -hostkey $hostkey $hostname $cmd6 
 Write-Host $result6
 Write-Host ""
 
-# PASO 7: Verificar salud de ambas aplicaciones
-Write-Host "PASO 7: Estado de aplicaciones..." -ForegroundColor Yellow
+# PASO 7: Verificar salud de TODAS las aplicaciones (POST-DEPLOY)
+Write-Host "========================================" -ForegroundColor Yellow
+Write-Host "  VERIFICACION POST-DEPLOY" -ForegroundColor Yellow
+Write-Host "========================================" -ForegroundColor Yellow
+Write-Host "Estado de TODAS las aplicaciones despues del deploy:" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "CarnetQR:" -ForegroundColor Cyan
+$cmd7All = "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+$result7All = & $plink -ssh -pw $password -batch -hostkey $hostkey $hostname $cmd7All 2>&1
+Write-Host $result7All
+Write-Host ""
+
+# Verificacion especifica por aplicacion
+Write-Host "Verificacion detallada:" -ForegroundColor Cyan
+Write-Host ""
+
+# Aplicacion 1 (si existe)
 $cmd7a = "docker ps --filter name=carnetqr --format '{{.Names}}: {{.Status}}'"
 $result7a = & $plink -ssh -pw $password -batch -hostkey $hostkey $hostname $cmd7a 2>&1
-Write-Host $result7a
+if ($result7a -and $result7a -notmatch "^\s*$") {
+    Write-Host "  [OK] Aplicacion 1 (carnetqr):" -ForegroundColor Green
+    Write-Host "    $result7a" -ForegroundColor White
+} else {
+    Write-Host "  [-] Aplicacion 1 (carnetqr): No encontrada" -ForegroundColor Gray
+}
 Write-Host ""
-Write-Host "PanamaTravelHub:" -ForegroundColor Cyan
+
+# PanamaTravelHub
+Write-Host "  [OK] PanamaTravelHub:" -ForegroundColor Green
 $cmd7b = "docker ps --filter name=panamatravelhub --format '{{.Names}}: {{.Status}}'"
 $result7b = & $plink -ssh -pw $password -batch -hostkey $hostkey $hostname $cmd7b 2>&1
-Write-Host $result7b
+Write-Host "    $result7b" -ForegroundColor White
+Write-Host ""
+
+# Verificar otras aplicaciones (generico)
+$cmd7c = "docker ps --format '{{.Names}}' | grep -v panamatravelhub | grep -v carnetqr | head -5"
+$result7c = & $plink -ssh -pw $password -batch -hostkey $hostkey $hostname $cmd7c 2>&1
+if ($result7c -and $result7c -notmatch "^\s*$") {
+    Write-Host "  [OK] Otras aplicaciones detectadas:" -ForegroundColor Green
+    $result7c -split "`n" | ForEach-Object {
+        if ($_ -and $_ -notmatch "^\s*$") {
+            $otherApp = $_.Trim()
+            $cmdOther = "docker ps --filter name=$otherApp --format '{{.Names}}: {{.Status}}'"
+            $resultOther = & $plink -ssh -pw $password -batch -hostkey $hostkey $hostname $cmdOther 2>&1
+            Write-Host "    $resultOther" -ForegroundColor White
+        }
+    }
+}
 Write-Host ""
 
 Write-Host "========================================" -ForegroundColor Cyan

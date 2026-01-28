@@ -142,11 +142,11 @@
           </button>
 
           <!-- Microcopy de riesgo cero -->
-          <div class="risk-free-microcopy" style="margin-bottom: var(--space-md);">
-            <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
-              ✔ Cancelación flexible<br>
-              ✔ Sin cargos ocultos<br>
-              ✔ Soporte local en Panamá
+          <div class="risk-free-microcopy">
+            <div>
+              Cancelación flexible hasta 24 horas antes<br>
+              Sin cargos ocultos • Precio final garantizado<br>
+              Soporte local disponible en Panamá
             </div>
           </div>
 
@@ -156,22 +156,22 @@
           </button>
 
           <!-- Trust Badges -->
-          <div class="trust-badges" style="margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border);">
-            <div style="display: flex; flex-direction: column; gap: var(--space-xs); font-size: 0.85rem; color: var(--text-muted);">
-              <span>🔒 Pago 100% seguro</span>
-              <span>📧 Confirmación inmediata</span>
-              <span>💳 Stripe · PayPal · Yappy</span>
+          <div class="trust-badges" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--tour-border);">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <span>Pago 100% seguro</span>
+              <span>Confirmación inmediata por email</span>
+              <span>Métodos: Stripe · PayPal · Yappy</span>
             </div>
           </div>
 
           <!-- Actividad reciente (oculto si no hay data) -->
-          <div id="recentActivity" class="recent-activity" style="display:none; margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border);">
-            <div style="font-size: 0.85rem; color: var(--text-muted);">
-              👀 <span id="recentActivityText"></span>
+          <div id="recentActivity" class="recent-activity" style="display:none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--tour-border);">
+            <div style="font-size: 13px; color: var(--tour-text-secondary);">
+              <span id="recentActivityText"></span>
             </div>
           </div>
 
-          <div class="booking-guarantee" style="margin-top: var(--space-md);">
+          <div class="booking-guarantee" style="margin-top: 20px;">
             <span class="guarantee-icon">🛡️</span>
             <span class="guarantee-text">Reserva segura con garantía de reembolso</span>
           </div>
@@ -827,10 +827,10 @@
       return `
         <div class="cms-block cms-block-social-proof" data-block="social">
           ${socialText ? `<p style="font-size: 1.1rem; margin-bottom: var(--space-lg);">${socialText}</p>` : ''}
-          <div style="display: flex; flex-wrap: wrap; gap: var(--space-md); justify-content: center;">
-            ${hasCertifiedGuide ? `<div class="social-badge">✓ Guía Certificado</div>` : ''}
-            ${hasFlexibleCancellation ? `<div class="social-badge">↩️ Cancelación Flexible</div>` : ''}
-            ${languagesList.length > 0 ? `<div class="social-badge">🌐 ${languagesList.join(', ')}</div>` : ''}
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;">
+            ${hasCertifiedGuide ? `<div class="social-badge">Guía Certificado</div>` : ''}
+            ${hasFlexibleCancellation ? `<div class="social-badge">Cancelación Flexible</div>` : ''}
+            ${languagesList.length > 0 ? `<div class="social-badge">Idiomas: ${languagesList.join(', ')}</div>` : ''}
           </div>
         </div>
       `;
@@ -927,14 +927,14 @@
       return `
         <div class="cms-block cms-block-includes-excludes" data-block="includes">
           <div>
-            <h3>✅ Incluye</h3>
+            <h3>Incluye</h3>
             <ul class="included-list">
               ${includes.map(item => `<li class="included-item"><span class="included-icon">✓</span><span>${item}</span></li>`).join('')}
             </ul>
           </div>
           ${excludes.length > 0 ? `
           <div>
-            <h3>❌ No Incluye</h3>
+            <h3>No Incluye</h3>
             <ul class="excluded-list">
               ${excludes.map(item => `<li class="excluded-item"><span class="excluded-icon">✗</span><span>${item}</span></li>`).join('')}
             </ul>
@@ -1006,7 +1006,7 @@
             </button>
             
             <p class="availability-microcopy">
-              ✔ Confirmación inmediata por email · Cancelación flexible
+              Confirmación inmediata por email • Cancelación flexible hasta 24h antes
             </p>
           </div>
         </section>
@@ -1020,9 +1020,9 @@
       
       return `
         <div class="cms-block" data-block="map">
-          <h2 class="info-block-title">📍 Ubicación</h2>
-          <div id="tourMap" style="width: 100%; height: 400px; border-radius: var(--radius); overflow: hidden; margin-top: var(--space-md);"></div>
-          ${referenceText ? `<p style="margin-top: var(--space-sm); color: var(--text-secondary);">${referenceText}</p>` : ''}
+          <h2 class="info-block-title">Ubicación</h2>
+          <div id="tourMap" style="width: 100%; height: 400px; border-radius: 12px; overflow: hidden; margin-top: 24px;"></div>
+          ${referenceText ? `<p style="margin-top: 12px; color: var(--tour-text-secondary); font-size: 15px;">${referenceText}</p>` : ''}
         </div>
       `;
     }
