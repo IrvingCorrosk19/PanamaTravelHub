@@ -307,11 +307,17 @@ public class AuthController : ControllerBase
 
             _logger.LogInformation("Usuario autenticado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
 
-            // Obtener roles
-            var roles = user.UserRoles
-                .Select(ur => ur.Role.Name)
-                .ToList();
-            
+            // Obtener roles (evitar NullReference si Role no está cargado o fue eliminado)
+            var roles = user.UserRoles?
+                .Where(ur => ur.Role != null)
+                .Select(ur => ur.Role!.Name)
+                .ToList() ?? new List<string>();
+            if (roles.Count == 0)
+            {
+                _logger.LogWarning("Usuario {Email} no tiene roles asignados; se asume Customer", user.Email);
+                roles = new List<string> { "Customer" };
+            }
+
             _logger.LogInformation("Roles obtenidos para usuario {Email}: {Roles}", user.Email, string.Join(", ", roles));
 
             // Determinar URL de redirección basada en roles (Razor Pages)
@@ -351,7 +357,9 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error en login para email: {Email}", request?.Email);
+            _logger.LogError(ex, "Error en login para email: {Email} | Tipo: {ExceptionType} | Mensaje: {Message}", request?.Email, ex.GetType().Name, ex.Message);
+            if (ex.InnerException != null)
+                _logger.LogError("InnerException: {InnerType} | {InnerMessage}", ex.InnerException.GetType().Name, ex.InnerException.Message);
             throw;
         }
     }

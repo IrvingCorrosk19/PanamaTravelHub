@@ -63,7 +63,7 @@
               <span class="sticky-cta-availability" id="stickyAvailability">- cupos</span>
             </div>
             <button class="btn-booking" onclick="bookTour()">
-              <span class="btn-booking-text">Reservar Ahora</span>
+              <span class="btn-booking-text">Reservar experiencia</span>
               <span class="btn-booking-icon">→</span>
             </button>
           </div>
@@ -113,9 +113,9 @@
       <aside class="booking-sidebar" id="bookingSidebar" style="display:none;">
         <div class="booking-card-sticky">
           <div class="booking-price-section">
-            <div class="price-label">Precio por persona</div>
+            <div class="price-label">Desde · por persona</div>
             <div class="price-amount" id="tourPrice"></div>
-            <div class="price-note">Impuestos incluidos</div>
+            <div class="price-note">Impuestos incluidos · Precio final garantizado</div>
           </div>
 
           <div class="booking-info-grid">
@@ -151,7 +151,7 @@
           </div>
 
           <button class="btn-booking" onclick="bookTour()">
-            <span class="btn-booking-text">Reservar Ahora</span>
+            <span class="btn-booking-text">Reservar experiencia</span>
             <span class="btn-booking-icon">→</span>
           </button>
 
@@ -762,7 +762,7 @@
     function renderHeroBlock(tour) {
       const heroTitle = tour.HeroTitle || tour.heroTitle || tour.Name || tour.name || 'Tour';
       const heroSubtitle = tour.HeroSubtitle || tour.heroSubtitle || '';
-      const heroCtaText = tour.HeroCtaText || tour.heroCtaText || 'Ver fechas disponibles';
+      const heroCtaText = tour.HeroCtaText || tour.heroCtaText || 'Ver disponibilidad';
       const price = tour.Price ?? tour.price ?? 0;
       const priceText = price > 0 ? `Desde $${price.toFixed(2)}` : 'Consultar precio';
       const availableSpots = tour.AvailableSpots ?? tour.availableSpots ?? 0;
@@ -994,14 +994,14 @@
             </div>
             
             <div class="availability-price">
-              <span class="availability-price-label">Total</span>
+              <span class="availability-price-label">Total estimado</span>
               <strong class="availability-price-amount" id="totalPriceDisplay">$${pricePerPerson.toFixed(2)}</strong>
             </div>
             
             <div class="availability-urgency" id="urgencyMsg" data-urgency-tracked="false" style="display:none;"></div>
             
             <button class="btn-booking btn-reserve" onclick="bookTour()" style="width: 100%; margin-top: var(--space-lg);">
-              <span class="btn-booking-text">Reservar Ahora</span>
+              <span class="btn-booking-text">Reservar experiencia</span>
               <span class="btn-booking-icon">→</span>
             </button>
             
@@ -1131,7 +1131,7 @@
     // BLOQUE 10: CTA Final
     function renderFinalCtaBlock(tour) {
       const ctaText = tour.FinalCtaText || tour.finalCtaText || '¿Listo para vivir esta experiencia?';
-      const ctaButtonText = tour.FinalCtaButtonText || tour.finalCtaButtonText || 'Ver fechas disponibles';
+      const ctaButtonText = tour.FinalCtaButtonText || tour.finalCtaButtonText || 'Ver disponibilidad';
       
       return `
         <div class="cms-block cms-block-final-cta" data-block="final_cta">

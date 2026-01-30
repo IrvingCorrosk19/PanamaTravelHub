@@ -52,7 +52,7 @@
    BREADCRUMB - Navegación Clara
    ============================================ */
 .breadcrumb {
-  padding: 24px 0 16px;
+  padding: 20px 0 12px;
   margin-bottom: 0;
   font-size: 14px;
 }
@@ -129,8 +129,9 @@
   background: linear-gradient(
     180deg,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0.3) 50%,
-    rgba(0, 0, 0, 0.75) 100%
+    rgba(0, 0, 0, 0.25) 40%,
+    rgba(0, 0, 0, 0.7) 85%,
+    rgba(0, 0, 0, 0.82) 100%
   );
   z-index: 1;
 }
@@ -140,14 +141,14 @@
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 48px 40px;
+  padding: 40px 40px 48px;
   z-index: 2;
   color: white;
 }
 
 @media (max-width: 768px) {
   .tour-hero-content {
-    padding: 32px 24px;
+    padding: 28px 24px 36px;
   }
 }
 
@@ -178,16 +179,16 @@
   color: white;
 }
 
-/* Título Hero - Jerarquía Clara */
+/* Título Hero - Elemento más dominante de la página */
 .tour-hero-title {
-  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-size: clamp(2.75rem, 6.5vw, 4.25rem);
   font-weight: 800;
-  line-height: 1.1;
-  margin: 0 0 16px;
+  line-height: 1.08;
+  margin: 0 0 12px;
   color: white;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
-  letter-spacing: -0.03em;
-  max-width: 90%;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.55);
+  letter-spacing: -0.04em;
+  max-width: 95%;
 }
 
 .tour-hero-subtitle {
@@ -196,16 +197,16 @@
   line-height: 1.4;
   color: rgba(255, 255, 255, 0.95);
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
-/* Meta Items - Más Limpios */
+/* Meta: ubicación conceptual (precio + rating) - jerarquía clara bajo el título */
 .tour-hero-meta {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   flex-wrap: wrap;
-  margin-top: 24px;
-  margin-bottom: 32px;
+  margin-top: 20px;
+  margin-bottom: 28px;
 }
 
 .tour-meta-item {
@@ -232,11 +233,11 @@
    BLOQUES CMS - Diseño Premium y Claro
    ============================================ */
 
-/* Contenedor de Bloques */
+/* Contenedor de Bloques - aire y orden de escaneo */
 #cmsBlocksContainer {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 40px;
   max-width: 100%;
 }
 
@@ -496,7 +497,7 @@
   font-size: clamp(1.75rem, 4vw, 2.25rem);
   font-weight: 800;
   color: var(--tour-text);
-  margin-bottom: 32px;
+  margin-bottom: 28px;
   text-align: left;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -538,20 +539,20 @@
   background: white;
 }
 
-/* Precio Total - Muy Visible */
+/* Precio total - claro y humano */
 .availability-price {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
+  padding: 24px 28px;
   background: var(--tour-bg-soft);
   border-radius: 12px;
-  margin: 32px 0;
+  margin: 28px 0;
   border: 2px solid var(--tour-border);
 }
 
 .availability-price-label {
-  font-size: 18px;
+  font-size: 17px;
   color: var(--tour-text);
   font-weight: 700;
 }
@@ -623,9 +624,8 @@
   font-size: 13px;
   color: var(--tour-text-secondary);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
 }
 
 .price-amount {
@@ -638,9 +638,10 @@
 }
 
 .price-note {
-  font-size: 13px;
-  color: var(--tour-text-secondary);
+  font-size: 12px;
+  color: var(--tour-text-muted);
   font-weight: 500;
+  line-height: 1.4;
 }
 
 .booking-info-grid {
@@ -686,32 +687,32 @@
   margin: 24px 0;
 }
 
-/* Botón de Reserva - CTA Dominante */
+/* Botón de Reserva - CTA principal, inequívoco */
 .btn-booking {
   width: 100%;
-  padding: 16px 24px;
+  padding: 18px 28px;
   background: var(--tour-primary);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 17px;
+  border-radius: 10px;
+  font-size: 18px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+  transition: all 0.25s ease;
+  box-shadow: 0 6px 20px rgba(0, 102, 204, 0.35);
   margin-bottom: 20px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   font-family: inherit;
 }
 
 .btn-booking:hover {
   background: var(--tour-primary-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 102, 204, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 102, 204, 0.45);
 }
 
 .btn-booking:active {
@@ -977,7 +978,7 @@
    ============================================ */
 .cms-block-final-cta {
   text-align: center;
-  padding: 64px 48px;
+  padding: 56px 48px;
   background: var(--tour-bg-soft);
   border-radius: 12px;
   margin-bottom: 0;
