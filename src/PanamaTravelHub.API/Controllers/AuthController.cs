@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PanamaTravelHub.Application.Exceptions;
@@ -322,13 +323,16 @@ public class AuthController : ControllerBase
             }
             else
             {
-                redirectUrl = "/Reservas";
+                redirectUrl = "/reservas.html";
                 _logger.LogInformation("Usuario cliente detectado, redirigiendo a reservas. Roles: {Roles}", string.Join(", ", roles));
             }
 
             // Generar tokens
             var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email, roles);
             var refreshToken = await CreateRefreshTokenAsync(user.Id);
+
+            // Cookie con JWT para que GET /Admin (y otras páginas Razor) reciban auth en la misma petición
+            SetJwtCookie(accessToken);
 
             return Ok(new AuthResponseDto
             {
@@ -425,8 +429,10 @@ public class AuthController : ControllerBase
         }
         else
         {
-            redirectUrl = "/Reservas";
+            redirectUrl = "/reservas.html";
         }
+
+        SetJwtCookie(newAccessToken);
 
         return Ok(new AuthResponseDto
         {
@@ -492,6 +498,8 @@ public class AuthController : ControllerBase
         }
 
         _logger.LogInformation("Logout exitoso para usuario: {UserId}", userId);
+
+        ClearJwtCookie();
 
         return Ok(new { message = "Logout exitoso" });
     }
@@ -952,6 +960,26 @@ public class AuthController : ControllerBase
         await _context.SaveChangesAsync();
 
         return refreshToken;
+    }
+
+    private const string JwtCookieName = "accessToken";
+
+    private void SetJwtCookie(string accessToken)
+    {
+        var expirationMinutes = int.Parse(_configuration["Jwt:AccessTokenExpirationMinutes"] ?? "15");
+        Response.Cookies.Append(JwtCookieName, accessToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = false, // true en producción con HTTPS
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            MaxAge = TimeSpan.FromMinutes(expirationMinutes)
+        });
+    }
+
+    private void ClearJwtCookie()
+    {
+        Response.Cookies.Delete(JwtCookieName, new CookieOptions { Path = "/" });
     }
 }
 

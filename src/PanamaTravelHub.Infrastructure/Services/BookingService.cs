@@ -456,8 +456,12 @@ public class BookingService : IBookingService
         if (booking.Status == BookingStatus.Cancelled || booking.Status == BookingStatus.Completed)
             return false;
 
-        // Liberar cupos
+        // Liberar cupos (raw SQL actualiza tours/tour_dates; desasociar para que SaveChanges solo persista el booking)
         await ReleaseSpotsAsync(booking.TourId, booking.TourDateId, booking.NumberOfParticipants, cancellationToken);
+        if (booking.Tour != null)
+            _context.Entry(booking.Tour).State = EntityState.Detached;
+        if (booking.TourDate != null)
+            _context.Entry(booking.TourDate).State = EntityState.Detached;
 
         booking.Status = BookingStatus.Cancelled;
         await _bookingRepository.UpdateAsync(booking, cancellationToken);
@@ -484,12 +488,12 @@ public class BookingService : IBookingService
             
             await _emailNotificationService.QueueTemplatedEmailAsync(
                 toEmail: booking.User.Email,
-                subject: $"Cancelación de Reserva - {booking.Tour.Name}",
+                subject: $"Cancelación de Reserva - {booking.Tour?.Name ?? "Tour"}",
                 templateName: "booking-cancellation",
                 templateData: new
                 {
                     CustomerName = customerName,
-                    TourName = booking.Tour.Name,
+                    TourName = booking.Tour?.Name ?? "Tour",
                     TourDate = tourDateStr,
                     BookingId = booking.Id.ToString(),
                     CancellationDate = DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm"),
@@ -516,7 +520,7 @@ public class BookingService : IBookingService
                     templateName: "booking-cancellation",
                     templateData: new
                     {
-                        TourName = booking.Tour.Name
+                        TourName = booking.Tour?.Name ?? "Tour"
                     },
                     type: SmsNotificationType.BookingCancellation,
                     userId: booking.UserId,

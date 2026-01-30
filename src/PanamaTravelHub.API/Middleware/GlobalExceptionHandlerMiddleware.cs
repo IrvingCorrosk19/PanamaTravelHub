@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using System.Text.Json;
 using PanamaTravelHub.Application.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
@@ -32,6 +33,7 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
         var response = httpContext.Response;
         response.ContentType = "application/json";
 
+        var correlationId = httpContext.TraceIdentifier;
         var problemDetails = new ProblemDetails
         {
             Instance = httpContext.Request.Path,
@@ -39,10 +41,10 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
             Title = "Ha ocurrido un error al procesar su solicitud",
             Detail = _environment.IsDevelopment() ? exception.Message : "Ha ocurrido un error interno del servidor"
         };
+        problemDetails.Extensions["correlationId"] = correlationId;
 
-        // Agregar trace ID para debugging
-        var traceId = httpContext.TraceIdentifier;
-        problemDetails.Extensions["traceId"] = traceId;
+        var endpoint = $"{httpContext.Request.Method} {httpContext.Request.Path}";
+        var userId = httpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? httpContext.User?.FindFirst("sub")?.Value;
 
         switch (exception)
         {
@@ -52,7 +54,8 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 problemDetails.Title = "Error de validación";
                 problemDetails.Detail = "Uno o más errores de validación han ocurrido";
                 problemDetails.Extensions["errors"] = validationException.Errors;
-                _logger.LogWarning(exception, "Error de validación: {TraceId}", traceId);
+                _logger.LogWarning("Error de validación | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId} | Mensaje: {Message}",
+                    correlationId, endpoint, userId ?? "(anon)", "Uno o más errores de validación");
                 break;
 
             case NotFoundException notFoundException:
@@ -61,7 +64,8 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 problemDetails.Title = "Recurso no encontrado";
                 problemDetails.Detail = notFoundException.Message;
                 problemDetails.Extensions["errorCode"] = notFoundException.ErrorCode;
-                _logger.LogInformation(exception, "Recurso no encontrado: {Message} - {TraceId}", notFoundException.Message, traceId);
+                _logger.LogInformation("Recurso no encontrado | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId} | Mensaje: {Message}",
+                    correlationId, endpoint, userId ?? "(anon)", notFoundException.Message);
                 break;
 
             case BusinessException businessException:
@@ -77,7 +81,8 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 {
                     problemDetails.Extensions["details"] = businessException.Details;
                 }
-                _logger.LogWarning(exception, "Error de negocio: {Message} - {TraceId}", businessException.Message, traceId);
+                _logger.LogWarning("Error de negocio | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId} | Mensaje: {Message}",
+                    correlationId, endpoint, userId ?? "(anon)", businessException.Message);
                 break;
 
             case UnauthorizedAccessException unauthorizedException:
@@ -85,7 +90,8 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 problemDetails.Status = (int)HttpStatusCode.Unauthorized;
                 problemDetails.Title = "No autorizado";
                 problemDetails.Detail = unauthorizedException.Message ?? "No tienes permisos para realizar esta acción";
-                _logger.LogWarning(exception, "Acceso no autorizado: {Message} - {TraceId}", unauthorizedException.Message, traceId);
+                _logger.LogWarning("Acceso no autorizado | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId} | Mensaje: {Message}",
+                    correlationId, endpoint, userId ?? "(anon)", unauthorizedException.Message ?? "No autorizado");
                 break;
 
             case DbUpdateException dbUpdateException:
@@ -133,7 +139,8 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                     problemDetails.Extensions["errorCode"] = "DATABASE_ERROR";
                 }
                 
-                _logger.LogError(dbUpdateException, "Error de base de datos: {TraceId}", traceId);
+                _logger.LogError("Error de base de datos | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId} | Mensaje: {Message} | Inner: {InnerMessage}",
+                    correlationId, endpoint, userId ?? "(anon)", dbUpdateException.Message, dbUpdateException.InnerException?.Message ?? "");
                 break;
 
             case ArgumentNullException argumentNullException:
@@ -143,7 +150,8 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 problemDetails.Detail = $"El parámetro '{argumentNullException.ParamName}' es requerido.";
                 problemDetails.Extensions["errorCode"] = "ARGUMENT_NULL";
                 problemDetails.Extensions["paramName"] = argumentNullException.ParamName;
-                _logger.LogWarning(argumentNullException, "Argumento nulo: {ParamName} - {TraceId}", argumentNullException.ParamName, traceId);
+                _logger.LogWarning("Argumento nulo | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId} | ParamName: {ParamName}",
+                    correlationId, endpoint, userId ?? "(anon)", argumentNullException.ParamName);
                 break;
 
             case ArgumentException argumentException:
@@ -156,7 +164,8 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 {
                     problemDetails.Extensions["paramName"] = argumentException.ParamName;
                 }
-                _logger.LogWarning(argumentException, "Argumento inválido: {Message} - {TraceId}", argumentException.Message, traceId);
+                _logger.LogWarning("Argumento inválido | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId} | Mensaje: {Message}",
+                    correlationId, endpoint, userId ?? "(anon)", argumentException.Message);
                 break;
 
             case InvalidOperationException invalidOperationException:
@@ -167,7 +176,8 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                     ? invalidOperationException.Message 
                     : "No se puede realizar esta operación en el estado actual.";
                 problemDetails.Extensions["errorCode"] = "INVALID_OPERATION";
-                _logger.LogWarning(invalidOperationException, "Operación inválida: {Message} - {TraceId}", invalidOperationException.Message, traceId);
+                _logger.LogWarning("Operación inválida | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId} | Mensaje: {Message}",
+                    correlationId, endpoint, userId ?? "(anon)", invalidOperationException.Message);
                 break;
 
             case TimeoutException timeoutException:
@@ -176,57 +186,37 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
                 problemDetails.Title = "Tiempo de espera agotado";
                 problemDetails.Detail = "La operación tardó demasiado tiempo. Por favor intenta de nuevo.";
                 problemDetails.Extensions["errorCode"] = "TIMEOUT";
-                _logger.LogWarning(timeoutException, "Timeout: {TraceId}", traceId);
+                _logger.LogWarning("Timeout | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId}",
+                    correlationId, endpoint, userId ?? "(anon)");
                 break;
 
             default:
-                // Error no manejado
-                _logger.LogError(exception, 
-                    "=== ERROR NO MANEJADO ===");
-                _logger.LogError("Tipo: {ExceptionType}", exception.GetType().Name);
-                _logger.LogError("Mensaje: {Message}", exception.Message);
-                _logger.LogError("TraceId: {TraceId}", traceId);
-                _logger.LogError("Path: {Path}", httpContext.Request.Path);
-                _logger.LogError("Method: {Method}", httpContext.Request.Method);
-                
-                if (exception.InnerException != null)
-                {
-                    _logger.LogError("InnerException Tipo: {InnerType}", exception.InnerException.GetType().Name);
-                    _logger.LogError("InnerException Mensaje: {InnerMessage}", exception.InnerException.Message);
-                    _logger.LogError("InnerException StackTrace: {InnerStackTrace}", exception.InnerException.StackTrace);
-                    
-                    // Si hay un InnerException anidado, también loguearlo
-                    if (exception.InnerException.InnerException != null)
-                    {
-                        _logger.LogError("InnerException.InnerException Tipo: {Type}", exception.InnerException.InnerException.GetType().Name);
-                        _logger.LogError("InnerException.InnerException Mensaje: {Message}", exception.InnerException.InnerException.Message);
-                    }
-                }
-                
-                if (_environment.IsDevelopment() || _environment.IsProduction())
+                // Error no manejado: log completo en servidor (nunca tokens/PII)
+                _logger.LogError(exception,
+                    "Error no manejado | CorrelationId: {CorrelationId} | Endpoint: {Endpoint} | UserId: {UserId} | Tipo: {ExceptionType} | Mensaje: {Message}",
+                    correlationId, endpoint, userId ?? "(anon)", exception.GetType().Name, exception.Message);
+                if (_environment.IsDevelopment())
                 {
                     _logger.LogError("StackTrace: {StackTrace}", exception.StackTrace);
+                    if (exception.InnerException != null)
+                        _logger.LogError("InnerException: {InnerMessage}", exception.InnerException.Message);
                 }
-                
-                _logger.LogError("=== FIN ERROR NO MANEJADO ===");
-                
-                // En producción también mostrar detalles del error para debugging
-                problemDetails.Detail = _environment.IsProduction() 
-                    ? $"Error: {exception.GetType().Name} - {exception.Message}" 
-                    : exception.Message;
-                
-                if (_environment.IsDevelopment() || _environment.IsProduction())
+
+                // Producción: solo mensaje genérico + correlationId (sin stack trace ni detalles técnicos en respuesta)
+                if (_environment.IsProduction())
                 {
+                    problemDetails.Detail = "Ha ocurrido un error interno del servidor.";
+                    problemDetails.Title = "Ha ocurrido un error al procesar su solicitud";
+                }
+                else
+                {
+                    problemDetails.Detail = exception.Message;
                     problemDetails.Extensions["exception"] = new
                     {
                         Type = exception.GetType().Name,
                         Message = exception.Message,
                         StackTrace = exception.StackTrace,
-                        InnerExceptionMessage = exception.InnerException?.Message,
-                        InnerExceptionType = exception.InnerException?.GetType().Name,
-                        InnerExceptionStackTrace = exception.InnerException?.StackTrace,
-                        InnerInnerExceptionMessage = exception.InnerException?.InnerException?.Message,
-                        InnerInnerExceptionType = exception.InnerException?.InnerException?.GetType().Name
+                        InnerExceptionMessage = exception.InnerException?.Message
                     };
                 }
                 break;

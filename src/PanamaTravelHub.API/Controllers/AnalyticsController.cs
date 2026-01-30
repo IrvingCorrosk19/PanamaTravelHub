@@ -109,7 +109,7 @@ public class AnalyticsController : ControllerBase
                 {
                     try
                     {
-                        var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(e.Metadata);
+                        var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(e.Metadata!);
                         if (metadata != null && metadata.ContainsKey("amount"))
                         {
                             if (metadata["amount"] is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.Number)
@@ -281,7 +281,7 @@ public class AnalyticsController : ControllerBase
                         {
                             try
                             {
-                                var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(e.Metadata);
+                                var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(e.Metadata!);
                                 if (metadata != null && metadata.ContainsKey("amount"))
                                 {
                                     if (metadata["amount"] is System.Text.Json.JsonElement elem && elem.ValueKind == System.Text.Json.JsonValueKind.Number)

@@ -37,11 +37,30 @@ let stripe = null;
 let stripePublishableKey = null;
 let isStripeEnabled = false; // Flag global para saber si Stripe está habilitado
 let appliedCoupon = null; // Cupón aplicado actualmente
+let existingBookingId = null; // Si viene de Mis Reservas (reintento de pago), no crear nueva reserva
+let isProcessingPayment = false; // Bloquea doble envío por doble clic
+
+// Actualizar título y subtítulo según contexto (nueva reserva vs completar pago existente)
+function updateCheckoutHeaderForContext() {
+  const titleEl = document.getElementById('checkoutTitle');
+  const subtitleEl = document.getElementById('checkoutSubtitle');
+  const stateEl = document.getElementById('summaryReservationState');
+  if (existingBookingId) {
+    if (titleEl) titleEl.textContent = 'Completa tu pago';
+    if (subtitleEl) subtitleEl.textContent = 'Tu reserva ya está creada. Confirma el pago para asegurar tu cupo.';
+    if (stateEl) stateEl.style.display = 'block';
+  } else {
+    if (titleEl) titleEl.textContent = 'Completa tu pago';
+    if (subtitleEl) subtitleEl.textContent = 'Tu reserva ya está creada. Confirma el pago para asegurar tu cupo.';
+    if (stateEl) stateEl.style.display = 'none';
+  }
+}
 
 // Cargar información del tour desde URL
 document.addEventListener('DOMContentLoaded', async () => {
   await loadStripeConfig();
   loadTourFromUrl();
+  updateCheckoutHeaderForContext();
   loadCountries();
   updateParticipantsCount(); // Solo actualizar contador, no campos detallados
   setupPaymentInputs();
@@ -244,14 +263,40 @@ async function loadStripeConfig() {
 function loadTourFromUrl() {
   const urlParams = new URLSearchParams(window.location.search);
   const tourId = urlParams.get('tourId');
+  const bookingIdFromUrl = urlParams.get('bookingId');
 
-  if (!tourId) {
-    // Si no hay tourId, redirigir a home
-    window.location.href = '/';
-    return;
+  if (bookingIdFromUrl) {
+    existingBookingId = bookingIdFromUrl;
   }
 
-  loadTour(tourId);
+  if (tourId) {
+    loadTour(tourId);
+    return;
+  }
+  if (existingBookingId) {
+    loadTourFromBookingId(existingBookingId);
+    return;
+  }
+  window.location.href = '/';
+}
+
+async function loadTourFromBookingId(bookingId) {
+  try {
+    const booking = await api.getBooking(bookingId);
+    const tourIdFromBooking = booking.TourId || booking.tourId;
+    if (!tourIdFromBooking) {
+      console.error('Reserva sin tour asociado');
+      window.location.href = '/reservas.html';
+      return;
+    }
+    loadTour(tourIdFromBooking);
+  } catch (err) {
+    console.error('Error al cargar reserva:', err);
+    if (typeof notificationManager !== 'undefined' && notificationManager) {
+      notificationManager.error('No se pudo cargar la reserva. Redirigiendo...');
+    }
+    setTimeout(() => { window.location.href = '/reservas.html'; }, 2000);
+  }
 }
 
 async function loadTour(tourId) {
@@ -682,6 +727,27 @@ function updateTourSummary() {
     <h3>${tourName}</h3>
     <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px;">📍 ${tourLocation}</p>
   `;
+
+  // Bloque "Tour seleccionado" al inicio del checkout (solo datos ya disponibles)
+  const block = document.getElementById('tourSelectedBlock');
+  const nameEl = document.getElementById('tourSelectedName');
+  const locationEl = document.getElementById('tourSelectedLocation');
+  const durationEl = document.getElementById('tourSelectedDuration');
+  if (block && nameEl) {
+    nameEl.textContent = tourName;
+    if (locationEl) {
+      const loc = currentTour.Location || currentTour.location || '';
+      locationEl.textContent = loc ? `📍 ${loc}` : '';
+      locationEl.style.display = loc ? 'block' : 'none';
+    }
+    if (durationEl) {
+      const hours = currentTour.DurationHours ?? currentTour.durationHours ?? currentTour.Duration ?? currentTour.duration;
+      const dur = hours != null && hours !== '' ? `${hours} ${Number(hours) === 1 ? 'hora' : 'horas'}` : '';
+      durationEl.textContent = dur ? `⏱ ${dur}` : '';
+      durationEl.style.display = dur ? 'block' : 'none';
+    }
+    block.style.display = 'block';
+  }
 }
 
 function updateOrderSummary() {
@@ -760,6 +826,17 @@ function updateOrderSummary() {
     }
   
     document.getElementById('summaryTotal').textContent = formatPrice(total);
+
+    // Total y botón: si $0 o no definitivo → "Total estimado", nota; botón "Confirmar y pagar"
+    const isDefinitive = (existingBookingId || (selectedTourDateId && total > 0));
+    const totalLabel = document.getElementById('summaryTotalLabel');
+    const totalNote = document.getElementById('summaryTotalNote');
+    const priceNote = document.getElementById('summaryPriceNote');
+    const btnText = document.getElementById('checkoutBtnText');
+    if (totalLabel) totalLabel.textContent = isDefinitive ? 'Total' : 'Total estimado';
+    if (totalNote) totalNote.style.display = isDefinitive ? 'none' : 'block';
+    if (priceNote) priceNote.style.display = isDefinitive ? 'block' : 'none';
+    if (btnText) btnText.textContent = isDefinitive ? 'Confirmar y pagar' : 'Confirmar y pagar';
     
     // Validar estado del checkout después de actualizar resumen
     validateCheckoutState();
@@ -1064,9 +1141,11 @@ function validateCheckoutState() {
     isValid = false;
   }
   
-  // Validar que haya fecha seleccionada (si hay fechas disponibles)
-  if (availableDates && availableDates.length > 0 && !selectedTourDateId) {
-    isValid = false;
+  // Si es reintento de pago (existingBookingId), no exigir fecha
+  if (!existingBookingId) {
+    if (availableDates && availableDates.length > 0 && !selectedTourDateId) {
+      isValid = false;
+    }
   }
   
   // Validar método de pago seleccionado
@@ -1104,6 +1183,14 @@ function validateCheckoutState() {
   
   // Actualizar estado del botón
   btn.disabled = !isValid;
+
+  // Jerarquía visual: quitar prominencia del formulario de pago hasta tener fecha (o reintento de pago)
+  const paymentSection = document.getElementById('paymentMethodSection');
+  if (paymentSection) {
+    const readyToPay = !!(existingBookingId || selectedTourDateId);
+    if (readyToPay) paymentSection.classList.remove('checkout-payment-deemphasized');
+    else paymentSection.classList.add('checkout-payment-deemphasized');
+  }
   
   return isValid;
 }
@@ -1313,9 +1400,13 @@ function validatePaymentMethod() {
 }
 
 async function processPayment() {
+  if (isProcessingPayment) return;
+  isProcessingPayment = true;
+
   const btn = document.getElementById('checkoutBtn');
   const modal = document.getElementById('paymentModal');
   const statusText = document.getElementById('paymentStatus');
+  btn.disabled = true;
 
   // Limpiar errores previos
   document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
@@ -1326,7 +1417,67 @@ async function processPayment() {
 
   // Validar método de pago
   if (!validatePaymentMethod()) {
+    isProcessingPayment = false;
+    btn.disabled = false;
     return;
+  }
+  
+  // Reintento de pago: usar reserva existente, no crear nueva
+  if (existingBookingId) {
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+    if (!token) {
+      showNotificationError('Debes iniciar sesión para realizar el pago');
+      isProcessingPayment = false;
+      btn.disabled = false;
+      setTimeout(() => { window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href); }, 2000);
+      return;
+    }
+    modal.style.display = 'flex';
+    statusText.textContent = 'Procesando pago...';
+    try {
+      const provider = selectedPaymentMethod === 'paypal' ? 'paypal' : selectedPaymentMethod === 'yappy' ? 'yappy' : 'stripe';
+      const paymentResponse = await api.createPayment(existingBookingId, 'USD', provider);
+      const paymentIntentId = paymentResponse.PaymentIntentId || paymentResponse.paymentIntentId;
+      if (selectedPaymentMethod === 'stripe' && !isStripeEnabled && paymentIntentId) {
+        await sleep(500);
+        await api.confirmPayment(paymentIntentId);
+        window.location.href = `/booking-success.html?bookingId=${existingBookingId}`;
+        return;
+      }
+      if (selectedPaymentMethod === 'stripe' && paymentResponse.clientSecret) {
+        const cardNumber = document.getElementById('cardNumber')?.value.replace(/\s/g, '') || '';
+        const cardExpiry = document.getElementById('cardExpiry')?.value.split('/') || [];
+        const cardCvv = document.getElementById('cardCvv')?.value || '';
+        const cardName = document.getElementById('cardName')?.value || '';
+        const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
+          type: 'card',
+          card: { number: cardNumber, exp_month: parseInt(cardExpiry[0], 10), exp_year: 2000 + parseInt(cardExpiry[1], 10), cvc: cardCvv },
+          billing_details: { name: cardName }
+        });
+        if (pmError) throw new Error(pmError.message);
+        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(paymentResponse.clientSecret, { payment_method: paymentMethod.id });
+        if (confirmError) throw new Error(confirmError.message || 'Error al confirmar el pago');
+        await api.confirmPayment(paymentIntent.id);
+        window.location.href = `/booking-success.html?bookingId=${existingBookingId}`;
+        return;
+      }
+      if (selectedPaymentMethod === 'paypal' && paymentResponse.checkoutUrl) {
+        window.location.href = paymentResponse.checkoutUrl;
+        return;
+      }
+      if (selectedPaymentMethod === 'yappy' && paymentIntentId) {
+        await api.confirmPayment(paymentIntentId);
+        window.location.href = `/booking-success.html?bookingId=${existingBookingId}`;
+        return;
+      }
+      throw new Error('No se pudo crear el pago. Intenta de nuevo.');
+    } catch (err) {
+      isProcessingPayment = false;
+      modal.style.display = 'none';
+      btn.disabled = false;
+      showNotificationError(err.message || 'Error al procesar el pago');
+      return;
+    }
   }
   
   // Validar fecha seleccionada (solo si hay fechas disponibles)
@@ -1334,13 +1485,15 @@ async function processPayment() {
   if (availableDates && availableDates.length > 0 && !selectedTourDateId) {
     const dateError = document.getElementById('dateError');
     if (dateError) {
-      dateError.textContent = 'Por favor selecciona una fecha para el tour';
+      dateError.textContent = 'Selecciona una fecha para continuar con el pago';
       dateError.style.display = 'block';
     }
     const dateSelection = document.getElementById('dateSelection');
     if (dateSelection) {
       dateSelection.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    isProcessingPayment = false;
+    btn.disabled = false;
     return;
   }
   
@@ -1386,9 +1539,11 @@ async function processPayment() {
     // Si hay fechas disponibles pero no se seleccionó ninguna, mostrar error
     const dateError = document.getElementById('dateError');
     if (dateError) {
-      dateError.textContent = 'Por favor selecciona una fecha para el tour';
+      dateError.textContent = 'Selecciona una fecha para continuar con el pago';
       dateError.style.display = 'block';
     }
+    isProcessingPayment = false;
+    btn.disabled = false;
     return;
   }
   
@@ -1401,6 +1556,8 @@ async function processPayment() {
         dateError.textContent = 'Este tour no tiene fechas disponibles en este momento. Por favor, contacta con nosotros.';
         dateError.style.display = 'block';
       }
+      isProcessingPayment = false;
+      btn.disabled = false;
       return;
     }
     
@@ -1426,6 +1583,8 @@ async function processPayment() {
       dateError.textContent = 'La fecha seleccionada ya no está disponible. Por favor, selecciona otra fecha.';
       dateError.style.display = 'block';
     }
+    isProcessingPayment = false;
+    btn.disabled = false;
     return;
   }
   
@@ -1442,8 +1601,10 @@ async function processPayment() {
     
     if (availableSpots < numberOfParticipants) {
       const dateError = document.getElementById('dateError');
-      dateError.textContent = `Solo hay ${availableSpots} cupo(s) disponible(s) para esta fecha`;
+      dateError.textContent = 'No hay cupos suficientes para esta fecha. Elige otra fecha o reduce participantes.';
       dateError.style.display = 'block';
+      isProcessingPayment = false;
+      btn.disabled = false;
       return;
     }
   } else {
@@ -1461,6 +1622,8 @@ async function processPayment() {
   if (!token) {
     const msg = 'Debes iniciar sesión para realizar una reserva';
     showNotificationError(msg);
+    isProcessingPayment = false;
+    btn.disabled = false;
     setTimeout(() => {
       window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
     }, 2000);
@@ -1486,6 +1649,8 @@ async function processPayment() {
       console.error('❌ [processPayment] Error al obtener usuario actual:', error);
       const msg = 'Error al verificar tu sesión. Por favor, inicia sesión nuevamente.';
       showNotificationError(msg);
+      isProcessingPayment = false;
+      btn.disabled = false;
       setTimeout(() => {
         window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
       }, 2000);
@@ -1498,6 +1663,8 @@ async function processPayment() {
     const msg = 'Error: ID de usuario inválido. Por favor, inicia sesión nuevamente.';
     console.error('❌ [processPayment]', msg, { userId });
     showNotificationError(msg);
+    isProcessingPayment = false;
+    btn.disabled = false;
     setTimeout(() => {
       window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
     }, 2000);
@@ -1510,6 +1677,8 @@ async function processPayment() {
   if (!currentTour) {
     const msg = 'No hay información del tour disponible';
     showNotificationError(msg);
+    isProcessingPayment = false;
+    btn.disabled = false;
     return;
   }
   
@@ -1559,13 +1728,14 @@ async function processPayment() {
   });
   
   if (availableSpotsCheck < numParticipants) {
-    const msg = `No hay suficientes cupos disponibles. Solo hay ${availableSpotsCheck} cupo(s) disponible(s) y necesitas ${numParticipants}`;
     console.warn('⚠️ [processPayment] Cupos insuficientes - BLOQUEANDO creación de reserva:', {
       available: availableSpotsCheck,
       required: numParticipants,
       comparison: `${availableSpotsCheck} < ${numParticipants} = ${availableSpotsCheck < numParticipants}`
     });
-    showNotificationError(msg);
+    showNotificationError('No hay cupos suficientes para esta fecha. Elige otra fecha o reduce participantes.');
+    isProcessingPayment = false;
+    btn.disabled = false;
     return;
   }
   
@@ -1721,9 +1891,10 @@ async function processPayment() {
     });
     
     if (availableSpotsForBooking < numParticipantsFinal) {
-      statusText.textContent = `Error: Solo hay ${availableSpotsForBooking} cupo(s) disponible(s) y necesitas ${numParticipantsFinal}`;
+      statusText.textContent = 'No hay cupos suficientes para esta fecha. Elige otra fecha o reduce participantes.';
       await sleep(2000);
       modal.style.display = 'none';
+      isProcessingPayment = false;
       btn.disabled = false;
       loadingManager.hideGlobal();
       return;
@@ -1780,13 +1951,12 @@ async function processPayment() {
         if (finalAvailableSpots < numParticipantsForValidation) {
           // Cerrar modal de pago
           modal.style.display = 'none';
+          isProcessingPayment = false;
           btn.disabled = false;
           loadingManager.hideGlobal();
-          
+
           // Mostrar mensaje claro y amigable
-          showNotificationError(
-            `Lo sentimos, este tour ya no tiene cupos disponibles. Solo quedan ${finalAvailableSpots} cupo(s) disponible(s) y necesitas ${numParticipantsForValidation}. Por favor, selecciona otra fecha o reduce el número de participantes.`
-          );
+          showNotificationError('No hay cupos suficientes para esta fecha. Elige otra fecha o reduce participantes.');
           
           // Recargar fechas disponibles para actualizar la UI (usar tourId estable)
           const tourIdForReload = currentTour?.Id || currentTour?.id || tourIdForBooking;
@@ -1815,6 +1985,7 @@ async function processPayment() {
       console.error('❌ [processPayment]', errorMsg, { currentTour });
       showNotificationError(errorMsg);
       modal.style.display = 'none';
+      isProcessingPayment = false;
       btn.disabled = false;
       loadingManager.hideGlobal();
       return;
@@ -1890,23 +2061,25 @@ async function processPayment() {
         console.error('❌ [processPayment]', errorMsg);
         showNotificationError(errorMsg);
         modal.style.display = 'none';
+        isProcessingPayment = false;
         btn.disabled = false;
         loadingManager.hideGlobal();
         return;
       }
-      
+
       if (bookingData.participants.length !== bookingData.numberOfParticipants) {
         const errorMsg = `El número de participantes (${bookingData.numberOfParticipants}) no coincide con la lista proporcionada (${bookingData.participants.length}). Por favor, verifica los datos.`;
         console.error('❌ [processPayment]', errorMsg);
         showNotificationError(errorMsg);
         modal.style.display = 'none';
+        isProcessingPayment = false;
         btn.disabled = false;
         loadingManager.hideGlobal();
         return;
       }
-      
+
       // Validar que todos los participantes tengan nombre y apellido
-      const invalidParticipants = bookingData.participants.filter(p => 
+      const invalidParticipants = bookingData.participants.filter(p =>
         !p.firstName || !p.lastName || p.firstName.trim() === '' || p.lastName.trim() === ''
       );
       if (invalidParticipants.length > 0) {
@@ -1914,6 +2087,7 @@ async function processPayment() {
         console.error('❌ [processPayment]', errorMsg, invalidParticipants);
         showNotificationError(errorMsg);
         modal.style.display = 'none';
+        isProcessingPayment = false;
         btn.disabled = false;
         loadingManager.hideGlobal();
         return;
@@ -1922,9 +2096,10 @@ async function processPayment() {
       bookingResponse = await api.createBooking(bookingData);
     } catch (bookingError) {
       console.error('❌ [processPayment] Error al crear reserva:', bookingError);
-      
+
       // Cerrar modal de pago
       modal.style.display = 'none';
+      isProcessingPayment = false;
       btn.disabled = false;
       loadingManager.hideGlobal();
       
@@ -1953,7 +2128,7 @@ async function processPayment() {
           errorMessage.includes('cupo') ||
           errorMessage.includes('disponibles') ||
           errorMessage.includes('INSUFFICIENT_SPOTS')) {
-        errorMessage = 'Lo sentimos, este tour ya no tiene cupos disponibles en este momento. Por favor, selecciona otra fecha o intenta más tarde.';
+        errorMessage = 'No hay cupos suficientes para esta fecha. Elige otra fecha o reduce participantes.';
         // Recargar fechas disponibles para actualizar la UI
         await loadAvailableDates();
       }
@@ -1980,11 +2155,12 @@ async function processPayment() {
       console.error('❌ [processPayment]', errorMsg, { bookingResponse });
       showNotificationError(errorMsg);
       modal.style.display = 'none';
+      isProcessingPayment = false;
       btn.disabled = false;
       loadingManager.hideGlobal();
       return;
     }
-    
+
     console.log('✅ [processPayment] Booking creado exitosamente con ID:', bookingId);
 
     // Procesar pago según el método seleccionado
@@ -2321,19 +2497,18 @@ async function processPayment() {
     
     // Manejar específicamente errores de cupos
     if (error.message && (
-      error.message.includes('cupos') || 
+      error.message.includes('cupos') ||
       error.message.includes('cupo') ||
       error.message.includes('disponibles') ||
       error.message.includes('INSUFFICIENT_SPOTS')
     )) {
       // Cerrar modal de pago
       modal.style.display = 'none';
+      isProcessingPayment = false;
       btn.disabled = false;
-      
+
       // Mostrar mensaje claro y amigable
-      showNotificationError(
-        'Lo sentimos, este tour ya no tiene cupos disponibles en este momento. Por favor, selecciona otra fecha o intenta más tarde.'
-      );
+      showNotificationError('No hay cupos suficientes para esta fecha. Elige otra fecha o reduce participantes.');
       
           // Recargar fechas disponibles para actualizar la UI (usar tourId estable)
           const tourIdForReload = currentTour?.Id || currentTour?.id || tourIdForBooking;
@@ -2351,6 +2526,7 @@ async function processPayment() {
       statusText.textContent = error.message || 'Error al procesar el pago. Por favor intenta de nuevo.';
       await sleep(3000);
       modal.style.display = 'none';
+      isProcessingPayment = false;
       btn.disabled = false;
     }
   }

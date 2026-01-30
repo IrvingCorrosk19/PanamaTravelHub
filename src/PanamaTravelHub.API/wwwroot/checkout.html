@@ -26,14 +26,23 @@
   <main class="checkout-container">
     <!-- Header Minimalista -->
     <div class="checkout-header">
-      <h1>Confirma tu Reserva</h1>
-      <p class="checkout-subtitle">Revisa los detalles y completa tu reserva</p>
+      <h1 id="checkoutTitle">Completa tu pago</h1>
+      <p class="checkout-subtitle" id="checkoutSubtitle">Tu reserva ya está creada. Confirma el pago para asegurar tu cupo.</p>
     </div>
 
     <div class="checkout-grid">
       <!-- LEFT COLUMN: Formulario -->
       <div class="checkout-form-section">
-        
+        <!-- Tour seleccionado (resumen al inicio) -->
+        <section class="checkout-section checkout-tour-selected" id="tourSelectedBlock" style="display: none;">
+          <h2 class="section-title">Tour seleccionado</h2>
+          <div id="tourSelectedContent">
+            <p class="tour-selected-name" id="tourSelectedName"></p>
+            <p class="tour-selected-meta" id="tourSelectedLocation"></p>
+            <p class="tour-selected-meta" id="tourSelectedDuration"></p>
+          </div>
+        </section>
+
         <!-- Login Inline (si no está autenticado) -->
         <section class="checkout-section" id="loginInlineSection" style="display:none;">
           <h2 class="section-title">Inicia Sesión o Continúa Rápido</h2>
@@ -87,7 +96,7 @@
         </section>
 
         <!-- Método de Pago (Simplificado) -->
-        <section class="checkout-section">
+        <section class="checkout-section checkout-payment-deemphasized" id="paymentMethodSection">
           <h2 class="section-title">Método de Pago</h2>
           <p class="section-hint">Selecciona cómo deseas pagar de forma segura</p>
           <div class="payment-methods">
@@ -181,6 +190,8 @@
             <div class="summary-loading" style="display: none;">Cargando...</div>
           </div>
 
+          <p class="summary-reservation-state" id="summaryReservationState" style="display: none;">Estado de la reserva: Pendiente de pago</p>
+
           <div class="summary-divider"></div>
 
           <!-- Fecha -->
@@ -232,23 +243,25 @@
           </div>
           
           <div class="summary-item summary-total">
-            <span class="summary-label">Total</span>
+            <span class="summary-label" id="summaryTotalLabel">Total estimado</span>
             <span class="summary-value" id="summaryTotal">$0.00</span>
           </div>
-          <p class="summary-price-note">Precio final. Sin costos ocultos</p>
+          <p class="summary-total-note" id="summaryTotalNote">El monto final se confirmará según fecha y disponibilidad</p>
+          <p class="summary-price-note" id="summaryPriceNote" style="display: none;">Precio final. Sin costos ocultos</p>
 
           <!-- Microcopy de Seguridad Final -->
 
           <!-- Botón Principal -->
           <button class="btn-checkout-premium" onclick="processPayment()" id="checkoutBtn" disabled>
-            <span class="btn-checkout-text">Confirmar y pagar</span>
+            <span class="btn-checkout-text" id="checkoutBtnText">Confirmar y pagar</span>
             <span class="btn-checkout-icon">→</span>
           </button>
           
           <!-- Micro-copy de confianza debajo del botón -->
           <p class="checkout-payment-hint">
-            Pago seguro • Datos protegidos
+            Pago seguro con encriptación • Tus datos están protegidos
           </p>
+          <p class="checkout-reserva-hint">Esta reserva ya fue creada. El pago confirmará tu cupo.</p>
 
           <!-- Confianza -->
           <div class="trust-badges">

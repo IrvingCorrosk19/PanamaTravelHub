@@ -98,18 +98,21 @@ public class ToursController : ControllerBase
             // }
 
             // Ordenamiento
-            query = sortBy.ToLower() switch
+            var sortByLower = sortBy?.ToLower() ?? "";
+            var sortOrderLower = sortOrder?.ToLower() ?? "desc";
+
+            query = sortByLower switch
             {
-                "price" => sortOrder.ToLower() == "asc" 
+                "price" => sortOrderLower == "asc"
                     ? query.OrderBy(t => t.Price)
                     : query.OrderByDescending(t => t.Price),
-                "duration" => sortOrder.ToLower() == "asc"
+                "duration" => sortOrderLower == "asc"
                     ? query.OrderBy(t => t.DurationHours)
                     : query.OrderByDescending(t => t.DurationHours),
-                "name" => sortOrder.ToLower() == "asc"
+                "name" => sortOrderLower == "asc"
                     ? query.OrderBy(t => t.Name)
                     : query.OrderByDescending(t => t.Name),
-                _ => sortOrder.ToLower() == "asc"
+                _ => sortOrderLower == "asc"
                     ? query.OrderBy(t => t.CreatedAt)
                     : query.OrderByDescending(t => t.CreatedAt)
             };
@@ -559,19 +562,22 @@ public class ToursController : ControllerBase
             }
 
             // Ordenamiento
-            query = sortBy.ToLower() switch
+            var sortByLowerSearch = sortBy?.ToLower() ?? "";
+            var sortOrderLowerSearch = sortOrder?.ToLower() ?? "desc";
+
+            query = sortByLowerSearch switch
             {
-                "price" => sortOrder.ToLower() == "asc" 
+                "price" => sortOrderLowerSearch == "asc"
                     ? query.OrderBy(t => t.Price)
                     : query.OrderByDescending(t => t.Price),
-                "duration" => sortOrder.ToLower() == "asc"
+                "duration" => sortOrderLowerSearch == "asc"
                     ? query.OrderBy(t => t.DurationHours)
                     : query.OrderByDescending(t => t.DurationHours),
-                "name" => sortOrder.ToLower() == "asc"
+                "name" => sortOrderLowerSearch == "asc"
                     ? query.OrderBy(t => t.Name)
                     : query.OrderByDescending(t => t.Name),
                 "popularity" => query.OrderByDescending(t => t.Bookings.Count(b => b.Status == BookingStatus.Confirmed)),
-                _ => sortOrder.ToLower() == "asc"
+                _ => sortOrderLowerSearch == "asc"
                     ? query.OrderBy(t => t.CreatedAt)
                     : query.OrderByDescending(t => t.CreatedAt)
             };

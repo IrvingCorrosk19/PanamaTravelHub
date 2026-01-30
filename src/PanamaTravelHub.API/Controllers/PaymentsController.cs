@@ -7,6 +7,8 @@ using PanamaTravelHub.Application.Services;
 using PanamaTravelHub.Domain.Entities;
 using PanamaTravelHub.Domain.Enums;
 using PanamaTravelHub.Infrastructure.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace PanamaTravelHub.API.Controllers;
 
@@ -86,8 +88,19 @@ public class PaymentsController : ControllerBase
                 return NotFound(new { message = "Reserva no encontrada" });
             }
 
-            // TODO: Verificar que el usuario actual es el dueño de la reserva
-            // var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // Verificar que el usuario autenticado sea el dueño de la reserva
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
+                              User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var currentUserId))
+            {
+                return Unauthorized(new { message = "Usuario no autenticado" });
+            }
+
+            if (booking.UserId != currentUserId)
+            {
+                return StatusCode(403, new { message = "No tienes permiso para pagar esta reserva" });
+            }
 
             // Verificar que la reserva no tenga un pago exitoso ya
             var existingPayment = await _context.Payments

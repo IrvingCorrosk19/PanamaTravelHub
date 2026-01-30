@@ -352,6 +352,14 @@
   display: block;
 }
 
+.summary-reservation-state {
+  font-size: 13px;
+  color: var(--checkout-text-secondary);
+  margin: 0 0 12px;
+  padding: 8px 0;
+  line-height: 1.4;
+}
+
 /* Summary Items */
 .summary-item {
   display: flex;
@@ -517,6 +525,14 @@
   line-height: 1.5;
 }
 
+.checkout-reserva-hint {
+  font-size: 12px;
+  color: var(--checkout-text-muted);
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
 .section-hint {
   font-size: 14px;
   color: var(--checkout-text-secondary);
@@ -530,6 +546,43 @@
   text-align: right;
   margin-top: 4px;
   font-style: italic;
+}
+
+.summary-total-note {
+  font-size: 12px;
+  color: var(--checkout-text-muted);
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+/* Tour seleccionado (bloque al inicio) */
+.checkout-tour-selected .tour-selected-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--checkout-text);
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.checkout-tour-selected .tour-selected-meta {
+  font-size: 14px;
+  color: var(--checkout-text-secondary);
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.checkout-tour-selected .tour-selected-meta:last-child {
+  margin-bottom: 0;
+}
+
+/* Jerarquía: formulario de pago menos prominente hasta tener fecha y resumen revisado */
+.checkout-payment-deemphasized {
+  opacity: 0.72;
+  transition: opacity 0.25s ease;
+}
+
+.checkout-payment-deemphasized .payment-method-details input {
+  pointer-events: auto;
 }
 
 /* Modal */

@@ -49,7 +49,7 @@ public class OAuthController : ControllerBase
     /// Callback de Google OAuth
     /// </summary>
     [HttpGet("google/callback")]
-    public async Task<IActionResult> GoogleCallback()
+    public IActionResult GoogleCallback()
     {
         return BadRequest(new { message = "OAuth de Google no está configurado" });
         // TODO: Descomentar cuando se instale Microsoft.AspNetCore.Authentication.Google
@@ -145,7 +145,7 @@ public class OAuthController : ControllerBase
     /// TODO: Instalar paquete Microsoft.AspNetCore.Authentication.Facebook para habilitar
     /// </summary>
     [HttpGet("facebook/callback")]
-    public async Task<IActionResult> FacebookCallback()
+    public IActionResult FacebookCallback()
     {
         return BadRequest(new { message = "OAuth de Facebook no está configurado" });
         /* var result = await HttpContext.AuthenticateAsync(FacebookDefaults.AuthenticationScheme);

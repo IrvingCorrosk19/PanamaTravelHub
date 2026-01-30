@@ -226,6 +226,17 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero // Sin tolerancia de tiempo
     };
+    // Leer JWT desde cookie cuando no hay Authorization header (p. ej. GET /Admin tras login)
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Cookies["accessToken"];
+            if (!string.IsNullOrEmpty(token))
+                context.Token = token;
+            return System.Threading.Tasks.Task.CompletedTask;
+        }
+    };
 });
 
 // Configurar autorización con policies

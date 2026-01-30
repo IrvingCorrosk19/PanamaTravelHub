@@ -16,6 +16,8 @@ namespace PanamaTravelHub.API.Controllers;
 [Route("api/[controller]")]
 public class BookingsController : ControllerBase
 {
+    private const int CancellationHoursBeforeTour = 24;
+
     private readonly IBookingService _bookingService;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<BookingsController> _logger;
@@ -188,6 +190,33 @@ public class BookingsController : ControllerBase
             Phone = p.Phone,
             DateOfBirth = p.DateOfBirth
         }).ToList();
+
+        // Reutilizar reserva Pending reciente (mismo usuario + tour + fecha) para evitar duplicados por doble clic
+        var cutoff = DateTime.UtcNow.AddHours(-24);
+        var existingPending = await _context.Bookings
+            .Include(b => b.Tour)
+            .Include(b => b.TourDate)
+            .FirstOrDefaultAsync(b =>
+                b.UserId == userId
+                && b.TourId == request.TourId
+                && b.Status == BookingStatus.Pending
+                && b.CreatedAt >= cutoff
+                && ((!request.TourDateId.HasValue && b.TourDateId == null) || (request.TourDateId.HasValue && b.TourDateId == request.TourDateId)));
+
+        if (existingPending != null)
+        {
+            return Ok(new BookingResponseDto
+            {
+                Id = existingPending.Id,
+                TourId = existingPending.TourId,
+                TourName = existingPending.Tour.Name,
+                NumberOfParticipants = existingPending.NumberOfParticipants,
+                TotalAmount = existingPending.TotalAmount,
+                Status = existingPending.Status.ToString(),
+                TourDate = existingPending.TourDate?.TourDateTime,
+                CreatedAt = existingPending.CreatedAt
+            });
+        }
 
         // Validar y aplicar cupón si se proporciona
         decimal discountAmount = 0;
@@ -458,6 +487,18 @@ public class BookingsController : ControllerBase
         if (booking.UserId != currentUserId && !User.IsInRole("Admin"))
         {
             return StatusCode(403, new { message = "No tienes permisos para cancelar esta reserva" });
+        }
+
+        // Política: reserva con pago exitoso solo se puede cancelar si faltan más de X horas para el tour
+        var hasSuccessfulPayment = booking.Payments?.Any(p => p.Status == PaymentStatus.Captured || p.Status == PaymentStatus.Authorized) ?? false;
+        if (hasSuccessfulPayment)
+        {
+            var tourStart = booking.TourDate?.TourDateTime ?? (booking.Tour?.TourDate.HasValue == true ? (DateTime?)DateTime.SpecifyKind(booking.Tour.TourDate.Value, DateTimeKind.Utc) : null);
+            if (!tourStart.HasValue)
+                return BadRequest(new { message = "No se puede verificar la fecha del tour para esta reserva." });
+            var hoursUntilStart = (tourStart.Value - DateTime.UtcNow).TotalHours;
+            if (hoursUntilStart <= CancellationHoursBeforeTour)
+                return BadRequest(new { message = "Solo puedes cancelar una reserva pagada al menos 24 horas antes del inicio del tour." });
         }
 
         var success = await _bookingService.CancelBookingAsync(id);

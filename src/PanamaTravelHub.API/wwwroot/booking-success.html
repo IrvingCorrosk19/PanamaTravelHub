@@ -615,7 +615,7 @@
       <span class="status-icon success">✓</span>
       <div>
         <h1>Reserva confirmada</h1>
-        <p>Hemos enviado la confirmación a tu email.</p>
+        <p>Tu reserva ha sido confirmada y el pago fue procesado correctamente.</p>
       </div>
     </div>
 
@@ -635,10 +635,23 @@
       </div>
     </div>
 
+    <!-- Próximos pasos -->
+    <div class="participants-section" style="margin-bottom: 24px;">
+      <h2 style="font-size: 1.125rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 12px 0;">Próximos pasos</h2>
+      <ul style="margin: 0; padding-left: 20px; font-size: 0.9rem; color: #6b7280; line-height: 1.8;">
+        <li>Revisa tu correo electrónico</li>
+        <li>Completa datos de participantes si aplica</li>
+        <li>Descarga tu factura desde Mis Reservas</li>
+      </ul>
+    </div>
+
     <!-- CTA PRINCIPAL -->
     <div class="booking-primary-action">
       <a href="/reservas.html" class="btn-action btn-action-primary">
         Volver a Mis Reservas
+      </a>
+      <a href="/reservas.html" class="btn-secondary" id="verFacturaBtn" style="display: none; margin-top: 12px; text-align: center; text-decoration: none;">
+        Ver factura
       </a>
     </div>
 
@@ -674,36 +687,53 @@
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const bookingId = urlParams.get('bookingId');
-    const amount = urlParams.get('amount');
-    const numberOfParticipants = parseInt(urlParams.get('participants')) || 1;
+    const bookingIdFromUrl = urlParams.get('bookingId');
     const completeMode = urlParams.get('complete') === 'true';
 
-    let currentBookingId = bookingId;
+    let currentBookingId = null;
+    let numberOfParticipants = 1;
 
-    if (bookingId) {
-      document.getElementById('bookingId').textContent = bookingId.substring(0, 8).toUpperCase();
-    }
-    if (amount) {
-      document.getElementById('bookingAmount').textContent = formatPrice(parseFloat(amount));
+    function redirectToReservasOrHome() {
+      window.location.href = '/reservas.html';
     }
 
     async function loadBookingData() {
-      if (!currentBookingId) return;
-      
+      if (!bookingIdFromUrl) {
+        redirectToReservasOrHome();
+        return;
+      }
+
       try {
-        const booking = await api.getBooking(currentBookingId);
-        
-        if (booking.participants && booking.participants.length > 0) {
+        const booking = await api.getBooking(bookingIdFromUrl);
+        if (!booking) {
+          redirectToReservasOrHome();
+          return;
+        }
+
+        currentBookingId = booking.Id || booking.id;
+        numberOfParticipants = booking.NumberOfParticipants ?? booking.numberOfParticipants ?? 1;
+        const totalAmount = booking.TotalAmount ?? booking.totalAmount ?? 0;
+        const status = (booking.Status ?? booking.status ?? '').toString().toLowerCase();
+
+        document.getElementById('bookingId').textContent = (currentBookingId + '').substring(0, 8).toUpperCase();
+        document.getElementById('bookingAmount').textContent = formatPrice(parseFloat(totalAmount));
+
+        var verFacturaBtn = document.getElementById('verFacturaBtn');
+        if (verFacturaBtn && (status === 'confirmed' || status === 'completed')) {
+          verFacturaBtn.style.display = 'inline-flex';
+        }
+
+        const participants = booking.Participants ?? booking.participants ?? [];
+        if (participants.length > 0) {
           document.getElementById('participantsSection').style.display = 'none';
           document.getElementById('participantsActions').style.display = 'none';
           return;
         }
-        
+
         renderParticipantsForm(numberOfParticipants);
       } catch (error) {
         console.error('Error loading booking:', error);
-        renderParticipantsForm(numberOfParticipants);
+        redirectToReservasOrHome();
       }
     }
 
@@ -918,16 +948,7 @@
       document.getElementById('participantsActions').style.display = 'none';
     }
 
-    if (currentBookingId) {
-      loadBookingData();
-    } else {
-      document.getElementById('participantsSection').style.display = 'none';
-      document.getElementById('participantsActions').style.display = 'none';
-    }
-    
-    if (completeMode && numberOfParticipants > 0) {
-      renderParticipantsForm(numberOfParticipants);
-    }
+    loadBookingData();
   </script>
 </body>
 </html>

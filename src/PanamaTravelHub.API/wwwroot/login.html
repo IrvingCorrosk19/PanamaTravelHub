@@ -859,7 +859,7 @@
     // Función helper para completar el login
     async function completeLogin(loginResponse, cleanupLoading) {
       // Usar RedirectUrl del backend (determinado por roles)
-      const redirectUrl = loginResponse?.redirectUrl || loginResponse?.RedirectUrl || '/Reservas';
+      const redirectUrl = loginResponse?.redirectUrl || loginResponse?.RedirectUrl || '/reservas.html';
       const userRoles = loginResponse?.user?.roles || loginResponse?.user?.Roles || [];
       
       console.log('🔐 [login] ========== DEBUGGING LOGIN ==========');

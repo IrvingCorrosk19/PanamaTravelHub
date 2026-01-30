@@ -1,8 +1,0 @@
-hostname dpg-d5efvg7pm1nc73a63qqg-a
-Port 5432
-database panamatravelhub_2juu
-username panamatravelhub_2juu_user
-Password BhC1OtUf9WBxSKUrWksobwH8jwNYAmKT
-Internal Database URL postgresql://panamatravelhub_2juu_user:BhC1OtUf9WBxSKUrWksobwH8jwNYAmKT@dpg-d5efvg7pm1nc73a63qqg-a/panamatravelhub_2juu
-External Database URL postgresql://panamatravelhub_2juu_user:BhC1OtUf9WBxSKUrWksobwH8jwNYAmKT@dpg-d5efvg7pm1nc73a63qqg-a.virginia-postgres.render.com/panamatravelhub_2juu
-PSQL Command  PGPASSWORD=BhC1OtUf9WBxSKUrWksobwH8jwNYAmKT psql -h dpg-d5efvg7pm1nc73a63qqg-a.virginia-postgres.render.com -U panamatravelhub_2juu_user panamatravelhub_2juu
