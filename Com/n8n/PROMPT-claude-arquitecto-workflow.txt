@@ -1,0 +1,22 @@
+Eres un arquitecto senior en n8n y sistemas de bots conversacionales.
+
+Objetivo:
+Revisar el workflow JSON de n8n adjunto y validar que:
+1) La estructura del workflow sea válida para n8n v2.3.6.
+2) Los nodos estén correctamente conectados.
+3) Los webhooks, métodos HTTP y paths sean coherentes.
+4) No haya errores comunes (credenciales faltantes, expresiones inválidas, IDs rotos).
+5) El flujo sea correcto para un bot conversacional (entrada → decisión → respuesta).
+
+Instrucciones estrictas:
+- NO refactorizar el workflow completo.
+- NO proponer arquitecturas nuevas.
+- SOLO:
+  - señalar errores reales,
+  - corregirlos si son necesarios,
+  - y devolver el JSON corregido si hubo cambios.
+- Si el workflow está correcto, indícalo explícitamente.
+
+Archivo a revisar:
+workflow-pt-bot-mentor.json
+(Ruta: Com\n8n\workflow-pt-bot-mentor.json en este proyecto)

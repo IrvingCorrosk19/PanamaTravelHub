@@ -1,0 +1,314 @@
+{
+  "name": "PT Bot Mentor v2 - Optimized",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "pt/bot",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-001",
+      "name": "Webhook - Entrada",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "pt-bot-v2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// VALIDACIÓN Y SANITIZACIÓN DE ENTRADA\n// ========================================\nconst item = $input.first().json;\n\n// Validar campos requeridos\nif (!item.message) {\n  throw new Error('Campo \"message\" es requerido');\n}\n\nif (!item.sessionId) {\n  throw new Error('Campo \"sessionId\" es requerido');\n}\n\n// Sanitizar y normalizar datos\nconst sanitizedData = {\n  message: String(item.message).trim(),\n  sessionId: String(item.sessionId).trim(),\n  receivedAt: new Date().toISOString(),\n  userAgent: item.userAgent || 'unknown',\n  metadata: item.metadata || {}\n};\n\n// Validar que el mensaje no esté vacío después del trim\nif (sanitizedData.message.length === 0) {\n  throw new Error('El mensaje no puede estar vacío');\n}\n\n// Validar longitud del mensaje (max 5000 caracteres)\nif (sanitizedData.message.length > 5000) {\n  throw new Error('El mensaje es demasiado largo (máximo 5000 caracteres)');\n}\n\nreturn [{ json: sanitizedData }];"
+      },
+      "id": "validation-002",
+      "name": "Validación de Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// CLASIFICADOR INTELIGENTE DE INTENCIONES\n// ========================================\nconst item = $input.first().json;\nconst msg = item.message.toLowerCase();\n\n// Palabras clave para respuestas rápidas (FAQ)\nconst quickIntents = {\n  precio: ['precio', 'cuesta', 'costo', 'vale', 'cuánto', 'cuanto', 'pagar', 'tarifa'],\n  horario: ['horario', 'hora', 'abierto', 'cierra', 'abren', 'schedule', 'cuando abren'],\n  incluye: ['incluye', 'qué incluye', 'que incluye', 'viene con', 'contiene'],\n  duracion: ['duración', 'duracion', 'cuánto dura', 'cuanto dura', 'tiempo', 'minutos'],\n  cancelacion: ['cancelar', 'cancelación', 'cancelacion', 'reembolso', 'devolver', 'anular'],\n  ninos: ['niños', 'ninos', 'niño', 'edad', 'menor', 'menores', 'años', 'kids'],\n  ubicacion: ['dónde', 'donde', 'ubicación', 'ubicacion', 'dirección', 'direccion', 'llegar', 'address', 'maps']\n};\n\n// Detectar si es una pregunta rápida\nlet isQuickIntent = false;\nlet detectedIntent = null;\n\nfor (const [intent, keywords] of Object.entries(quickIntents)) {\n  if (keywords.some(keyword => msg.includes(keyword))) {\n    isQuickIntent = true;\n    detectedIntent = intent;\n    break;\n  }\n}\n\n// Detectar saludos (siempre van a THINK para conversación natural)\nconst greetings = ['hola', 'buenos días', 'buenas tardes', 'buenas noches', 'hey', 'hi', 'hello'];\nconst isGreeting = greetings.some(g => msg.startsWith(g));\n\nif (isGreeting) {\n  isQuickIntent = false;\n  detectedIntent = 'greeting';\n}\n\n// Resultado\nconst result = {\n  ...item,\n  intentType: isQuickIntent ? 'FAST' : 'THINK',\n  detectedIntent: detectedIntent,\n  confidence: isQuickIntent ? 'high' : 'medium',\n  processedAt: new Date().toISOString()\n};\n\nreturn [{ json: result }];"
+      },
+      "id": "classifier-003",
+      "name": "Clasificador de Intenciones",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "outputKey": "FAST",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "fast-condition",
+                    "leftValue": "={{ $json.intentType }}",
+                    "rightValue": "FAST",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "THINK",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "think-condition",
+                    "leftValue": "={{ $json.intentType }}",
+                    "rightValue": "THINK",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-004",
+      "name": "Router de Flujo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://164.68.99.83:8082/api/chatbot/message",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {{ JSON.stringify($json.message) }},\n  \"sessionId\": {{ JSON.stringify($json.sessionId) }},\n  \"intent\": {{ JSON.stringify($json.detectedIntent) }},\n  \"metadata\": {\n    \"receivedAt\": {{ JSON.stringify($json.receivedAt) }},\n    \"intentType\": \"FAST\"\n  }\n}",
+        "options": {}
+      },
+      "id": "intent-engine-005",
+      "name": "Intent Engine (FAQ)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 280]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://164.68.99.83:8082/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {{ JSON.stringify($json.message) }},\n  \"sessionId\": {{ JSON.stringify($json.sessionId) }},\n  \"metadata\": {\n    \"receivedAt\": {{ JSON.stringify($json.receivedAt) }},\n    \"intentType\": \"THINK\",\n    \"detectedIntent\": {{ JSON.stringify($json.detectedIntent) }}\n  }\n}",
+        "options": {}
+      },
+      "id": "mentor-ai-006",
+      "name": "Mentor AI (Conversacional)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 520]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// PROCESAMIENTO Y FORMATEO DE RESPUESTA\n// ========================================\nconst item = $input.first().json;\n\n// Validar que existe respuesta\nif (!item.response && !item.reply && !item.answer) {\n  throw new Error('No se recibió respuesta del servicio');\n}\n\n// Extraer respuesta (soporta diferentes formatos de API)\nconst response = item.response || item.reply || item.answer || '';\n\n// Formatear respuesta final\nconst formattedResponse = {\n  reply: String(response).trim(),\n  sessionId: item.sessionId || '',\n  intentType: item.intentType || 'unknown',\n  detectedIntent: item.detectedIntent || null,\n  processedAt: new Date().toISOString(),\n  success: true,\n  metadata: {\n    processingTime: item.processingTime || null,\n    confidence: item.confidence || 'medium'\n  }\n};\n\n// Validar que la respuesta no esté vacía\nif (formattedResponse.reply.length === 0) {\n  formattedResponse.reply = '¡Hola! Soy tu asistente PT Mentor. ¿En qué puedo ayudarte hoy?';\n}\n\nreturn [{ json: formattedResponse }];"
+      },
+      "id": "format-response-007",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json, null, 2) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-008",
+      "name": "Responder al Cliente",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ========================================\n// MANEJO DE ERRORES CENTRALIZADO\n// ========================================\nconst inputItem = $input.first();\nconst error = inputItem.error;\nconst item = inputItem.json || {};\n\n// Determinar tipo de error y mensaje apropiado\nlet errorMessage = 'Lo siento, estoy experimentando dificultades técnicas. Por favor, intenta nuevamente en unos momentos.';\nlet errorCode = 'INTERNAL_ERROR';\n\nif (error) {\n  if (error.message && (error.message.includes('requerido') || error.message.includes('vacío'))) {\n    errorMessage = 'Por favor, envía un mensaje válido para que pueda ayudarte.';\n    errorCode = 'VALIDATION_ERROR';\n  } else if (error.message && (error.message.includes('timeout') || error.message.includes('ETIMEDOUT'))) {\n    errorMessage = 'El servicio está tardando más de lo normal. Por favor, intenta nuevamente.';\n    errorCode = 'TIMEOUT_ERROR';\n  } else if (error.message && (error.message.includes('ECONNREFUSED') || error.message.includes('connect'))) {\n    errorMessage = 'No puedo conectarme con el servicio en este momento. Por favor, intenta más tarde.';\n    errorCode = 'CONNECTION_ERROR';\n  }\n}\n\nconst errorResponse = {\n  reply: errorMessage,\n  sessionId: item.sessionId || 'unknown',\n  success: false,\n  error: {\n    code: errorCode,\n    message: (error && error.message) ? error.message : 'Unknown error',\n    timestamp: new Date().toISOString()\n  }\n};\n\nreturn [{ json: errorResponse }];"
+      },
+      "id": "error-handler-009",
+      "name": "Manejador de Errores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 600]
+    }
+  ],
+  "connections": {
+    "Webhook - Entrada": {
+      "main": [
+        [
+          {
+            "node": "Validación de Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validación de Entrada": {
+      "main": [
+        [
+          {
+            "node": "Clasificador de Intenciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Manejador de Errores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificador de Intenciones": {
+      "main": [
+        [
+          {
+            "node": "Router de Flujo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router de Flujo": {
+      "main": [
+        [
+          {
+            "node": "Intent Engine (FAQ)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mentor AI (Conversacional)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Engine (FAQ)": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Manejador de Errores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mentor AI (Conversacional)": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Manejador de Errores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder al Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Manejador de Errores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manejador de Errores": {
+      "main": [
+        [
+          {
+            "node": "Responder al Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "n8nVersionTarget": "2.3.6"
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -1,0 +1,202 @@
+{
+  "name": "PT Bot Mentor",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "pt/bot",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "pt-bot"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst msg = ((item.message != null) ? String(item.message) : '').toLowerCase();\nconst quickIntents = ['precio','cuesta','horario','incluye','duración','cancelar','cancelación','niños','edad','dónde','ubicación'];\nconst isQuick = quickIntents.some(k => msg.includes(k));\nreturn [{ json: { ...item, intentType: isQuick ? 'FAST' : 'THINK' } }];"
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "MENTOR_BRAIN_DECISION",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "outputKey": "FAST",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cond-fast",
+                    "leftValue": "={{ $json.intentType }}",
+                    "rightValue": "FAST",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "THINK",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cond-think",
+                    "leftValue": "={{ $json.intentType }}",
+                    "rightValue": "THINK",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://164.68.99.83:8082/api/chatbot/message",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"{{ $json.message || '' }}\",\n  \"sessionId\": \"{{ $json.sessionId || '' }}\"\n}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "INTENT_ENGINE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://164.68.99.83:8082/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"{{ $json.message || '' }}\",\n  \"sessionId\": \"{{ $json.sessionId || '' }}\"\n}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "MENTOR_AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 420]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"reply\": \"{{ $json.response || 'Error procesando la solicitud.' }}\",\n  \"sessionId\": \"{{ $json.sessionId || '' }}\"\n}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "name": "Respond_to_Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1140, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MENTOR_BRAIN_DECISION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MENTOR_BRAIN_DECISION": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "INTENT_ENGINE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MENTOR_AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INTENT_ENGINE": {
+      "main": [
+        [
+          {
+            "node": "Respond_to_Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MENTOR_AI": {
+      "main": [
+        [
+          {
+            "node": "Respond_to_Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "n8nVersionTarget": "2.3.6"
+  },
+  "pinData": {}
+}
