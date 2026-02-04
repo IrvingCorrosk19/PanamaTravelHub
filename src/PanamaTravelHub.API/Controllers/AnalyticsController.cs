@@ -81,7 +81,7 @@ public class AnalyticsController : ControllerBase
     /// Obtiene métricas de conversión (Admin)
     /// </summary>
     [HttpGet("metrics")]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "AdminOnly")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public async Task<IActionResult> GetMetrics(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
@@ -194,7 +194,7 @@ public class AnalyticsController : ControllerBase
     /// Obtiene funnel de conversión (Admin)
     /// </summary>
     [HttpGet("funnel")]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "AdminOnly")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public async Task<IActionResult> GetFunnel(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null)
@@ -249,7 +249,7 @@ public class AnalyticsController : ControllerBase
     /// Obtiene top tours por métricas (Admin)
     /// </summary>
     [HttpGet("top-tours")]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "AdminOnly")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public async Task<IActionResult> GetTopTours(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
@@ -351,7 +351,7 @@ public class AnalyticsController : ControllerBase
     /// Obtiene impacto de UX (Admin)
     /// </summary>
     [HttpGet("ux-impact")]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = "AdminOnly")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public async Task<IActionResult> GetUxImpact(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null)

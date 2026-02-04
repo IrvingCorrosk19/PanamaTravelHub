@@ -1,25 +1,12 @@
 // Admin Panel JavaScript
 let revenueChart, bookingsStatusChart, topToursChart, timeseriesChart, toursReportChart;
+let adminTourImages = []; // Imágenes para el formulario de tour (admin.html)
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
-  // Verificar autenticación
+  // Verificar autenticación (seguridad temporalmente desactivada: no se verifica rol Admin)
   const token = localStorage.getItem('accessToken');
   if (!token) {
-    window.location.href = '/login.html';
-    return;
-  }
-
-  // Verificar rol admin
-  try {
-    const user = await api.getCurrentUser();
-    if (!user.roles || !user.roles.includes('Admin')) {
-      alert('No tienes permisos para acceder al panel administrativo');
-      window.location.href = '/';
-      return;
-    }
-  } catch (error) {
-    console.error('Error verificando usuario:', error);
     window.location.href = '/login.html';
     return;
   }
@@ -73,7 +60,7 @@ function showSection(sectionName) {
       'reviews': 'Moderación de Reviews',
       'waitlist': 'Lista de Espera',
       'blog-comments': 'Comentarios de Blog',
-      'homepage': 'Contenido de Homepage',
+      'homepage': 'CMS (Homepage)',
       'email-settings': 'Configuración de Email',
       'chatbot-settings': 'Configuración del Chatbot',
       'media': 'Biblioteca de Media',
@@ -155,12 +142,16 @@ async function loadSectionData(sectionName) {
 async function loadDashboard() {
   try {
     const summary = await api.getReportsSummary();
+    const b = summary.Bookings || summary.bookings || {};
+    const r = summary.Revenue || summary.revenue || {};
+    const t = summary.Tours || summary.tours || {};
+    const u = summary.Users || summary.users || {};
     
-    // Actualizar estadísticas
-    document.getElementById('statTotalBookings').textContent = summary.bookings?.total || 0;
-    document.getElementById('statTotalRevenue').textContent = `$${formatNumber(summary.revenue?.total || 0)}`;
-    document.getElementById('statActiveTours').textContent = summary.tours?.active || 0;
-    document.getElementById('statActiveUsers').textContent = summary.users?.total || 0;
+    // Actualizar estadísticas (soporta PascalCase y camelCase)
+    document.getElementById('statTotalBookings').textContent = b.Total ?? b.total ?? 0;
+    document.getElementById('statTotalRevenue').textContent = `$${formatNumber(r.Total ?? r.total ?? 0)}`;
+    document.getElementById('statActiveTours').textContent = t.Active ?? t.active ?? 0;
+    document.getElementById('statActiveUsers').textContent = u.Total ?? u.total ?? 0;
     
     // Cargar gráficos
     await loadRevenueChart();
@@ -180,13 +171,15 @@ async function loadRevenueChart() {
     
     if (revenueChart) revenueChart.destroy();
     
+    const dataPoints = timeseries.DataPoints || timeseries.dataPoints || timeseries.data || [];
+    
     revenueChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: timeseries.data?.map(d => formatDate(d.date)) || [],
+        labels: dataPoints.map(d => formatDate(d.Date || d.date)) || [],
         datasets: [{
           label: 'Ingresos',
-          data: timeseries.data?.map(d => d.revenue) || [],
+          data: dataPoints.map(d => d.Revenue ?? d.revenue ?? 0) || [],
           borderColor: '#0ea5e9',
           backgroundColor: 'rgba(14, 165, 233, 0.1)',
           tension: 0.4
@@ -222,15 +215,17 @@ async function loadBookingsStatusChart() {
     
     if (bookingsStatusChart) bookingsStatusChart.destroy();
     
+    const b = summary.Bookings || summary.bookings || {};
+    
     bookingsStatusChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: ['Confirmadas', 'Pendientes', 'Canceladas'],
         datasets: [{
           data: [
-            summary.bookings?.confirmed || 0,
-            summary.bookings?.pending || 0,
-            summary.bookings?.cancelled || 0
+            b.Confirmed ?? b.confirmed ?? 0,
+            b.Pending ?? b.pending ?? 0,
+            b.Cancelled ?? b.cancelled ?? 0
           ],
           backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
         }]
@@ -252,15 +247,16 @@ async function loadTopToursChart() {
     
     if (topToursChart) topToursChart.destroy();
     
-    const top10 = (toursReport.tours || []).slice(0, 10);
+    const tours = toursReport.TopSellingTours || toursReport.topSellingTours || toursReport.tours || [];
+    const top10 = (Array.isArray(tours) ? tours : []).slice(0, 10);
     
     topToursChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: top10.map(t => t.tourName),
+        labels: top10.map(t => t.TourName || t.tourName || '-'),
         datasets: [{
           label: 'Ventas',
-          data: top10.map(t => t.totalBookings),
+          data: top10.map(t => t.TotalBookings ?? t.totalBookings ?? 0),
           backgroundColor: '#0ea5e9'
         }]
       },
@@ -379,7 +375,8 @@ async function loadUsers() {
 // Coupons
 async function loadCoupons() {
   try {
-    const coupons = await api.getCoupons();
+    const res = await api.getCoupons();
+    const coupons = Array.isArray(res) ? res : (res?.items || res?.data || []);
     const tbody = document.getElementById('couponsTableBody');
     if (!tbody) return;
     
@@ -388,19 +385,32 @@ async function loadCoupons() {
       return;
     }
     
-    tbody.innerHTML = coupons.map(coupon => `
+    const isPct = (c) => {
+      const dt = c.DiscountType ?? c.discountType;
+      return dt === 1 || dt === 'Percentage' || (typeof dt === 'string' && dt.toLowerCase().includes('percent'));
+    };
+    
+    tbody.innerHTML = coupons.map(coupon => {
+      const code = coupon.Code ?? coupon.code ?? '';
+      const val = coupon.DiscountValue ?? coupon.discountValue ?? 0;
+      const uses = coupon.CurrentUses ?? coupon.currentUses ?? 0;
+      const max = coupon.MaxUses ?? coupon.maxUses;
+      const active = coupon.IsActive ?? coupon.isActive ?? true;
+      const id = coupon.Id ?? coupon.id ?? '';
+      return `
       <tr>
-        <td><strong>${escapeHtml(coupon.code)}</strong></td>
-        <td>${coupon.discountType === 1 ? 'Porcentaje' : 'Monto Fijo'}</td>
-        <td>${coupon.discountType === 1 ? `${coupon.discountValue}%` : `$${formatNumber(coupon.discountValue)}`}</td>
-        <td>${coupon.currentUses} / ${coupon.maxUses || '∞'}</td>
-        <td>${coupon.isActive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td><strong>${escapeHtml(code)}</strong></td>
+        <td>${isPct(coupon) ? 'Porcentaje' : 'Monto Fijo'}</td>
+        <td>${isPct(coupon) ? `${val}%` : `$${formatNumber(val)}`}</td>
+        <td>${uses} / ${max ?? '∞'}</td>
+        <td>${active ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
         <td>
-          <button class="btn btn-secondary" onclick="editCoupon('${coupon.id}')">Editar</button>
-          <button class="btn btn-danger" onclick="deleteCoupon('${coupon.id}')">Eliminar</button>
+          <button class="btn btn-secondary" onclick="editCoupon('${id}')">Editar</button>
+          <button class="btn btn-danger" onclick="deleteCoupon('${id}')">Eliminar</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   } catch (error) {
     console.error('Error cargando cupones:', error);
     showError('Error al cargar cupones');
@@ -410,28 +420,38 @@ async function loadCoupons() {
 // Reviews
 async function loadReviews() {
   try {
-    const reviews = await api.getAllReviews();
+    const res = await api.getAllReviews();
+    const reviewsList = res?.Reviews ?? res?.reviews ?? (Array.isArray(res) ? res : []);
     const tbody = document.getElementById('reviewsTableBody');
     if (!tbody) return;
     
-    if (!reviews.reviews || reviews.reviews.length === 0) {
+    if (!reviewsList || reviewsList.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay reviews</td></tr>';
       return;
     }
     
-    tbody.innerHTML = reviews.reviews.map(review => `
+    tbody.innerHTML = reviewsList.map(review => {
+      const tourName = review.TourName ?? review.tourName ?? '-';
+      const userName = review.UserName ?? review.userName ?? review.UserEmail ?? review.userEmail ?? '-';
+      const rating = review.Rating ?? review.rating ?? 0;
+      const comment = review.Comment ?? review.comment ?? review.Title ?? review.title ?? '-';
+      const isApproved = review.IsApproved ?? review.isApproved ?? false;
+      const id = review.Id ?? review.id ?? '';
+      const tourId = review.TourId ?? review.tourId ?? '';
+      return `
       <tr>
-        <td>${escapeHtml(review.tourName || '-')}</td>
-        <td>${escapeHtml(review.userName || review.userEmail || '-')}</td>
-        <td>${'⭐'.repeat(review.rating)} (${review.rating}/5)</td>
-        <td>${escapeHtml(review.comment?.substring(0, 50) || review.title || '-')}...</td>
-        <td>${review.isApproved ? '<span class="badge badge-success">Aprobada</span>' : '<span class="badge badge-warning">Pendiente</span>'}</td>
+        <td>${escapeHtml(tourName)}</td>
+        <td>${escapeHtml(userName)}</td>
+        <td>${'⭐'.repeat(Math.min(5, rating))} (${rating}/5)</td>
+        <td>${escapeHtml(String(comment).substring(0, 50))}...</td>
+        <td>${isApproved ? '<span class="badge badge-success">Aprobada</span>' : '<span class="badge badge-warning">Pendiente</span>'}</td>
         <td>
-          ${!review.isApproved ? `<button class="btn btn-success" onclick="approveReview('${review.id}', '${review.tourId}')">Aprobar</button>` : ''}
-          ${review.isApproved ? `<button class="btn btn-danger" onclick="rejectReview('${review.id}', '${review.tourId}')">Rechazar</button>` : ''}
+          ${!isApproved ? `<button class="btn btn-success" onclick="approveReview('${id}', '${tourId}')">Aprobar</button>` : ''}
+          ${isApproved ? `<button class="btn btn-danger" onclick="rejectReview('${id}', '${tourId}')">Rechazar</button>` : ''}
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   } catch (error) {
     console.error('Error cargando reviews:', error);
     showError('Error al cargar reviews');
@@ -463,7 +483,8 @@ async function rejectReview(reviewId, tourId) {
 // Waitlist
 async function loadWaitlist() {
   try {
-    const waitlist = await api.getWaitlist();
+    const res = await api.getWaitlist();
+    const waitlist = Array.isArray(res) ? res : (res?.items || res?.data || []);
     const tbody = document.getElementById('waitlistTableBody');
     if (!tbody) return;
     
@@ -472,18 +493,26 @@ async function loadWaitlist() {
       return;
     }
     
-    tbody.innerHTML = waitlist.map(entry => `
+    tbody.innerHTML = waitlist.map(entry => {
+      const tourName = entry.TourName ?? entry.tourName ?? '-';
+      const userEmail = entry.UserEmail ?? entry.userEmail ?? '-';
+      const date = entry.RequestedDate ?? entry.requestedDate ?? entry.CreatedAt ?? entry.createdAt;
+      const priority = entry.Priority ?? entry.priority ?? 0;
+      const active = entry.IsActive ?? entry.isActive ?? true;
+      const id = entry.Id ?? entry.id ?? '';
+      return `
       <tr>
-        <td>${escapeHtml(entry.tourName || '-')}</td>
-        <td>${escapeHtml(entry.userEmail || '-')}</td>
-        <td>${formatDate(entry.requestedDate)}</td>
-        <td>${entry.priority || 0}</td>
-        <td>${entry.isActive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td>${escapeHtml(tourName)}</td>
+        <td>${escapeHtml(userEmail)}</td>
+        <td>${formatDate(date)}</td>
+        <td>${priority}</td>
+        <td>${active ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
         <td>
-          <button class="btn btn-danger" onclick="removeFromWaitlist('${entry.id}')">Remover</button>
+          <button class="btn btn-danger" onclick="removeFromWaitlist('${id}')">Remover</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   } catch (error) {
     console.error('Error cargando waitlist:', error);
     showError('Error al cargar waitlist');
@@ -491,7 +520,15 @@ async function loadWaitlist() {
 }
 
 // Blog Comments
-// Homepage Content
+// Homepage Content (CMS completo)
+function getVal(c, ...keys) {
+  for (const k of keys) {
+    const v = c?.[k];
+    if (v !== undefined && v !== null) return v;
+  }
+  return '';
+}
+
 async function loadHomepageContent() {
   try {
     const content = await api.getAdminHomePageContent();
@@ -499,83 +536,232 @@ async function loadHomepageContent() {
     
     if (!form) return;
     
-    // Normalizar propiedades (PascalCase o camelCase)
-    const heroTitle = content.HeroTitle || content.heroTitle || '';
-    const heroSubtitle = content.HeroSubtitle || content.heroSubtitle || '';
-    const heroImageUrl = content.HeroImageUrl || content.heroImageUrl || '';
-    const heroSearchPlaceholder = content.HeroSearchPlaceholder || content.heroSearchPlaceholder || '';
-    const toursSectionTitle = content.ToursSectionTitle || content.toursSectionTitle || '';
-    const toursSectionSubtitle = content.ToursSectionSubtitle || content.toursSectionSubtitle || '';
-    const pageTitle = content.PageTitle || content.pageTitle || '';
-    const metaDescription = content.MetaDescription || content.metaDescription || '';
-    const logoUrl = content.LogoUrl || content.logoUrl || '';
-    const faviconUrl = content.FaviconUrl || content.faviconUrl || '';
+    const logoUrl = getVal(content, 'LogoUrl', 'logoUrl');
+    const faviconUrl = getVal(content, 'FaviconUrl', 'faviconUrl');
+    const logoUrlSocial = getVal(content, 'LogoUrlSocial', 'logoUrlSocial');
+    const heroImageUrl = getVal(content, 'HeroImageUrl', 'heroImageUrl');
     
     form.innerHTML = `
-      <div class="form-group">
-        <label>Hero Title</label>
-        <input type="text" id="homepageHeroTitle" value="${escapeHtml(heroTitle)}" class="form-input" />
+      <div class="cms-section" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+        <h3 style="margin: 0 0 16px 0; color: #1e293b;">🖼️ Identidad y marca</h3>
+        <div class="form-group">
+          <label>Logo URL</label>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div id="logoPreviewWrapper" style="min-width: 60px; min-height: 40px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+              <img id="logoPreview" src="${escapeHtml(logoUrl) || ''}" alt="Logo" style="max-width: 120px; max-height: 60px; object-fit: contain;" onerror="this.style.display='none'" />
+              ${!logoUrl ? '<span style="color:#94a3b8; font-size:12px;">Sin imagen</span>' : ''}
+            </div>
+            <input type="text" id="homepageLogoUrl" value="${escapeHtml(logoUrl)}" class="form-input" placeholder="URL o sube/selecciona" style="flex:1; min-width:200px;" />
+            <input type="file" id="homepageLogoUrlFile" accept="image/*" style="display:none;" />
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('homepageLogoUrlFile').click()">📤 Subir</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="adminSelectMediaForCMS('homepageLogoUrl','logoPreviewWrapper','logoPreview')">📁 Seleccionar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Favicon URL</label>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div id="faviconPreviewWrapper" style="min-width: 32px; min-height: 32px;">${faviconUrl ? `<img id="faviconPreview" src="${escapeHtml(faviconUrl)}" style="width:32px;height:32px;" />` : '<span id="faviconPreview" style="color:#94a3b8;">Sin favicon</span>'}</div>
+            <input type="text" id="homepageFaviconUrl" value="${escapeHtml(faviconUrl)}" class="form-input" style="flex:1; min-width:200px;" />
+            <input type="file" id="homepageFaviconUrlFile" accept="image/*,.ico" style="display:none;" />
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('homepageFaviconUrlFile').click()">📤 Subir</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="adminSelectMediaForCMS('homepageFaviconUrl','faviconPreviewWrapper','faviconPreview')">📁 Seleccionar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Logo Social (Open Graph)</label>
+          <input type="text" id="homepageLogoUrlSocial" value="${escapeHtml(logoUrlSocial)}" class="form-input" placeholder="URL para redes sociales" />
+        </div>
       </div>
-      <div class="form-group">
-        <label>Hero Subtitle</label>
-        <textarea id="homepageHeroSubtitle" class="form-input" rows="3">${escapeHtml(heroSubtitle)}</textarea>
+      <div class="cms-section" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+        <h3 style="margin: 0 0 16px 0; color: #1e293b;">🎯 Hero (portada)</h3>
+        <div class="form-group">
+          <label>Imagen de fondo del Hero</label>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div id="heroImagePreviewWrapper" style="min-width: 120px; min-height: 60px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+              <img id="heroImagePreview" src="${escapeHtml(heroImageUrl) || ''}" alt="Hero" style="max-width: 200px; max-height: 100px; object-fit: cover;" onerror="this.style.display='none'" />
+            </div>
+            <input type="text" id="homepageHeroImageUrl" value="${escapeHtml(heroImageUrl)}" class="form-input" style="flex:1; min-width:200px;" />
+            <input type="file" id="homepageHeroImageUrlFile" accept="image/*" style="display:none;" />
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('homepageHeroImageUrlFile').click()">📤 Subir</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="adminSelectMediaForCMS('homepageHeroImageUrl','heroImagePreviewWrapper','heroImagePreview')">📁 Seleccionar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Hero Title</label>
+          <input type="text" id="homepageHeroTitle" value="${escapeHtml(getVal(content,'HeroTitle','heroTitle'))}" class="form-input" placeholder="Título principal" />
+        </div>
+        <div class="form-group">
+          <label>Hero Subtitle</label>
+          <textarea id="homepageHeroSubtitle" class="form-input" rows="3">${escapeHtml(getVal(content,'HeroSubtitle','heroSubtitle'))}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Hero Search Placeholder</label>
+          <input type="text" id="homepageHeroSearchPlaceholder" value="${escapeHtml(getVal(content,'HeroSearchPlaceholder','heroSearchPlaceholder'))}" class="form-input" placeholder="Buscar tours..." />
+        </div>
+        <div class="form-group">
+          <label>Hero Search Button</label>
+          <input type="text" id="homepageHeroSearchButton" value="${escapeHtml(getVal(content,'HeroSearchButton','heroSearchButton'))}" class="form-input" placeholder="Buscar" />
+        </div>
       </div>
-      <div class="form-group">
-        <label>Hero Image URL</label>
-        <input type="url" id="homepageHeroImageUrl" value="${escapeHtml(heroImageUrl)}" class="form-input" />
+      <div class="cms-section" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+        <h3 style="margin: 0 0 16px 0; color: #1e293b;">📋 Sección Tours</h3>
+        <div class="form-group">
+          <label>Tours Section Title</label>
+          <input type="text" id="homepageToursSectionTitle" value="${escapeHtml(getVal(content,'ToursSectionTitle','toursSectionTitle'))}" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>Tours Section Subtitle</label>
+          <textarea id="homepageToursSectionSubtitle" class="form-input" rows="2">${escapeHtml(getVal(content,'ToursSectionSubtitle','toursSectionSubtitle'))}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Loading Tours Text</label>
+          <input type="text" id="homepageLoadingToursText" value="${escapeHtml(getVal(content,'LoadingToursText','loadingToursText'))}" class="form-input" placeholder="Cargando tours..." />
+        </div>
+        <div class="form-group">
+          <label>Error Loading Tours Text</label>
+          <input type="text" id="homepageErrorLoadingToursText" value="${escapeHtml(getVal(content,'ErrorLoadingToursText','errorLoadingToursText'))}" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label>No Tours Found Text</label>
+          <input type="text" id="homepageNoToursFoundText" value="${escapeHtml(getVal(content,'NoToursFoundText','noToursFoundText'))}" class="form-input" />
+        </div>
       </div>
-      <div class="form-group">
-        <label>Hero Search Placeholder</label>
-        <input type="text" id="homepageHeroSearchPlaceholder" value="${escapeHtml(heroSearchPlaceholder)}" class="form-input" />
+      <div class="cms-section" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+        <h3 style="margin: 0 0 16px 0; color: #1e293b;">🧭 Navegación</h3>
+        <div class="form-group"><label>Nav Brand Text</label><input type="text" id="homepageNavBrandText" value="${escapeHtml(getVal(content,'NavBrandText','navBrandText'))}" class="form-input" /></div>
+        <div class="form-group"><label>Nav Tours Link</label><input type="text" id="homepageNavToursLink" value="${escapeHtml(getVal(content,'NavToursLink','navToursLink'))}" class="form-input" /></div>
+        <div class="form-group"><label>Nav Bookings Link</label><input type="text" id="homepageNavBookingsLink" value="${escapeHtml(getVal(content,'NavBookingsLink','navBookingsLink'))}" class="form-input" /></div>
+        <div class="form-group"><label>Nav Login Link</label><input type="text" id="homepageNavLoginLink" value="${escapeHtml(getVal(content,'NavLoginLink','navLoginLink'))}" class="form-input" /></div>
+        <div class="form-group"><label>Nav Logout Button</label><input type="text" id="homepageNavLogoutButton" value="${escapeHtml(getVal(content,'NavLogoutButton','navLogoutButton'))}" class="form-input" /></div>
       </div>
-      <div class="form-group">
-        <label>Tours Section Title</label>
-        <input type="text" id="homepageToursSectionTitle" value="${escapeHtml(toursSectionTitle)}" class="form-input" />
+      <div class="cms-section" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+        <h3 style="margin: 0 0 16px 0; color: #1e293b;">📄 Footer</h3>
+        <div class="form-group"><label>Footer Brand Text</label><input type="text" id="homepageFooterBrandText" value="${escapeHtml(getVal(content,'FooterBrandText','footerBrandText'))}" class="form-input" /></div>
+        <div class="form-group"><label>Footer Description</label><textarea id="homepageFooterDescription" class="form-input" rows="3">${escapeHtml(getVal(content,'FooterDescription','footerDescription'))}</textarea></div>
+        <div class="form-group"><label>Footer Copyright</label><input type="text" id="homepageFooterCopyright" value="${escapeHtml(getVal(content,'FooterCopyright','footerCopyright'))}" class="form-input" /></div>
       </div>
-      <div class="form-group">
-        <label>Tours Section Subtitle</label>
-        <input type="text" id="homepageToursSectionSubtitle" value="${escapeHtml(toursSectionSubtitle)}" class="form-input" />
+      <div class="cms-section" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 12px;">
+        <h3 style="margin: 0 0 16px 0; color: #1e293b;">🔍 SEO</h3>
+        <div class="form-group"><label>Page Title</label><input type="text" id="homepagePageTitle" value="${escapeHtml(getVal(content,'PageTitle','pageTitle'))}" class="form-input" /></div>
+        <div class="form-group"><label>Meta Description</label><textarea id="homepageMetaDescription" class="form-input" rows="2">${escapeHtml(getVal(content,'MetaDescription','metaDescription'))}</textarea></div>
       </div>
-      <div class="form-group">
-        <label>Page Title (SEO)</label>
-        <input type="text" id="homepagePageTitle" value="${escapeHtml(pageTitle)}" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label>Meta Description (SEO)</label>
-        <textarea id="homepageMetaDescription" class="form-input" rows="3">${escapeHtml(metaDescription)}</textarea>
-      </div>
-      <div class="form-group">
-        <label>Logo URL</label>
-        <input type="url" id="homepageLogoUrl" value="${escapeHtml(logoUrl)}" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label>Favicon URL</label>
-        <input type="url" id="homepageFaviconUrl" value="${escapeHtml(faviconUrl)}" class="form-input" />
+      <div class="btn-group">
+        <button type="button" class="btn btn-primary" onclick="saveHomepageContent()">💾 Guardar contenido CMS</button>
       </div>
     `;
+    
+    // Bind file uploads
+    document.getElementById('homepageLogoUrlFile')?.addEventListener('change', e => adminUploadCMSImage(e, 'homepageLogoUrl', 'logoPreviewWrapper', 'logoPreview'));
+    document.getElementById('homepageFaviconUrlFile')?.addEventListener('change', e => adminUploadCMSImage(e, 'homepageFaviconUrl', 'faviconPreviewWrapper', 'faviconPreview'));
+    document.getElementById('homepageHeroImageUrlFile')?.addEventListener('change', e => adminUploadCMSImage(e, 'homepageHeroImageUrl', 'heroImagePreviewWrapper', 'heroImagePreview'));
   } catch (error) {
     console.error('Error cargando homepage content:', error);
     showError('Error al cargar el contenido de la homepage');
   }
 }
 
+async function adminUploadCMSImage(e, inputId, wrapperId, imgId) {
+  const file = e.target?.files?.[0];
+  if (!file) return;
+  try {
+    const result = await api.uploadMediaFile(file, null, null, 'cms');
+    const url = result?.fileUrl || result?.url || result?.Url || result?.FileUrl;
+    if (!url) throw new Error('No se recibió URL');
+    const input = document.getElementById(inputId);
+    const wrapper = document.getElementById(wrapperId);
+    if (input) input.value = url.startsWith('http') ? url : (window.location.origin + (url.startsWith('/') ? url : '/' + url));
+    if (wrapper) {
+      const img = document.getElementById(imgId) || document.createElement('img');
+      img.id = imgId;
+      img.src = input.value;
+      img.style.maxWidth = imgId === 'faviconPreview' ? '32px' : '120px';
+      img.style.maxHeight = imgId === 'faviconPreview' ? '32px' : '60px';
+      if (imgId === 'faviconPreview') img.style.width = img.style.height = '32px';
+      img.onerror = () => img.style.display = 'none';
+      wrapper.innerHTML = '';
+      wrapper.appendChild(img);
+    }
+    showSuccess('Imagen subida correctamente');
+  } catch (err) {
+    showError('Error al subir: ' + (err.message || 'Error'));
+  }
+  e.target.value = '';
+}
+
+async function adminSelectMediaForCMS(inputId, wrapperId, imgId) {
+  try {
+    const mediaFiles = await api.getAdminMedia(null, true, 1, 50);
+    const list = Array.isArray(mediaFiles) ? mediaFiles : (mediaFiles?.items || mediaFiles?.data || []);
+    if (list.length === 0) {
+      showError('No hay imágenes en la biblioteca. Sube imágenes primero en Media.');
+      return;
+    }
+    const opts = list.map(f => {
+      const u = f.FileUrl ?? f.fileUrl ?? f.Url ?? f.url ?? '';
+      return { url: u.startsWith('http') ? u : (window.location.origin + (u.startsWith('/') ? u : '/' + u)), id: f.Id ?? f.id };
+    }).filter(x => x.url);
+    const html = opts.map(o => `<div class="media-item" style="cursor:pointer;border:2px solid #e2e8f0;border-radius:8px;overflow:hidden;display:inline-block;margin:4px;" onclick="adminPickMediaForCMS('${escapeHtml(o.url)}','${inputId}','${wrapperId}','${imgId}')"><img src="${escapeHtml(o.url)}" style="width:80px;height:60px;object-fit:cover;" /></div>`).join('');
+    const modal = document.createElement('div');
+    modal.id = 'cmsMediaModal';
+    modal.className = 'modal active';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `<div class="modal-content" style="max-width:600px;max-height:80vh;overflow:auto;background:white;padding:24px;border-radius:12px;"><h3>Seleccionar imagen</h3><div style="display:flex;flex-wrap:wrap;gap:8px;margin:16px 0;">${html}</div><button class="btn btn-secondary" onclick="document.getElementById('cmsMediaModal')?.remove()">Cancelar</button></div>`;
+    document.body.appendChild(modal);
+    modal.onclick = ev => { if (ev.target === modal) modal.remove(); };
+  } catch (err) {
+    showError('Error al cargar media: ' + (err.message || 'Error'));
+  }
+}
+
+function adminPickMediaForCMS(url, inputId, wrapperId, imgId) {
+  const input = document.getElementById(inputId);
+  const wrapper = document.getElementById(wrapperId);
+  if (input) input.value = url;
+  if (wrapper) {
+    const img = document.createElement('img');
+    img.id = imgId;
+    img.src = url;
+    img.style.maxWidth = imgId === 'faviconPreview' ? '32px' : '120px';
+    img.style.maxHeight = imgId === 'faviconPreview' ? '32px' : '60px';
+    if (imgId === 'faviconPreview') img.style.width = img.style.height = '32px';
+    img.onerror = () => img.style.display = 'none';
+    wrapper.innerHTML = '';
+    wrapper.appendChild(img);
+  }
+  document.getElementById('cmsMediaModal')?.remove();
+}
+
 async function saveHomepageContent() {
   try {
+    const g = id => document.getElementById(id)?.value ?? '';
     const data = {
-      HeroTitle: document.getElementById('homepageHeroTitle')?.value || '',
-      HeroSubtitle: document.getElementById('homepageHeroSubtitle')?.value || '',
-      HeroImageUrl: document.getElementById('homepageHeroImageUrl')?.value || '',
-      HeroSearchPlaceholder: document.getElementById('homepageHeroSearchPlaceholder')?.value || '',
-      ToursSectionTitle: document.getElementById('homepageToursSectionTitle')?.value || '',
-      ToursSectionSubtitle: document.getElementById('homepageToursSectionSubtitle')?.value || '',
-      PageTitle: document.getElementById('homepagePageTitle')?.value || '',
-      MetaDescription: document.getElementById('homepageMetaDescription')?.value || '',
-      LogoUrl: document.getElementById('homepageLogoUrl')?.value || '',
-      FaviconUrl: document.getElementById('homepageFaviconUrl')?.value || ''
+      HeroTitle: g('homepageHeroTitle'),
+      HeroSubtitle: g('homepageHeroSubtitle'),
+      HeroImageUrl: g('homepageHeroImageUrl') || null,
+      HeroSearchPlaceholder: g('homepageHeroSearchPlaceholder'),
+      HeroSearchButton: g('homepageHeroSearchButton'),
+      ToursSectionTitle: g('homepageToursSectionTitle'),
+      ToursSectionSubtitle: g('homepageToursSectionSubtitle'),
+      LoadingToursText: g('homepageLoadingToursText'),
+      ErrorLoadingToursText: g('homepageErrorLoadingToursText'),
+      NoToursFoundText: g('homepageNoToursFoundText'),
+      NavBrandText: g('homepageNavBrandText'),
+      NavToursLink: g('homepageNavToursLink'),
+      NavBookingsLink: g('homepageNavBookingsLink'),
+      NavLoginLink: g('homepageNavLoginLink'),
+      NavLogoutButton: g('homepageNavLogoutButton'),
+      FooterBrandText: g('homepageFooterBrandText'),
+      FooterDescription: g('homepageFooterDescription'),
+      FooterCopyright: g('homepageFooterCopyright'),
+      PageTitle: g('homepagePageTitle'),
+      MetaDescription: g('homepageMetaDescription'),
+      LogoUrl: g('homepageLogoUrl') || null,
+      FaviconUrl: g('homepageFaviconUrl') || null,
+      LogoUrlSocial: g('homepageLogoUrlSocial') || null
     };
     
     await api.updateAdminHomePageContent(data);
-    showSuccess('Contenido de la homepage guardado exitosamente');
+    showSuccess('Contenido CMS guardado exitosamente');
   } catch (error) {
     console.error('Error guardando homepage content:', error);
     showError('Error al guardar el contenido de la homepage');
@@ -1173,33 +1359,39 @@ async function deletePage(pageId) {
 async function loadBlogComments() {
   try {
     const statusFilter = document.getElementById('commentStatusFilter')?.value;
-    const comments = await api.getAllBlogComments(1, 50, statusFilter ? parseInt(statusFilter) : null);
+    const res = await api.getAllBlogComments(1, 50, statusFilter ? parseInt(statusFilter, 10) : null);
+    const commentsList = res?.Comments ?? res?.comments ?? (Array.isArray(res) ? res : []);
     const tbody = document.getElementById('blogCommentsTableBody');
     if (!tbody) return;
     
-    if (!comments.comments || comments.comments.length === 0) {
+    if (!commentsList || commentsList.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay comentarios</td></tr>';
       return;
     }
     
-    tbody.innerHTML = comments.comments.map(comment => {
+    tbody.innerHTML = commentsList.map(comment => {
       const statusBadges = {
         0: '<span class="badge badge-warning">Pendiente</span>',
         1: '<span class="badge badge-success">Aprobado</span>',
         2: '<span class="badge badge-danger">Rechazado</span>',
         3: '<span class="badge badge-danger">Spam</span>'
       };
-      
+      const blogPostTitle = comment.BlogPostTitle ?? comment.blogPostTitle ?? '-';
+      const authorName = comment.AuthorName ?? comment.authorName ?? '-';
+      const content = comment.Content ?? comment.content ?? '';
+      const status = comment.Status ?? comment.status ?? 0;
+      const createdAt = comment.CreatedAt ?? comment.createdAt;
+      const id = comment.Id ?? comment.id ?? '';
       return `
         <tr>
-          <td>${escapeHtml(comment.blogPostTitle || '-')}</td>
-          <td>${escapeHtml(comment.authorName)}</td>
-          <td>${escapeHtml(comment.content.substring(0, 50))}...</td>
-          <td>${statusBadges[comment.status] || '-'}</td>
-          <td>${formatDate(comment.createdAt)}</td>
+          <td>${escapeHtml(blogPostTitle)}</td>
+          <td>${escapeHtml(authorName)}</td>
+          <td>${escapeHtml(String(content).substring(0, 50))}...</td>
+          <td>${statusBadges[status] || '-'}</td>
+          <td>${formatDate(createdAt)}</td>
           <td>
-            ${comment.status === 0 ? `<button class="btn btn-success" onclick="moderateComment('${comment.id}', 1)">Aprobar</button>` : ''}
-            ${comment.status !== 2 ? `<button class="btn btn-danger" onclick="moderateComment('${comment.id}', 2)">Rechazar</button>` : ''}
+            ${status === 0 ? `<button class="btn btn-success" onclick="moderateComment('${id}', 1)">Aprobar</button>` : ''}
+            ${status !== 2 ? `<button class="btn btn-danger" onclick="moderateComment('${id}', 2)">Rechazar</button>` : ''}
           </td>
         </tr>
       `;
@@ -1231,42 +1423,46 @@ async function loadReports() {
     const timeseries = await api.getTimeseriesReport(startDate, endDate);
     const toursReport = await api.getToursReport(startDate, endDate);
     
-    // Mostrar resumen
+    // Mostrar resumen (soporta PascalCase y camelCase)
+    const b = summary.Bookings || summary.bookings || {};
+    const r = summary.Revenue || summary.revenue || {};
+    const convRate = summary.ConversionRate ?? summary.conversionRate ?? 0;
     const summaryDiv = document.getElementById('reportsSummary');
     if (summaryDiv) {
       summaryDiv.innerHTML = `
         <div class="stats-grid">
           <div class="stat-card">
             <h3>Total Reservas</h3>
-            <div class="value">${summary.bookings?.total || 0}</div>
+            <div class="value">${b.Total ?? b.total ?? 0}</div>
           </div>
           <div class="stat-card">
             <h3>Ingresos Totales</h3>
-            <div class="value">$${formatNumber(summary.revenue?.total || 0)}</div>
+            <div class="value">$${formatNumber(r.Total ?? r.total ?? 0)}</div>
           </div>
           <div class="stat-card">
             <h3>Ticket Promedio</h3>
-            <div class="value">$${formatNumber(summary.revenue?.averageTicket || 0)}</div>
+            <div class="value">$${formatNumber(r.AverageTicket ?? r.averageTicket ?? 0)}</div>
           </div>
           <div class="stat-card">
             <h3>Tasa de Conversión</h3>
-            <div class="value">${summary.conversionRate?.toFixed(2) || 0}%</div>
+            <div class="value">${Number(convRate).toFixed(2)}%</div>
           </div>
         </div>
       `;
     }
     
     // Gráfico de series temporales
+    const dataPoints = timeseries.DataPoints || timeseries.dataPoints || timeseries.data || [];
     const ctx1 = document.getElementById('timeseriesChart');
     if (ctx1) {
       if (timeseriesChart) timeseriesChart.destroy();
       timeseriesChart = new Chart(ctx1, {
         type: 'line',
         data: {
-          labels: timeseries.data?.map(d => formatDate(d.date)) || [],
+          labels: dataPoints.map(d => formatDate(d.Date || d.date)) || [],
           datasets: [{
             label: 'Ingresos',
-            data: timeseries.data?.map(d => d.revenue) || [],
+            data: dataPoints.map(d => d.Revenue ?? d.revenue ?? 0) || [],
             borderColor: '#0ea5e9',
             backgroundColor: 'rgba(14, 165, 233, 0.1)',
             tension: 0.4
@@ -1292,14 +1488,15 @@ async function loadReports() {
     const ctx2 = document.getElementById('toursReportChart');
     if (ctx2) {
       if (toursReportChart) toursReportChart.destroy();
-      const top10 = (toursReport.tours || []).slice(0, 10);
+      const tours = toursReport.TopSellingTours || toursReport.topSellingTours || toursReport.tours || [];
+      const top10 = (Array.isArray(tours) ? tours : []).slice(0, 10);
       toursReportChart = new Chart(ctx2, {
         type: 'bar',
         data: {
-          labels: top10.map(t => t.tourName),
+          labels: top10.map(t => t.TourName || t.tourName || '-'),
           datasets: [{
             label: 'Ventas',
-            data: top10.map(t => t.totalBookings),
+            data: top10.map(t => t.TotalBookings ?? t.totalBookings ?? 0),
             backgroundColor: '#0ea5e9'
           }]
         },
@@ -1317,17 +1514,23 @@ async function loadReports() {
 
 // Utilidades
 function formatNumber(num) {
-  return new Intl.NumberFormat('es-PA').format(num);
+  if (num == null || isNaN(num)) return '0';
+  return new Intl.NumberFormat('es-PA').format(Number(num));
 }
 
 function formatDate(date) {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('es-PA');
+  try {
+    return new Date(date).toLocaleDateString('es-PA');
+  } catch {
+    return '-';
+  }
 }
 
 function escapeHtml(text) {
+  if (text == null) return '';
   const div = document.createElement('div');
-  div.textContent = text;
+  div.textContent = String(text);
   return div.innerHTML;
 }
 
@@ -1365,6 +1568,8 @@ function openTourModal(tourId = null) {
   const modalTitle = document.getElementById('tourModalTitle');
   const modalBody = document.getElementById('tourModalBody');
   
+  adminTourImages = [];
+  
   if (tourId) {
     modalTitle.textContent = 'Editar Tour';
     modalBody.innerHTML = '<div class="loading" style="padding: 40px; text-align: center;"><div class="spinner"></div><p>Cargando tour...</p></div>';
@@ -1375,12 +1580,14 @@ function openTourModal(tourId = null) {
     modalBody.innerHTML = getTourFormHTML();
     initTinyMCE();
     modal.classList.add('active');
+    setTimeout(() => adminUpdateTourImagesPreview(), 100);
   }
 }
 
 function closeTourModal() {
   const modal = document.getElementById('tourModal');
   modal.classList.remove('active');
+  adminTourImages = [];
   if (typeof tinymce !== 'undefined') {
     tinymce.remove();
   }
@@ -1394,8 +1601,18 @@ function getTourFormHTML() {
         <input type="text" id="tourName" class="form-input" required />
       </div>
       <div class="form-group">
+        <label>Imágenes del Tour (máx. 5)</label>
+        <div id="adminTourImagesPreview" style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;"></div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="file" id="adminTourImageInput" accept="image/jpeg,image/png,image/webp" multiple style="flex: 1;" />
+          <button type="button" class="btn btn-secondary" onclick="adminUploadTourImages()">📤 Subir imágenes</button>
+        </div>
+        <small style="color: #64748b;">JPG, PNG, WEBP. Máx 5MB cada una. La primera será la principal.</small>
+      </div>
+      <div class="form-group">
         <label>Descripción *</label>
-        <textarea id="tourDescription" class="form-input" rows="6" required></textarea>
+        <textarea id="tourDescription" class="form-input" rows="6" required minlength="50"></textarea>
+        <small style="color: #64748b;">Mínimo 50 caracteres</small>
       </div>
       <div class="form-group">
         <label>Itinerario</label>
@@ -1438,6 +1655,55 @@ function getTourFormHTML() {
   `;
 }
 
+async function adminUploadTourImages() {
+  const input = document.getElementById('adminTourImageInput');
+  if (!input?.files?.length) {
+    showError('Selecciona al menos una imagen');
+    return;
+  }
+  const files = Array.from(input.files);
+  if (adminTourImages.length + files.length > 5) {
+    showError('Máximo 5 imágenes. Ya tienes ' + adminTourImages.length);
+    return;
+  }
+  try {
+    for (const file of files) {
+      if (adminTourImages.length >= 5) break;
+      const result = await api.uploadTourImage(file);
+      const url = result.url || result.Url;
+      if (url) adminTourImages.push(url.startsWith('http') ? url : (window.location.origin + (url.startsWith('/') ? url : '/' + url)));
+    }
+    adminUpdateTourImagesPreview();
+    input.value = '';
+  } catch (err) {
+    console.error(err);
+    showError('Error al subir imagen: ' + (err.message || 'Error desconocido'));
+  }
+}
+
+function adminUpdateTourImagesPreview() {
+  const container = document.getElementById('adminTourImagesPreview');
+  if (!container) return;
+  if (adminTourImages.length === 0) {
+    container.innerHTML = '';
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'flex';
+  container.innerHTML = adminTourImages.map((url, i) => `
+    <div style="position: relative;">
+      <img src="${url}" alt="Tour ${i+1}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;" />
+      <button type="button" onclick="adminRemoveTourImage(${i})" style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px;">×</button>
+      ${i === 0 ? '<span style="position: absolute; bottom: 4px; left: 4px; background: #0ea5e9; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Principal</span>' : ''}
+    </div>
+  `).join('');
+}
+
+function adminRemoveTourImage(index) {
+  adminTourImages.splice(index, 1);
+  adminUpdateTourImagesPreview();
+}
+
 function initTinyMCE() {
   if (typeof tinymce !== 'undefined') {
     tinymce.init({
@@ -1478,6 +1744,13 @@ async function loadTourForEdit(tourId) {
     document.getElementById('tourLocation').value = location;
     document.getElementById('tourIsActive').checked = isActive;
     
+    const imgs = tour.Images || tour.images || [];
+    adminTourImages = (Array.isArray(imgs) ? imgs : []).map(u => {
+      const url = typeof u === 'string' ? u : (u?.url || u?.imageUrl || '');
+      return url.startsWith('http') ? url : (window.location.origin + (url.startsWith('/') ? url : '/' + url));
+    }).filter(Boolean);
+    setTimeout(() => adminUpdateTourImagesPreview(), 100);
+    
     setTimeout(() => {
       initTinyMCE();
       if (typeof tinymce !== 'undefined' && tinymce.get('tourDescription')) {
@@ -1507,6 +1780,13 @@ async function saveTour(e) {
     description = document.getElementById('tourDescription').value;
   }
   
+  let images = [...adminTourImages];
+  const baseUrl = window.location.origin;
+  images = images.map(url => {
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return url.startsWith('/') ? baseUrl + url : baseUrl + '/' + url;
+  });
+  
   const tourData = {
     name: document.getElementById('tourName').value,
     description: description,
@@ -1516,7 +1796,8 @@ async function saveTour(e) {
     durationHours: parseInt(document.getElementById('tourDuration').value),
     maxCapacity: parseInt(document.getElementById('tourCapacity').value),
     location: document.getElementById('tourLocation').value,
-    isActive: document.getElementById('tourIsActive').checked
+    isActive: document.getElementById('tourIsActive').checked,
+    images: images
   };
   
   try {

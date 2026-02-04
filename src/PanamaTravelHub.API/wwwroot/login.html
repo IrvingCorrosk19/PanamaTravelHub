@@ -151,8 +151,18 @@
   <script src="/js/logger.js"></script>
   <script src="/js/api.js"></script>
   <script>
-    // Toggle de visibilidad de contraseña
+    // Toggle de visibilidad de contraseña y mensajes de URL
     document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reason') === 'admin_refresh') {
+        const errDiv = document.getElementById('errorMessage');
+        if (errDiv) {
+          errDiv.innerHTML = '<strong>Tu sesión necesita actualizarse.</strong> Inicia sesión de nuevo para acceder al panel administrativo.';
+          errDiv.style.display = 'block';
+          errDiv.style.background = 'rgba(14, 165, 233, 0.15)';
+          errDiv.style.borderColor = '#0ea5e9';
+        }
+      }
       // Password principal
       const passwordToggle = document.getElementById('passwordToggle');
       const passwordInput = document.getElementById('password');
@@ -858,9 +868,14 @@
 
     // Función helper para completar el login
     async function completeLogin(loginResponse, cleanupLoading) {
-      // Usar RedirectUrl del backend (determinado por roles)
-      const redirectUrl = loginResponse?.redirectUrl || loginResponse?.RedirectUrl || '/reservas.html';
       const userRoles = loginResponse?.user?.roles || loginResponse?.user?.Roles || [];
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get('returnTo');
+      // Si vino de admin_refresh y es admin, redirigir a returnTo (p. ej. /admin.html)
+      let redirectUrl = loginResponse?.redirectUrl || loginResponse?.RedirectUrl || '/reservas.html';
+      if (returnTo && userRoles.some(r => r && r.toLowerCase() === 'admin')) {
+        redirectUrl = returnTo.startsWith('/') ? returnTo : '/' + returnTo;
+      }
       
       console.log('🔐 [login] ========== DEBUGGING LOGIN ==========');
       console.log('🔐 [login] LoginResponse completo:', loginResponse);

@@ -324,7 +324,7 @@ public class AuthController : ControllerBase
             string redirectUrl;
             if (roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
             {
-                redirectUrl = "/Admin";
+                redirectUrl = "/admin.html";
                 _logger.LogInformation("Usuario admin detectado, redirigiendo a panel de administración. Roles: {Roles}", string.Join(", ", roles));
             }
             else
@@ -433,7 +433,7 @@ public class AuthController : ControllerBase
         string redirectUrl;
         if (roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
         {
-            redirectUrl = "/Admin";
+            redirectUrl = "/admin.html";
         }
         else
         {

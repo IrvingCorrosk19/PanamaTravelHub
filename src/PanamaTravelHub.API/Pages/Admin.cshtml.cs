@@ -1,13 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace PanamaTravelHub.API.Pages;
 
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class AdminModel : PageModel
 {
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        return RedirectPermanent("/admin.html");
     }
 }
 

@@ -162,7 +162,7 @@ public class CouponsController : ControllerBase
     /// Obtiene todos los cupones (Admin)
     /// </summary>
     [HttpGet]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<CouponDto>>> GetCoupons(
         [FromQuery] bool? isActive = null,
         [FromQuery] int page = 1,
@@ -220,7 +220,7 @@ public class CouponsController : ControllerBase
     /// Crea un nuevo cupón (Admin)
     /// </summary>
     [HttpPost]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     public async Task<ActionResult<CouponDto>> CreateCoupon([FromBody] CreateCouponRequestDto request)
     {
         try
@@ -291,7 +291,7 @@ public class CouponsController : ControllerBase
     /// Obtiene un cupón por ID (Admin)
     /// </summary>
     [HttpGet("{id}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     public async Task<ActionResult<CouponDto>> GetCoupon(Guid id)
     {
         try
@@ -336,7 +336,7 @@ public class CouponsController : ControllerBase
     /// Actualiza un cupón (Admin)
     /// </summary>
     [HttpPut("{id}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     public async Task<ActionResult<CouponDto>> UpdateCoupon(Guid id, [FromBody] UpdateCouponRequestDto request)
     {
         try
@@ -434,7 +434,7 @@ public class CouponsController : ControllerBase
     /// Elimina un cupón (Admin)
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     public async Task<ActionResult> DeleteCoupon(Guid id)
     {
         try

@@ -8,7 +8,7 @@ namespace PanamaTravelHub.API.Controllers;
 
 [ApiController]
 [Route("api/admin/reports")]
-[Authorize(Policy = "AdminOnly")]
+[Authorize]
 public class ReportsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

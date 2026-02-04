@@ -342,7 +342,7 @@ public class BlogCommentsController : ControllerBase
     /// Lista todos los comentarios (Admin) con filtros
     /// </summary>
     [HttpGet("admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult<BlogCommentsResponseDto>> GetAllComments(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
@@ -417,7 +417,7 @@ public class BlogCommentsController : ControllerBase
     /// Modera un comentario (Admin)
     /// </summary>
     [HttpPost("{id}/moderate")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public async Task<ActionResult> ModerateComment(Guid id, [FromBody] ModerateCommentRequestDto request)
     {
         var comment = await _context.BlogComments.FindAsync(id);

@@ -23,6 +23,7 @@
       <div class="nav-links">
         <a href="/" class="nav-link">Inicio</a>
         <a href="/Admin" class="nav-link active">Admin</a>
+        <a href="/admin.html" class="nav-link" title="Panel administrativo completo con todas las secciones">Panel Completo</a>
         <button class="btn-primary" id="logoutBtn">Cerrar Sesión</button>
       </div>
     </div>
@@ -929,8 +930,12 @@
         const tourId = tour.id || tour.Id || id;
         currentTourId = tourId;
         
-        // Inicializar array de imágenes
-        tourImages = tour.images || tour.Images || [];
+        // Inicializar array de imágenes (Images o fallback a ImageUrl)
+        const imgList = tour.images || tour.Images || [];
+        tourImages = Array.isArray(imgList) ? [...imgList] : [];
+        if (tourImages.length === 0 && (tour.imageUrl || tour.ImageUrl)) {
+          tourImages = [tour.imageUrl || tour.ImageUrl];
+        }
         const modal = document.createElement('div');
         modal.className = 'modal active';
         modal.innerHTML = `
@@ -1316,9 +1321,11 @@
         isValid = false;
       }
       
-      // Validar imágenes (obligatorio al menos 1)
-      if (tourImages.length === 0) {
-        showImageError('⚠️ Debes agregar al menos una imagen al tour. Puedes arrastrar y soltar imágenes o hacer clic en el área de carga.');
+      // Validar imágenes: obligatorio al menos 1 solo al CREAR (al editar se permite sin imágenes)
+      const form = document.getElementById('tourForm');
+      const mode = form ? (form.dataset.mode || 'create') : 'create';
+      if (mode === 'create' && tourImages.length === 0) {
+        showImageError('⚠️ Debes agregar al menos una imagen al tour. Arrastra imágenes, haz clic en el área de carga o usa "Seleccionar de Media".');
         isValid = false;
       }
       

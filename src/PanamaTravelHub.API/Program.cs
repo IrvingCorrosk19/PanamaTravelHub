@@ -87,6 +87,7 @@ builder.Services.AddControllers(options =>
         // Configurar JSON para usar UTF-8 sin escapar caracteres Unicode
         options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
         options.JsonSerializerOptions.PropertyNamingPolicy = null; // Mantener nombres originales
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Aceptar camelCase y PascalCase
     })
     .ConfigureApiBehaviorOptions(options =>
     {
@@ -224,7 +225,8 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidAudience = jwtAudience,
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero // Sin tolerancia de tiempo
+        ClockSkew = TimeSpan.Zero, // Sin tolerancia de tiempo
+        RoleClaimType = "role" // Mapear claim "role" del JWT para [Authorize(Roles="Admin")]
     };
     // Leer JWT desde cookie cuando no hay Authorization header (p. ej. GET /Admin tras login)
     options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
@@ -343,13 +345,18 @@ app.Use(async (context, next) =>
         context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload";
     }
     
-    // Content Security Policy (CSP) - Ajustar según necesidades
+    // Content Security Policy (CSP) - En desarrollo permitir localhost para Browser Link / hot reload
+    var connectSrc = "connect-src 'self' https://api.stripe.com";
+    if (app.Environment.IsDevelopment())
+    {
+        connectSrc += " ws: wss: http://localhost https://localhost http://127.0.0.1 https://127.0.0.1";
+    }
     var csp = "default-src 'self'; " +
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
               "font-src 'self' https://fonts.gstatic.com; " +
               "img-src 'self' data: https: blob:; " +
-              "connect-src 'self' https://api.stripe.com; " +
+              connectSrc + "; " +
               "frame-src 'self' https://js.stripe.com; " +
               "object-src 'none'; " +
               "base-uri 'self'; " +

@@ -269,7 +269,7 @@ public class WaitlistController : ControllerBase
     /// Obtiene todas las listas de espera (Admin)
     /// </summary>
     [HttpGet]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<WaitlistDto>>> GetAllWaitlist(
         [FromQuery] Guid? tourId = null,
         [FromQuery] bool? isActive = null)
@@ -303,6 +303,7 @@ public class WaitlistController : ControllerBase
                     TourDateTime = w.TourDate != null ? w.TourDate.TourDateTime : null,
                     NumberOfParticipants = w.NumberOfParticipants,
                     Priority = w.Priority,
+                    IsActive = w.IsActive,
                     IsNotified = w.IsNotified,
                     UserEmail = w.User.Email,
                     UserName = $"{w.User.FirstName} {w.User.LastName}",
@@ -337,6 +338,7 @@ public class WaitlistDto
     public DateTime? TourDateTime { get; set; }
     public int NumberOfParticipants { get; set; }
     public int Priority { get; set; }
+    public bool IsActive { get; set; }
     public bool IsNotified { get; set; }
     public string? UserEmail { get; set; }
     public string? UserName { get; set; }

@@ -41,10 +41,10 @@ public class JwtService : IJwtService
                 ClaimValueTypes.Integer64)
         };
 
-        // Agregar roles como claims
+        // Agregar roles como claims (usar "role" para compatibilidad con JWT estándar y RoleClaimType)
         foreach (var role in roles)
         {
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim("role", role));
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));

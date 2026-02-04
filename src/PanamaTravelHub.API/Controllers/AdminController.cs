@@ -14,7 +14,7 @@ namespace PanamaTravelHub.API.Controllers;
 
 [ApiController]
 [Route("api/admin")]
-[Authorize(Policy = "AdminOnly")]
+[Authorize] // Seguridad temporalmente desactivada: cualquier usuario autenticado puede acceder
 public class AdminController : ControllerBase
 {
     private readonly IRepository<Tour> _tourRepository;

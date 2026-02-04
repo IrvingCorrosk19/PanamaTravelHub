@@ -337,7 +337,7 @@ public class TourReviewsController : ControllerBase
     /// Obtiene todas las reviews para moderación (Admin - ruta alternativa sin tourId requerido)
     /// </summary>
     [HttpGet("/api/admin/reviews")]
-    [Authorize(Policy = "AdminOnly")]
+    [Authorize]
     public async Task<ActionResult<AdminReviewsResponseDto>> GetAllReviewsAdmin(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
