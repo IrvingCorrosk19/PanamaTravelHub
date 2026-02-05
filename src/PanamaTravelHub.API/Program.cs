@@ -43,6 +43,8 @@ var loggerConfiguration = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Information)
     // Permitir logs de nuestros controladores y servicios
     .MinimumLevel.Override("PanamaTravelHub", LogEventLevel.Debug)
+    // Middleware y API: Debug en desarrollo para ver REQUEST IN/OUT y errores capturados (admin.html)
+    .MinimumLevel.Override("PanamaTravelHub.API.Middleware", isProduction ? LogEventLevel.Information : LogEventLevel.Debug)
     .Enrich.FromLogContext()
     .Enrich.WithEnvironmentName()
     .Enrich.WithMachineName()

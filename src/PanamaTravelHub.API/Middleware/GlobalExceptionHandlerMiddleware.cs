@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Security.Claims;
 using System.Text.Json;
@@ -45,6 +46,13 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
 
         var endpoint = $"{httpContext.Request.Method} {httpContext.Request.Path}";
         var userId = httpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? httpContext.User?.FindFirst("sub")?.Value;
+        var path = httpContext.Request.Path.Value ?? "";
+        var isAdminRequest = path.TrimStart('/').StartsWith("admin", StringComparison.OrdinalIgnoreCase)
+                            || path.TrimStart('/').StartsWith("api/admin", StringComparison.OrdinalIgnoreCase);
+
+        // Siempre registrar error capturado en formato estructurado (como el frontend) para poder resolver problemas
+        BackendLogHelper.LogError(_logger, exception, "ExceptionHandler", correlationId, endpoint, userId, isAdminRequest,
+            new Dictionary<string, object?> { ["problemDetailsTitle"] = problemDetails.Title, ["problemDetailsDetail"] = problemDetails.Detail });
 
         switch (exception)
         {
