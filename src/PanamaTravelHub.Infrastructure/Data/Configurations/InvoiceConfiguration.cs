@@ -8,7 +8,12 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
 {
     public void Configure(EntityTypeBuilder<Invoice> builder)
     {
-        builder.ToTable("invoices");
+        builder.ToTable("invoices", t =>
+        {
+            t.HasCheckConstraint("chk_invoice_total_positive", "total >= 0");
+            t.HasCheckConstraint("chk_invoice_language", "language IN ('ES', 'EN')");
+            t.HasCheckConstraint("chk_invoice_status", "status IN ('Issued', 'Void')");
+        });
 
         builder.HasKey(i => i.Id);
         builder.Property(i => i.Id)
@@ -110,9 +115,5 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .HasForeignKey(i => i.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Constraints
-        builder.HasCheckConstraint("chk_invoice_total_positive", "total >= 0");
-        builder.HasCheckConstraint("chk_invoice_language", "language IN ('ES', 'EN')");
-        builder.HasCheckConstraint("chk_invoice_status", "status IN ('Issued', 'Void')");
-    }
+            }
 }

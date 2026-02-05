@@ -182,7 +182,7 @@ CREATE TABLE email_notifications (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     
-    CONSTRAINT chk_email_type CHECK (type IN (1, 2, 3, 4)),
+    CONSTRAINT chk_email_type CHECK (type IN (1, 2, 3, 4, 5)),
     CONSTRAINT chk_email_status CHECK (status IN (1, 2, 3, 4)),
     CONSTRAINT chk_email_format_notification CHECK (to_email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
     CONSTRAINT chk_retry_count CHECK (retry_count >= 0)

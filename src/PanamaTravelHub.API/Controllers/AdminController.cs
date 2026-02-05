@@ -120,17 +120,16 @@ public class AdminController : ControllerBase
 
             await _tourRepository.AddAsync(tour);
 
-            // Agregar categorías
+            // Agregar categorías (usar Tour = tour para que EF asigne el FK al guardar)
             if (request.CategoryIds != null && request.CategoryIds.Any())
             {
                 foreach (var categoryId in request.CategoryIds)
                 {
-                    var assignment = new TourCategoryAssignment
+                    _context.TourCategoryAssignments.Add(new TourCategoryAssignment
                     {
-                        TourId = tour.Id,
+                        Tour = tour,
                         CategoryId = categoryId
-                    };
-                    _context.TourCategoryAssignments.Add(assignment);
+                    });
                 }
             }
 
@@ -139,12 +138,11 @@ public class AdminController : ControllerBase
             {
                 foreach (var tagId in request.TagIds)
                 {
-                    var assignment = new TourTagAssignment
+                    _context.TourTagAssignments.Add(new TourTagAssignment
                     {
-                        TourId = tour.Id,
+                        Tour = tour,
                         TagId = tagId
-                    };
-                    _context.TourTagAssignments.Add(assignment);
+                    });
                 }
             }
 
@@ -154,14 +152,14 @@ public class AdminController : ControllerBase
                 for (int i = 0; i < request.Images.Count; i++)
                 {
                     var imageUrl = request.Images[i];
-                    var tourImage = new TourImage
+                    if (string.IsNullOrWhiteSpace(imageUrl)) continue;
+                    _context.TourImages.Add(new TourImage
                     {
-                        TourId = tour.Id,
+                        Tour = tour,
                         ImageUrl = imageUrl,
                         DisplayOrder = i,
-                        IsPrimary = i == 0 // Primera imagen es principal
-                    };
-                    _context.TourImages.Add(tourImage);
+                        IsPrimary = i == 0
+                    });
                 }
             }
 

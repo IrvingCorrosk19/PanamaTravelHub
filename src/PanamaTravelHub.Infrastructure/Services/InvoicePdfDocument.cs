@@ -29,7 +29,7 @@ public class InvoicePdfDocument : IDocument
                 // Header
                 col.Item().Row(row =>
                 {
-                    row.RelativeColumn().Column(c =>
+                    row.RelativeItem().Column(c =>
                     {
                         c.Item().Text("PanamaTravelHub")
                             .FontSize(18)
@@ -40,7 +40,7 @@ public class InvoicePdfDocument : IDocument
                             .FontColor(Colors.Grey.Darken1);
                     });
 
-                    row.ConstantColumn(200).AlignRight().Column(c =>
+                    row.ConstantItem(200).AlignRight().Column(c =>
                     {
                         c.Item().Text($"{InvoiceTexts.Get("Invoice", _vm.Language)} {_vm.InvoiceNumber}")
                             .FontSize(16)

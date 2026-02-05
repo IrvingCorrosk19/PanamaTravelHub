@@ -110,6 +110,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddExceptionHandler<GlobalExceptionHandlerMiddleware>();
 builder.Services.AddProblemDetails();
 
+// Captura de todos los errores del módulo admin en logs/admin-errors.log
+builder.Services.AddSingleton<PanamaTravelHub.API.Services.AdminErrorsFileLogger>();
+
 // CORS para permitir el frontend
 builder.Services.AddCors(options =>
 {

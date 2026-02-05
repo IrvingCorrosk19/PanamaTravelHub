@@ -9,7 +9,11 @@ public class BlogCommentConfiguration : IEntityTypeConfiguration<BlogComment>
 {
     public void Configure(EntityTypeBuilder<BlogComment> builder)
     {
-        builder.ToTable("blog_comments");
+        builder.ToTable("blog_comments", t =>
+        {
+            t.HasCheckConstraint("CK_BlogComment_Likes_NonNegative", "likes >= 0");
+            t.HasCheckConstraint("CK_BlogComment_Dislikes_NonNegative", "dislikes >= 0");
+        });
 
         builder.HasKey(bc => bc.Id);
 
@@ -83,8 +87,5 @@ public class BlogCommentConfiguration : IEntityTypeConfiguration<BlogComment>
         // Índice compuesto para consultas comunes
         builder.HasIndex(bc => new { bc.BlogPostId, bc.Status, bc.CreatedAt });
 
-        // Constraints
-        builder.HasCheckConstraint("CK_BlogComment_Likes_NonNegative", "likes >= 0");
-        builder.HasCheckConstraint("CK_BlogComment_Dislikes_NonNegative", "dislikes >= 0");
-    }
+            }
 }

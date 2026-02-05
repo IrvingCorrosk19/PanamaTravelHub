@@ -8,7 +8,11 @@ public class WaitlistConfiguration : IEntityTypeConfiguration<Waitlist>
 {
     public void Configure(EntityTypeBuilder<Waitlist> builder)
     {
-        builder.ToTable("waitlist");
+        builder.ToTable("waitlist", t =>
+        {
+            t.HasCheckConstraint("chk_participants_positive", "number_of_participants > 0");
+            t.HasCheckConstraint("chk_priority_positive", "priority >= 0");
+        });
 
         builder.HasKey(w => w.Id);
         builder.Property(w => w.Id)
@@ -70,10 +74,6 @@ public class WaitlistConfiguration : IEntityTypeConfiguration<Waitlist>
             .WithMany()
             .HasForeignKey(w => w.UserId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        // Constraints
-        builder.HasCheckConstraint("chk_participants_positive", "number_of_participants > 0");
-        builder.HasCheckConstraint("chk_priority_positive", "priority >= 0");
 
         // Indexes
         builder.HasIndex(w => w.TourId);

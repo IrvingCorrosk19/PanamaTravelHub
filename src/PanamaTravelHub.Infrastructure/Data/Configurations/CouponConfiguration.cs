@@ -8,7 +8,14 @@ public class CouponConfiguration : IEntityTypeConfiguration<Coupon>
 {
     public void Configure(EntityTypeBuilder<Coupon> builder)
     {
-        builder.ToTable("coupons");
+        builder.ToTable("coupons", t =>
+        {
+            t.HasCheckConstraint("chk_discount_value_positive", "discount_value > 0");
+            t.HasCheckConstraint("chk_max_uses_positive", "max_uses IS NULL OR max_uses > 0");
+            t.HasCheckConstraint("chk_max_uses_per_user_positive", "max_uses_per_user IS NULL OR max_uses_per_user > 0");
+            t.HasCheckConstraint("chk_current_uses_non_negative", "current_uses >= 0");
+            t.HasCheckConstraint("chk_percentage_range", "discount_type != 1 OR (discount_value >= 0 AND discount_value <= 100)");
+        });
 
         builder.HasKey(c => c.Id);
         builder.Property(c => c.Id)
@@ -86,13 +93,6 @@ public class CouponConfiguration : IEntityTypeConfiguration<Coupon>
             .WithMany()
             .HasForeignKey(c => c.ApplicableTourId)
             .OnDelete(DeleteBehavior.SetNull);
-
-        // Constraints
-        builder.HasCheckConstraint("chk_discount_value_positive", "discount_value > 0");
-        builder.HasCheckConstraint("chk_max_uses_positive", "max_uses IS NULL OR max_uses > 0");
-        builder.HasCheckConstraint("chk_max_uses_per_user_positive", "max_uses_per_user IS NULL OR max_uses_per_user > 0");
-        builder.HasCheckConstraint("chk_current_uses_non_negative", "current_uses >= 0");
-        builder.HasCheckConstraint("chk_percentage_range", "discount_type != 1 OR (discount_value >= 0 AND discount_value <= 100)");
 
         // Indexes
         builder.HasIndex(c => c.Code).IsUnique();

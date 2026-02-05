@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using PanamaTravelHub.API.Services;
 
 namespace PanamaTravelHub.API.Middleware;
 
@@ -11,6 +12,7 @@ public class RequestLoggingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<RequestLoggingMiddleware> _logger;
+    private readonly AdminErrorsFileLogger _adminErrorsFile;
 
     private static readonly HashSet<string> ExcludedPaths = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -30,10 +32,12 @@ public class RequestLoggingMiddleware
 
     public RequestLoggingMiddleware(
         RequestDelegate next,
-        ILogger<RequestLoggingMiddleware> logger)
+        ILogger<RequestLoggingMiddleware> logger,
+        AdminErrorsFileLogger adminErrorsFile)
     {
         _next = next;
         _logger = logger;
+        _adminErrorsFile = adminErrorsFile;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -72,6 +76,11 @@ public class RequestLoggingMiddleware
                 BackendLogHelper.LogResponse(_logger, method, path, statusCode, stopwatch.ElapsedMilliseconds, correlationId, isAdmin, ex.Message);
             }
 
+            if (isAdmin && statusCode >= 400)
+            {
+                _adminErrorsFile.Log(method, path, statusCode, ex.Message, ex.GetType().Name, ex.StackTrace);
+            }
+
             _logger.LogError(ex,
                 "=== REQUEST ERROR === [{Method}] {Path} | Status: {StatusCode} | Duration: {Duration}ms | CorrelationId: {CorrelationId} | Message: {Message}",
                 method, path, statusCode, stopwatch.ElapsedMilliseconds, correlationId, ex.Message);
@@ -82,6 +91,12 @@ public class RequestLoggingMiddleware
         if (shouldLog)
         {
             BackendLogHelper.LogResponse(_logger, method, path, context.Response.StatusCode, stopwatch.ElapsedMilliseconds, correlationId, isAdmin);
+        }
+
+        // Captura en archivo físico respuestas 4xx/5xx del módulo admin
+        if (isAdmin && statusCode >= 400)
+        {
+            _adminErrorsFile.Log(method, path, statusCode, $"HTTP {statusCode}", null, null);
         }
     }
 }

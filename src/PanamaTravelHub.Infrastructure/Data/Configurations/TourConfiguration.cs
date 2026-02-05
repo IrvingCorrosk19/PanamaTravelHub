@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PanamaTravelHub.Domain.Entities;
@@ -132,7 +133,11 @@ public class TourConfiguration : IEntityTypeConfiguration<Tour>
             .HasColumnName("block_order");
             
         builder.Property(t => t.BlockEnabled)
-            .HasColumnName("block_enabled");
+            .HasColumnName("block_enabled")
+            .HasColumnType("jsonb")
+            .HasConversion(
+                v => string.IsNullOrEmpty(v) ? null : JsonDocument.Parse(v, new JsonDocumentOptions()),
+                v => v == null ? null : v.RootElement.GetRawText());
 
         builder.Property(t => t.CreatedAt)
             .HasColumnName("created_at")

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using PanamaTravelHub.API.Services;
 
 namespace PanamaTravelHub.API.Middleware;
 
@@ -17,13 +18,16 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
     private readonly IWebHostEnvironment _environment;
+    private readonly AdminErrorsFileLogger _adminErrorsFile;
 
     public GlobalExceptionHandlerMiddleware(
         ILogger<GlobalExceptionHandlerMiddleware> logger,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        AdminErrorsFileLogger adminErrorsFile)
     {
         _logger = logger;
         _environment = environment;
+        _adminErrorsFile = adminErrorsFile;
     }
 
     public async ValueTask<bool> TryHandleAsync(
@@ -53,6 +57,18 @@ public class GlobalExceptionHandlerMiddleware : IExceptionHandler
         // Siempre registrar error capturado en formato estructurado (como el frontend) para poder resolver problemas
         BackendLogHelper.LogError(_logger, exception, "ExceptionHandler", correlationId, endpoint, userId, isAdminRequest,
             new Dictionary<string, object?> { ["problemDetailsTitle"] = problemDetails.Title, ["problemDetailsDetail"] = problemDetails.Detail });
+
+        // Captura en archivo físico todos los errores del módulo admin (admin.html)
+        if (isAdminRequest)
+        {
+            _adminErrorsFile.Log(
+                httpContext.Request.Method,
+                path,
+                null,
+                exception.Message,
+                exception.GetType().Name,
+                exception.StackTrace);
+        }
 
         switch (exception)
         {

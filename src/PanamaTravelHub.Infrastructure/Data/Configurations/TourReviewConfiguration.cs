@@ -8,7 +8,10 @@ public class TourReviewConfiguration : IEntityTypeConfiguration<TourReview>
 {
     public void Configure(EntityTypeBuilder<TourReview> builder)
     {
-        builder.ToTable("tour_reviews");
+        builder.ToTable("tour_reviews", t =>
+        {
+            t.HasCheckConstraint("chk_rating_range", "rating >= 1 AND rating <= 5");
+        });
 
         builder.HasKey(tr => tr.Id);
         builder.Property(tr => tr.Id)
@@ -73,9 +76,6 @@ public class TourReviewConfiguration : IEntityTypeConfiguration<TourReview>
             .WithMany()
             .HasForeignKey(tr => tr.BookingId)
             .OnDelete(DeleteBehavior.SetNull);
-
-        // Constraints
-        builder.HasCheckConstraint("chk_rating_range", "rating >= 1 AND rating <= 5");
 
         // Indexes
         builder.HasIndex(tr => tr.TourId);
