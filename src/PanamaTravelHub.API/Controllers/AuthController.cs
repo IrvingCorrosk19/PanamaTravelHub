@@ -51,11 +51,18 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterRequestDto request)
     {
+        try
+        {
         _logger.LogInformation("=== INICIO Registro de usuario ===");
-        var emailPreview = !string.IsNullOrEmpty(request.Email) && request.Email.Length > 5 
-            ? request.Email.Substring(0, 5) + "***" 
+        var emailPreview = !string.IsNullOrEmpty(request.Email) && request.Email.Length > 5
+            ? request.Email.Substring(0, 5) + "***"
             : "***";
-        _logger.LogInformation("Email: {Email}", emailPreview);
+        _logger.LogInformation("[REGISTER] Request recibido | Email: {Email} | FirstName length: {FirstNameLen} | LastName length: {LastNameLen} | Password present: {HasPassword} | ConfirmPassword present: {HasConfirm}",
+            emailPreview,
+            request.FirstName?.Length ?? 0,
+            request.LastName?.Length ?? 0,
+            !string.IsNullOrEmpty(request.Password),
+            !string.IsNullOrEmpty(request.ConfirmPassword));
 
         // Verificar si el usuario ya existe (validación temprana)
         var emailToCheck = request.Email?.ToLower().Trim() ?? string.Empty;
@@ -64,7 +71,7 @@ public class AuthController : ControllerBase
 
         if (existingUser != null)
         {
-            _logger.LogWarning("Intento de registro con email ya existente: {Email}", emailPreview);
+            _logger.LogWarning("[REGISTER] Email ya existente, rechazando con 409 | Email: {Email}", emailPreview);
             // Devolver 409 Conflict para email duplicado
             return Conflict(new ProblemDetails
             {
@@ -129,18 +136,24 @@ public class AuthController : ControllerBase
                 };
                 await _context.UserRoles.AddAsync(userRole);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("[REGISTER] Rol Customer asignado al usuario {UserId}", user.Id);
+            }
+            else
+            {
+                _logger.LogWarning("[REGISTER] Rol 'Customer' no encontrado en BD. El usuario {UserId} no tiene rol asignado.", user.Id);
             }
 
-        _logger.LogInformation("Usuario registrado exitosamente: {Email}, ID: {UserId}", user.Email, user.Id);
-        _logger.LogInformation("=== FIN Registro de usuario (exitoso) ===");
+        _logger.LogInformation("[REGISTER] Usuario creado en BD | Email: {Email}, ID: {UserId}", user.Email, user.Id);
 
         // Generar tokens
         var roles = new List<string> { "Customer" };
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email, roles);
         var refreshToken = await CreateRefreshTokenAsync(user.Id);
 
-        // Usuarios nuevos siempre son Customer, redirigir a reservas (Razor Pages)
-        var redirectUrl = "/Reservas";
+        // SPA: redirigir a reservas.html (no /Reservas que es Razor)
+        var redirectUrl = "/reservas.html";
+
+        _logger.LogInformation("[REGISTER] Registro exitoso | RedirectUrl: {RedirectUrl} | UserId: {UserId}", redirectUrl, user.Id);
 
         // Devolver 201 Created (según especificaciones)
         return CreatedAtAction(nameof(GetCurrentUser), new { id = user.Id }, new AuthResponseDto
@@ -157,6 +170,13 @@ public class AuthController : ControllerBase
             },
             RedirectUrl = redirectUrl
         });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[REGISTER] Error no controlado | Tipo: {Type} | Mensaje: {Message} | Inner: {Inner}",
+                ex.GetType().Name, ex.Message, ex.InnerException?.Message ?? "(null)");
+            throw;
+        }
     }
 
     /// <summary>

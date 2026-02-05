@@ -375,8 +375,14 @@ class ApiClient {
   }
 
   async register(userData) {
-    logger.info('Iniciando registro', { email: userData.email?.substring(0, 5) + '***' });
-    
+    logger.info('[REGISTER] Iniciando registro', {
+      emailPreview: userData.email ? userData.email.substring(0, 5) + '***' : '(vacío)',
+      hasFirstName: !!userData.firstName?.trim(),
+      hasLastName: !!userData.lastName?.trim(),
+      hasPassword: !!userData.password,
+      hasConfirmPassword: !!userData.confirmPassword
+    });
+
     // Asegurar que confirmPassword esté incluido
     const registerData = {
       email: userData.email?.trim(),
@@ -386,13 +392,25 @@ class ApiClient {
       lastName: userData.lastName?.trim()
     };
 
+    logger.info('[REGISTER] Payload a enviar', {
+      email: registerData.email ? registerData.email.substring(0, 5) + '***' : '(vacío)',
+      firstNameLen: registerData.firstName?.length ?? 0,
+      lastNameLen: registerData.lastName?.length ?? 0,
+      passwordLen: registerData.password?.length ?? 0,
+      confirmPasswordLen: registerData.confirmPassword?.length ?? 0
+    });
+
     try {
       const response = await this.request('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify(registerData),
       });
-      
-      logger.success('Registro exitoso', { userId: response.user?.id });
+
+      logger.success('[REGISTER] Respuesta 201 recibida', {
+        userId: response.user?.id || response.user?.Id,
+        hasAccessToken: !!(response.accessToken || response.AccessToken),
+        redirectUrl: response.redirectUrl || response.RedirectUrl
+      });
       
       // Guardar accessToken y refreshToken
       if (response.accessToken && response.refreshToken) {
@@ -431,8 +449,11 @@ class ApiClient {
       
       return response;
     } catch (error) {
-      // Preservar status code del error para manejo específico en login.html
-      logger.error('Error en registro', error);
+      logger.error('[REGISTER] Error en registro', error, {
+        status: error.status ?? error.statusCode,
+        message: error.message,
+        hasErrors: !!(error.errors || error.response?.errors)
+      });
       throw error;
     }
   }

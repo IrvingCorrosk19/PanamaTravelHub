@@ -755,19 +755,23 @@
             return;
           }
 
-          const registerResponse = await api.register({ 
-            email, 
-            password: passwordTrimmed, 
+          if (typeof logger !== 'undefined') {
+            logger.info('[REGISTER] Enviando registro desde formulario', { email: email ? email.substring(0, 5) + '***' : '', firstName: !!firstName, lastName: !!lastName });
+          }
+          const registerResponse = await api.register({
+            email,
+            password: passwordTrimmed,
             confirmPassword: confirmPasswordTrimmed,
-            firstName, 
-            lastName 
+            firstName,
+            lastName
           });
-          
+
+          if (typeof logger !== 'undefined') {
+            logger.success('[REGISTER] Registro OK, redirigiendo', { redirectUrl: registerResponse?.redirectUrl || registerResponse?.RedirectUrl });
+          }
           // Usar RedirectUrl del backend (nuevos usuarios siempre son Customer)
-          const redirectUrl = registerResponse?.redirectUrl || '/reservas.html';
-          const userRoles = registerResponse?.user?.roles || [];
-          console.log('👤 [register] Usuario registrado, RedirectUrl desde backend:', redirectUrl);
-          console.log('👤 [register] Estoy redirigiendo a:', redirectUrl, 'y su rol es:', userRoles.join(', '));
+          const redirectUrl = registerResponse?.redirectUrl || registerResponse?.RedirectUrl || '/reservas.html';
+          const userRoles = registerResponse?.user?.roles || registerResponse?.user?.Roles || [];
           // Desactivar loading antes de redirigir (aunque se redirige, es buena práctica)
           if (submitButton && loaderId) {
             loadingManager.hideInButton(submitButton);
@@ -780,8 +784,11 @@
         if (submitButton && loaderId) {
           loadingManager.hideInButton(submitButton);
         }
-        console.error('Error completo:', error);
-        
+        if (typeof logger !== 'undefined') {
+          logger.error('[REGISTER] Error capturado en login.html', error, { status: error.status ?? error.statusCode, errors: error.errors || error.response?.errors });
+        }
+        console.error('[REGISTER] Error completo:', error);
+
         // Manejar error 409 (Email ya registrado) específicamente
         let errorMessage = error.message || 'Error al procesar la solicitud';
         
