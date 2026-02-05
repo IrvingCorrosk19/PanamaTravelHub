@@ -9,6 +9,8 @@ public class UpdateUserRequestDto
     public string? Phone { get; set; }
     public bool? IsActive { get; set; }
     public List<string>? Roles { get; set; }
+    /// <summary>Nueva contraseña (opcional). Si se envía, se actualiza.</summary>
+    public string? Password { get; set; }
 }
 
 public class UpdateUserRequestValidator : AbstractValidator<UpdateUserRequestDto>

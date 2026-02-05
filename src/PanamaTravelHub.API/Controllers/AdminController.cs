@@ -24,6 +24,7 @@ public class AdminController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<AdminController> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IPasswordHasher _passwordHasher;
 
     public AdminController(
         IRepository<Tour> tourRepository,
@@ -32,7 +33,8 @@ public class AdminController : ControllerBase
         IBookingService bookingService,
         ApplicationDbContext context,
         ILogger<AdminController> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IPasswordHasher passwordHasher)
     {
         _tourRepository = tourRepository;
         _bookingRepository = bookingRepository;
@@ -41,6 +43,7 @@ public class AdminController : ControllerBase
         _context = context;
         _logger = logger;
         _configuration = configuration;
+        _passwordHasher = passwordHasher;
     }
 
     /// <summary>
@@ -1695,6 +1698,79 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
+    /// Crea un nuevo usuario (Admin)
+    /// </summary>
+    [HttpPost("users")]
+    public async Task<ActionResult<AdminUserDto>> CreateUser([FromBody] AdminCreateUserRequestDto request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { message = "El email es obligatorio" });
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
+                return BadRequest(new { message = "La contraseña es obligatoria y debe tener al menos 6 caracteres" });
+
+            var emailNorm = request.Email.Trim().ToLower();
+            var existing = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == emailNorm);
+            if (existing != null)
+                return Conflict(new { message = "Ya existe un usuario con ese email" });
+
+            var passwordHash = _passwordHasher.HashPassword(request.Password.Trim());
+            var user = new User
+            {
+                Email = emailNorm,
+                PasswordHash = passwordHash,
+                FirstName = request.FirstName?.Trim() ?? string.Empty,
+                LastName = request.LastName?.Trim() ?? string.Empty,
+                Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
+                IsActive = request.IsActive,
+                EmailVerified = false,
+                EmailVerificationToken = Guid.NewGuid().ToString("N")
+            };
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+
+            var roleNames = (request.Roles ?? new List<string>()).Select(r => r?.Trim()).Where(r => !string.IsNullOrEmpty(r)).Select(r => r!.ToLower()).Distinct().ToList();
+            if (roleNames.Count == 0) roleNames.Add("customer");
+            var roles = await _context.Roles.Where(r => roleNames.Contains(r.Name.ToLower())).ToListAsync();
+            foreach (var role in roles)
+            {
+                user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
+            }
+            if (roles.Count == 0)
+            {
+                var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Customer");
+                if (customerRole != null)
+                    user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = customerRole.Id });
+            }
+            await _context.SaveChangesAsync();
+            await _context.Entry(user).Collection(u => u.UserRoles).Query().Include(ur => ur.Role).LoadAsync();
+
+            var result = new AdminUserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Phone = user.Phone,
+                IsActive = user.IsActive,
+                Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                FailedLoginAttempts = 0,
+                LockedUntil = null,
+                LastLoginAt = null,
+                CreatedAt = user.CreatedAt,
+                TotalBookings = 0
+            };
+            return CreatedAtAction(nameof(GetUser), new { id = user.Id }, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear usuario");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Obtiene un usuario por ID (Admin)
     /// </summary>
     [HttpGet("users/{id}")]
@@ -1793,6 +1869,11 @@ public class AdminController : ControllerBase
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(request.Password))
+            {
+                user.PasswordHash = _passwordHasher.HashPassword(request.Password.Trim());
+            }
+
             // Actualizar roles si se proporcionan
             if (request.Roles != null && request.Roles.Any())
             {
@@ -1879,6 +1960,53 @@ public class AdminController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al desbloquear usuario {UserId}", id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Elimina un usuario (Admin). No se puede eliminar si tiene reservas.
+    /// </summary>
+    [HttpDelete("users/{id}")]
+    public async Task<ActionResult> DeleteUser(Guid id)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .Include(u => u.Bookings)
+                .FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+                return NotFound(new { message = "Usuario no encontrado" });
+            if (user.Bookings != null && user.Bookings.Count > 0)
+                return BadRequest(new { message = "No se puede eliminar un usuario que tiene reservas. Desactiva el usuario en su lugar." });
+
+            _context.UserRoles.RemoveRange(user.UserRoles);
+            var refreshTokens = await _context.RefreshTokens.Where(t => t.UserId == id).ToListAsync();
+            _context.RefreshTokens.RemoveRange(refreshTokens);
+            var resetTokens = await _context.PasswordResetTokens.Where(t => t.UserId == id).ToListAsync();
+            _context.PasswordResetTokens.RemoveRange(resetTokens);
+            var loginHistories = await _context.LoginHistories.Where(h => h.UserId == id).ToListAsync();
+            _context.LoginHistories.RemoveRange(loginHistories);
+            var auditLogs = await _context.AuditLogs.Where(a => a.UserId == id).ToListAsync();
+            _context.AuditLogs.RemoveRange(auditLogs);
+            var twoFactor = await _context.UserTwoFactors.FirstOrDefaultAsync(t => t.UserId == id);
+            if (twoFactor != null) _context.UserTwoFactors.Remove(twoFactor);
+            var favorites = await _context.UserFavorites.Where(f => f.UserId == id).ToListAsync();
+            _context.UserFavorites.RemoveRange(favorites);
+            var couponUsages = await _context.CouponUsages.Where(c => c.UserId == id).ToListAsync();
+            _context.CouponUsages.RemoveRange(couponUsages);
+            var tourReviews = await _context.TourReviews.Where(r => r.UserId == id).ToListAsync();
+            _context.TourReviews.RemoveRange(tourReviews);
+            var invoices = await _context.Invoices.Where(i => i.UserId == id).ToListAsync();
+            _context.Invoices.RemoveRange(invoices);
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar usuario {UserId}", id);
             throw;
         }
     }
@@ -2109,6 +2237,17 @@ public class AdminUserBookingDto
 }
 
 // UpdateUserRequestDto está definido en PanamaTravelHub.Application.Validators
+
+public class AdminCreateUserRequestDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Phone { get; set; }
+    public string Password { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public List<string>? Roles { get; set; }
+}
 
 public class RoleDto
 {

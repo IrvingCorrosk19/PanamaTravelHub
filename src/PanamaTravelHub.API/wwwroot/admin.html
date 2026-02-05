@@ -710,6 +710,9 @@
 
       <!-- Users Section -->
       <div id="users-section" class="admin-content">
+        <div class="btn-group" style="margin-bottom: 1rem;">
+          <button type="button" class="btn btn-primary" onclick="openCreateUserModal()">➕ Crear usuario</button>
+        </div>
         <div class="table-container">
           <table id="usersTable">
             <thead>
@@ -1101,6 +1104,17 @@
         <button class="close-modal" onclick="closeCouponModal()">&times;</button>
       </div>
       <div id="couponModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Modal Usuario (Crear / Editar) -->
+  <div id="userModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="userModalTitle">Usuario</h2>
+        <button class="close-modal" onclick="closeUserModal()">&times;</button>
+      </div>
+      <div id="userModalBody"></div>
     </div>
   </div>
 

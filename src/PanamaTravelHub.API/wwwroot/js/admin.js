@@ -276,11 +276,12 @@ async function loadTopToursChart() {
 // Tours
 async function loadTours() {
   try {
-    const tours = await api.getAdminTours();
+    const res = await api.getAdminTours();
+    const tours = Array.isArray(res) ? res : (res?.items || res?.data || []);
     const tbody = document.getElementById('toursTableBody');
     if (!tbody) return;
     
-    if (tours.length === 0) {
+    if (!tours || tours.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="loading">No hay tours</td></tr>';
       return;
     }
@@ -315,60 +316,232 @@ async function loadTours() {
 // Bookings
 async function loadBookings() {
   try {
-    const bookings = await api.getAdminBookings();
+    const res = await api.getAdminBookings();
+    const bookings = Array.isArray(res) ? res : (res?.items || res?.data || []);
     const tbody = document.getElementById('bookingsTableBody');
     if (!tbody) return;
     
-    if (bookings.length === 0) {
+    if (!bookings || bookings.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" class="loading">No hay reservas</td></tr>';
       return;
     }
     
-    tbody.innerHTML = bookings.map(booking => `
+    tbody.innerHTML = bookings.map(booking => {
+      const id = booking.Id ?? booking.id ?? '';
+      const idStr = typeof id === 'string' ? id : (id && id.toString ? id.toString() : '');
+      const tourName = booking.TourName ?? booking.tourName ?? '-';
+      const userEmail = booking.UserEmail ?? booking.userEmail ?? '-';
+      const tourDate = booking.TourDate ?? booking.tourDate;
+      const totalAmount = booking.TotalAmount ?? booking.totalAmount ?? 0;
+      const status = booking.Status ?? booking.status ?? '';
+      return `
       <tr>
-        <td>${booking.id.substring(0, 8)}...</td>
-        <td>${escapeHtml(booking.tourName || '-')}</td>
-        <td>${escapeHtml(booking.userEmail || '-')}</td>
-        <td>${formatDate(booking.tourDate)}</td>
-        <td>$${formatNumber(booking.totalAmount)}</td>
-        <td>${getBookingStatusBadge(booking.status)}</td>
+        <td>${idStr ? idStr.substring(0, 8) + '...' : '-'}</td>
+        <td>${escapeHtml(tourName)}</td>
+        <td>${escapeHtml(userEmail)}</td>
+        <td>${formatDate(tourDate)}</td>
+        <td>$${formatNumber(totalAmount)}</td>
+        <td>${getBookingStatusBadge(status)}</td>
         <td>
-          <button class="btn btn-secondary" onclick="viewBooking('${booking.id}')">Ver</button>
+          <button class="btn btn-secondary" onclick="viewBooking('${idStr}')">Ver</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   } catch (error) {
     console.error('Error cargando reservas:', error);
     showError('Error al cargar reservas');
   }
 }
 
+function viewBooking(bookingId) {
+  if (!bookingId) return;
+  window.open(`/reservas.html?booking=${encodeURIComponent(bookingId)}`, '_blank');
+}
+
 // Users
 async function loadUsers() {
   try {
-    const users = await api.getAdminUsers();
+    const res = await api.getAdminUsers();
+    const users = Array.isArray(res) ? res : (res?.items || res?.data || []) || [];
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
     
-    if (users.length === 0) {
+    if (!users || users.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="loading">No hay usuarios</td></tr>';
       return;
     }
     
-    tbody.innerHTML = users.map(user => `
+    tbody.innerHTML = users.map(user => {
+      const id = user.Id ?? user.id ?? '';
+      const idStr = (id && typeof id !== 'string') ? String(id) : (id || '');
+      const email = user.Email ?? user.email ?? '-';
+      const firstName = user.FirstName ?? user.firstName ?? '';
+      const lastName = user.LastName ?? user.lastName ?? '';
+      const fullName = `${firstName} ${lastName}`.trim() || '-';
+      const isActive = user.IsActive ?? user.isActive ?? false;
+      const roles = user.Roles ?? user.roles ?? [];
+      const isAdmin = Array.isArray(roles) && roles.some(r => (r && String(r).toLowerCase()) === 'admin');
+      return `
       <tr>
-        <td>${escapeHtml(user.email)}</td>
-        <td>${escapeHtml(`${user.firstName || ''} ${user.lastName || ''}`.trim() || '-')}</td>
-        <td>${user.isActive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
-        <td>${user.roles?.includes('Admin') ? '<span class="badge badge-info">Admin</span>' : '<span class="badge badge-secondary">Usuario</span>'}</td>
+        <td>${escapeHtml(email)}</td>
+        <td>${escapeHtml(fullName)}</td>
+        <td>${isActive ? '<span class="badge badge-success">Activo</span>' : '<span class="badge badge-danger">Inactivo</span>'}</td>
+        <td>${isAdmin ? '<span class="badge badge-info">Admin</span>' : '<span class="badge badge-secondary">Usuario</span>'}</td>
         <td>
-          <button class="btn btn-secondary" onclick="editUser('${user.id}')">Editar</button>
+          <button type="button" class="btn btn-secondary" onclick="editUser('${escapeHtml(idStr)}')">Editar</button>
+          <button type="button" class="btn btn-danger" onclick="deleteUser('${escapeHtml(idStr)}')">Eliminar</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   } catch (error) {
     console.error('Error cargando usuarios:', error);
     showError('Error al cargar usuarios');
+  }
+}
+
+function getUserFormHTML(isEdit) {
+  const passwordFields = isEdit
+    ? '<p class="form-hint">Dejar contraseña en blanco para no cambiarla.</p><div class="form-group"><label>Nueva contraseña</label><input type="password" id="userPassword" class="form-input" placeholder="Opcional" autocomplete="new-password" /></div>'
+    : '<div class="form-group"><label>Contraseña *</label><input type="password" id="userPassword" class="form-input" required minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password" /></div>';
+  return `
+    <form id="userForm" onsubmit="saveUser(event)">
+      <div class="form-group">
+        <label>Email *</label>
+        <input type="email" id="userEmail" class="form-input" required ${isEdit ? 'readonly' : ''} />
+      </div>
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="userFirstName" class="form-input" maxlength="100" />
+      </div>
+      <div class="form-group">
+        <label>Apellido</label>
+        <input type="text" id="userLastName" class="form-input" maxlength="100" />
+      </div>
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input type="text" id="userPhone" class="form-input" maxlength="20" />
+      </div>
+      ${passwordFields}
+      <div class="form-group">
+        <label><input type="checkbox" id="userIsActive" checked /> Activo</label>
+      </div>
+      <div class="form-group">
+        <label>Rol</label>
+        <div style="display: flex; gap: 16px;">
+          <label><input type="checkbox" id="userRoleCustomer" /> Usuario (Customer)</label>
+          <label><input type="checkbox" id="userRoleAdmin" /> Admin</label>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
+      </div>
+    </form>
+  `;
+}
+
+function openCreateUserModal() {
+  const title = document.getElementById('userModalTitle');
+  const body = document.getElementById('userModalBody');
+  if (!title || !body) return;
+  title.textContent = 'Crear usuario';
+  body.innerHTML = getUserFormHTML(false);
+  document.getElementById('userForm').dataset.userId = '';
+  document.getElementById('userModal').classList.add('active');
+}
+
+async function editUser(userId) {
+  if (!userId) return;
+  const title = document.getElementById('userModalTitle');
+  const body = document.getElementById('userModalBody');
+  if (!title || !body) return;
+  title.textContent = 'Editar usuario';
+  body.innerHTML = '<div class="loading" style="padding: 40px; text-align: center;"><div class="spinner"></div><p>Cargando...</p></div>';
+  document.getElementById('userModal').classList.add('active');
+  try {
+    const user = await api.getAdminUser(userId);
+    const email = user.Email ?? user.email ?? '';
+    const firstName = user.FirstName ?? user.firstName ?? '';
+    const lastName = user.LastName ?? user.lastName ?? '';
+    const phone = user.Phone ?? user.phone ?? '';
+    const isActive = (user.IsActive ?? user.isActive) !== false;
+    const roles = user.Roles ?? user.roles ?? [];
+    body.innerHTML = getUserFormHTML(true);
+    document.getElementById('userForm').dataset.userId = userId;
+    document.getElementById('userEmail').value = email;
+    document.getElementById('userFirstName').value = firstName;
+    document.getElementById('userLastName').value = lastName;
+    document.getElementById('userPhone').value = phone || '';
+    document.getElementById('userIsActive').checked = isActive;
+    document.getElementById('userPassword').required = false;
+    document.getElementById('userRoleCustomer').checked = Array.isArray(roles) && roles.some(r => String(r).toLowerCase() === 'customer');
+    document.getElementById('userRoleAdmin').checked = Array.isArray(roles) && roles.some(r => String(r).toLowerCase() === 'admin');
+  } catch (err) {
+    console.error(err);
+    showError('Error al cargar usuario');
+    body.innerHTML = '<p class="error">Error al cargar usuario.</p><button class="btn btn-secondary" onclick="closeUserModal()">Cerrar</button>';
+  }
+}
+
+function closeUserModal() {
+  const modal = document.getElementById('userModal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function saveUser(e) {
+  e.preventDefault();
+  const form = document.getElementById('userForm');
+  const userId = form?.dataset?.userId;
+  const email = document.getElementById('userEmail')?.value?.trim();
+  const firstName = document.getElementById('userFirstName')?.value?.trim() ?? '';
+  const lastName = document.getElementById('userLastName')?.value?.trim() ?? '';
+  const phone = document.getElementById('userPhone')?.value?.trim() || null;
+  const isActive = document.getElementById('userIsActive')?.checked ?? true;
+  const password = document.getElementById('userPassword')?.value;
+  const roles = [];
+  if (document.getElementById('userRoleAdmin')?.checked) roles.push('Admin');
+  if (document.getElementById('userRoleCustomer')?.checked) roles.push('Customer');
+  if (roles.length === 0) roles.push('Customer');
+
+  if (!email) {
+    showError('El email es obligatorio');
+    return;
+  }
+
+  try {
+    if (userId) {
+      const payload = { firstName, lastName, phone, isActive, roles };
+      if (password && password.length >= 6) payload.password = password;
+      await api.updateAdminUser(userId, payload);
+      showSuccess('Usuario actualizado');
+    } else {
+      if (!password || password.length < 6) {
+        showError('La contraseña es obligatoria y debe tener al menos 6 caracteres');
+        return;
+      }
+      await api.createAdminUser({ email, firstName, lastName, phone, password, roles, isActive });
+      showSuccess('Usuario creado');
+    }
+    closeUserModal();
+    await loadUsers();
+  } catch (err) {
+    console.error(err);
+    showError(err?.message || err?.response?.detail || 'Error al guardar usuario');
+  }
+}
+
+async function deleteUser(userId) {
+  if (!userId) return;
+  if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+  try {
+    await api.deleteAdminUser(userId);
+    showSuccess('Usuario eliminado');
+    await loadUsers();
+  } catch (err) {
+    console.error(err);
+    showError(err?.message || err?.response?.detail || 'Error al eliminar usuario');
   }
 }
 
@@ -1081,26 +1254,39 @@ async function loadMedia() {
     
     if (!tbody) return;
     
-    if (!media || media.length === 0) {
+    const list = Array.isArray(media) ? media : (media?.items || media?.data || []);
+    if (!list || list.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" class="loading">No hay archivos de media</td></tr>';
       return;
     }
     
-    tbody.innerHTML = media.map(file => `
+    tbody.innerHTML = list.map(file => {
+      const fileId = file.Id ?? file.id ?? '';
+      const fileIdStr = typeof fileId === 'string' ? fileId : (fileId && fileId.toString ? fileId.toString() : '');
+      const fileUrl = file.FileUrl ?? file.fileUrl ?? '';
+      const url = fileUrl.startsWith('http') ? fileUrl : (window.location.origin + (fileUrl.startsWith('/') ? fileUrl : '/' + fileUrl));
+      const fileName = file.FileName ?? file.fileName ?? '-';
+      const isImage = file.IsImage ?? file.isImage ?? false;
+      const fileSize = file.FileSize ?? file.fileSize ?? 0;
+      const createdAt = file.CreatedAt ?? file.createdAt;
+      const category = file.Category ?? file.category ?? '-';
+      const altText = file.AltText ?? file.altText ?? '';
+      return `
       <tr>
         <td>
-          ${file.isImage ? `<img src="${file.fileUrl}" alt="${file.altText || ''}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" />` : '📄'}
-          <span style="margin-left: 10px;">${file.fileName}</span>
+          ${isImage ? `<img src="${escapeHtml(url)}" alt="${escapeHtml(altText)}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'" />` : '📄'}
+          <span style="margin-left: 10px;">${escapeHtml(fileName)}</span>
         </td>
-        <td>${file.category || '-'}</td>
-        <td>${file.isImage ? 'Imagen' : 'Archivo'}</td>
-        <td>${formatFileSize(file.fileSize)}</td>
-        <td>${new Date(file.createdAt).toLocaleDateString()}</td>
+        <td>${escapeHtml(category)}</td>
+        <td>${isImage ? 'Imagen' : 'Archivo'}</td>
+        <td>${formatFileSize(fileSize)}</td>
+        <td>${createdAt ? new Date(createdAt).toLocaleDateString() : '-'}</td>
         <td>
-          <button class="btn btn-danger btn-sm" onclick="deleteMediaFile('${file.id}')">🗑️ Eliminar</button>
+          <button type="button" class="btn btn-danger btn-sm" data-media-id="${escapeHtml(fileIdStr)}" onclick="deleteMediaFile(this.dataset.mediaId)">🗑️ Eliminar</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   } catch (error) {
     console.error('Error cargando media:', error);
     showError('Error al cargar archivos de media');
@@ -1183,15 +1369,20 @@ async function uploadMediaFile() {
 }
 
 async function deleteMediaFile(mediaId) {
+  const id = (mediaId != null && mediaId !== '') ? String(mediaId).trim() : null;
+  if (!id) {
+    showError('ID de archivo no válido');
+    return;
+  }
   if (!confirm('¿Estás seguro de eliminar este archivo?')) return;
   
   try {
-    await api.deleteMediaFile(mediaId);
+    await api.deleteMediaFile(id);
     showSuccess('Archivo eliminado exitosamente');
     await loadMedia();
   } catch (error) {
     console.error('Error eliminando archivo:', error);
-    showError('Error al eliminar el archivo');
+    showError(error?.message || 'Error al eliminar el archivo');
   }
 }
 
@@ -1535,13 +1726,16 @@ function escapeHtml(text) {
 }
 
 function getBookingStatusBadge(status) {
+  if (status == null || status === '') return '<span class="badge badge-secondary">-</span>';
+  const s = String(status);
   const badges = {
     'Pending': '<span class="badge badge-warning">Pendiente</span>',
     'Confirmed': '<span class="badge badge-success">Confirmada</span>',
     'Cancelled': '<span class="badge badge-danger">Cancelada</span>',
-    'Completed': '<span class="badge badge-info">Completada</span>'
+    'Completed': '<span class="badge badge-info">Completada</span>',
+    'Expired': '<span class="badge badge-secondary">Expirada</span>'
   };
-  return badges[status] || status;
+  return badges[s] || '<span class="badge badge-secondary">' + escapeHtml(s) + '</span>';
 }
 
 function showError(message) {

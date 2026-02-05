@@ -210,6 +210,12 @@ class ApiClient {
           throw error;
         }
 
+        const contentType = response.headers.get('Content-Type') || '';
+        const isJson = contentType.includes('application/json');
+        if (response.status === 204 || response.status === 205 || !isJson) {
+          logger.success('Response exitoso (sin cuerpo)');
+          return {};
+        }
         const data = await response.json();
         logger.success('Response exitoso', { data });
         return data;
@@ -768,6 +774,19 @@ class ApiClient {
   async unlockAdminUser(userId) {
     return this.request(`/api/admin/users/${userId}/unlock`, {
       method: 'POST',
+    });
+  }
+
+  async createAdminUser(data) {
+    return this.request('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAdminUser(userId) {
+    return this.request(`/api/admin/users/${userId}`, {
+      method: 'DELETE',
     });
   }
 
