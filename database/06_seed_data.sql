@@ -9,11 +9,11 @@ INSERT INTO roles (id, name, description, created_at) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Insertar usuario administrador por defecto
--- Password: Admin123! (debe ser hasheado con Argon2id o BCrypt en la aplicación)
--- Por ahora solo creamos el registro, el hash se generará en la aplicación
+-- Email: admin@panamatravelhub.com | Password: Admin123!
+-- Hash BCrypt válido para Admin123! (work factor 10)
 INSERT INTO users (id, email, password_hash, first_name, last_name, is_active, created_at) VALUES
-    ('00000000-0000-0000-0000-000000000001', 'admin@toursanama.com', 
-     'PLACEHOLDER_HASH', -- Debe ser reemplazado con hash real en la aplicación
+    ('00000000-0000-0000-0000-000000000001', 'admin@panamatravelhub.com',
+     '$2a$10$9LcbAUt7aEf1qRXk39GLTO9tyAkiF7zHUfjMASIN6WrTZ.2YLVil.',
      'Admin', 'System', true, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 

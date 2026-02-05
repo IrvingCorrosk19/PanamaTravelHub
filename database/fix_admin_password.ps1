@@ -83,7 +83,7 @@ if (-not $passwordHash) {
     # Hash BCrypt para "Admin123!" generado con work factor 10
     # Este es un hash válido que puedes usar temporalmente
     # En producción, siempre genera el hash dinámicamente
-    $passwordHash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
+    $passwordHash = '$2a$10$9LcbAUt7aEf1qRXk39GLTO9tyAkiF7zHUfjMASIN6WrTZ.2YLVil.'
 }
 
 Write-Host "`nHash generado: $($passwordHash.Substring(0, 20))..." -ForegroundColor Green

@@ -10,7 +10,7 @@
 -- Hash BCrypt para "Admin123!" (work factor 10)
 UPDATE users 
 SET 
-    password_hash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    password_hash = '$2a$10$9LcbAUt7aEf1qRXk39GLTO9tyAkiF7zHUfjMASIN6WrTZ.2YLVil.',
     email = 'admin@panamatravelhub.com',
     is_active = true,
     email_verified = true,
@@ -38,7 +38,7 @@ INSERT INTO users (
 SELECT 
     '00000000-0000-0000-0000-000000000001',
     'admin@panamatravelhub.com',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    '$2a$10$9LcbAUt7aEf1qRXk39GLTO9tyAkiF7zHUfjMASIN6WrTZ.2YLVil.',
     'Admin',
     'System',
     true,

@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Verificar autenticación (seguridad temporalmente desactivada: no se verifica rol Admin)
   const token = localStorage.getItem('accessToken');
   if (!token) {
-    window.location.href = '/login.html';
+    window.location.href = '/login.html?returnTo=' + encodeURIComponent('/admin.html');
     return;
   }
 
