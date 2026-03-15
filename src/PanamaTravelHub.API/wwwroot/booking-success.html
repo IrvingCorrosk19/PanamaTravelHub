@@ -604,6 +604,7 @@
       </div>
       <div class="nav-links">
         <a href="/" class="nav-link">Tours</a>
+        <a href="/blog.html" class="nav-link">Blog</a>
         <a href="/reservas.html" class="nav-link">Mis Reservas</a>
       </div>
     </div>
@@ -621,9 +622,14 @@
 
     <!-- RESUMEN -->
     <div class="booking-summary">
-      <div class="summary-card">
+      <div class="summary-card" style="position: relative;">
         <small>NÚMERO DE RESERVA</small>
-        <strong id="bookingId">-</strong>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <strong id="bookingId">-</strong>
+          <button id="copyBookingIdBtn" onclick="copyBookingId()" title="Copiar número de reserva" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; display: inline-flex; align-items: center; transition: color 0.2s;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
       </div>
       <div class="summary-card">
         <small>ESTADO</small>
@@ -692,6 +698,20 @@
 
     let currentBookingId = null;
     let numberOfParticipants = 1;
+
+    function copyBookingId() {
+      const idEl = document.getElementById('bookingId');
+      const btn = document.getElementById('copyBookingIdBtn');
+      if (!idEl || idEl.textContent === '-') return;
+      navigator.clipboard.writeText(idEl.textContent).then(() => {
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        btn.style.color = '#10b981';
+        setTimeout(() => {
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
 
     function redirectToReservasOrHome() {
       window.location.href = '/reservas.html';

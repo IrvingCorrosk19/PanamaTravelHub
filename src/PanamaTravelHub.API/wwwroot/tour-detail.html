@@ -306,6 +306,11 @@
         try { await checkFavoriteStatus(tourId); } catch (_) { /* favoritos opcional */ }
       } catch (error) {
         console.error('Error loading tour:', error);
+        // Si el tour no existe (404) o el ID es inválido, redirigir a 404
+        if (error.status === 404 || error.message?.includes('404') || error.message?.includes('Not Found') || error.message?.includes('no encontrado')) {
+          window.location.href = '/404.html';
+          return;
+        }
         const errorMsg = error.message && error.message.includes('401')
           ? 'Tu sesión expiró. Por favor, inicia sesión nuevamente.'
           : error.message && (error.message.includes('network') || error.message.includes('fetch'))
@@ -316,7 +321,6 @@
         } else if (typeof window !== 'undefined' && window.notificationManager) {
           window.notificationManager.error(errorMsg);
         } else {
-          // Fallback si no hay notificationManager disponible
           console.error('Error al cargar el tour:', error);
         }
       }

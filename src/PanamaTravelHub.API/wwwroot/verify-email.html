@@ -59,7 +59,7 @@
           </div>
           <span class="field-error" id="tokenError"></span>
           <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 8px; text-align: center;">
-            El código expira en 15 minutos
+            El código expira en <span id="expiryCountdown" style="font-weight: 700; color: var(--primary);">15:00</span>
           </p>
         </div>
         <button type="button" class="btn-primary" style="width: 100%; margin-top: 8px;" onclick="verifyEmail()">
@@ -107,6 +107,7 @@
       document.getElementById('verificationForm').style.display = 'block';
       document.getElementById('statusMessage').textContent = 'Ingresa el código de verificación';
       document.getElementById('headerIcon').textContent = '🔐';
+      startCountdown(15 * 60);
     }
 
     // Validar código en tiempo real (solo números, 6 dígitos)
@@ -167,6 +168,31 @@
       await verifyEmailWithToken(token);
     }
 
+    // Countdown timer para la expiración del código (15 minutos)
+    let countdownInterval = null;
+    function startCountdown(seconds) {
+      const countdownEl = document.getElementById('expiryCountdown');
+      if (!countdownEl) return;
+      clearInterval(countdownInterval);
+      let remaining = seconds;
+      function update() {
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        countdownEl.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        if (remaining <= 60) {
+          countdownEl.style.color = '#ef4444';
+        }
+        if (remaining <= 0) {
+          clearInterval(countdownInterval);
+          countdownEl.textContent = 'expirado';
+          countdownEl.style.color = '#ef4444';
+        }
+        remaining--;
+      }
+      update();
+      countdownInterval = setInterval(update, 1000);
+    }
+
     async function resendVerificationEmail(e) {
       e.preventDefault();
       const errorMessage = document.getElementById('errorMessage');
@@ -185,6 +211,7 @@
         `;
         successMessage.style.display = 'block';
         errorMessage.style.display = 'none';
+        startCountdown(15 * 60);
       } catch (error) {
         errorMessage.textContent = error.message || 'Error al reenviar el email de verificación';
         errorMessage.style.display = 'block';

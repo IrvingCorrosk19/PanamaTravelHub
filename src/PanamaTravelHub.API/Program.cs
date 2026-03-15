@@ -323,6 +323,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // Habilitar archivos estáticos para CSS, JS, imágenes
+app.UseStatusCodePagesWithReExecute("/404.html");
 app.UseStaticFiles();
 
 // En Render, el proxy ya maneja HTTPS, así que solo redirigir en desarrollo
